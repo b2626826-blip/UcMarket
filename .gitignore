@@ -1,0 +1,15 @@
+.DS_Store
+
+# Java / Maven
+target/
+
+# Node / React
+node_modules/
+dist/
+
+# IDE
+.idea/
+.vscode/
+
+# Environment
+.env
