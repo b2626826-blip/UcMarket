@@ -11,5 +11,11 @@ dist/
 .idea/
 .vscode/
 
+# Eclipse / STS
+.classpath
+.project
+.settings/
+.metadata/
+
 # Environment
 .env
