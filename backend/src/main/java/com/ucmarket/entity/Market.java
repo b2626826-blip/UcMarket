@@ -114,6 +114,14 @@ public class Market {
 		return status;
 	}
 	
+	public void approve() {
+		this.status = MarketStatus.ACTIVE;
+	}
+	
+	public void reject() {
+		this.status = MarketStatus.REJECTED;
+	}
+	
 	public MarketResult getResult() {
 		return result;
 	}
