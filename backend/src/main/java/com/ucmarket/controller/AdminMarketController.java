@@ -1,7 +1,13 @@
 package com.ucmarket.controller;
 
+import org.springframework.web.bind.annotation.RequestBody;
+
+import com.ucmarket.dto.ResolveMarketRequest;
+
 import java.util.List;
 import java.util.UUID;
+
+import jakarta.validation.Valid;
 
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -46,6 +52,16 @@ public class AdminMarketController {
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
 		market.reject();
+
+		return marketRepository.save(market);
+	}
+	
+	@PostMapping("/{id}/resolve")
+	public Market resolveMarket(@PathVariable UUID id, @Valid @RequestBody ResolveMarketRequest request) {
+		Market market = marketRepository.findById(id)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+		market.resolve(request.result());
 
 		return marketRepository.save(market);
 	}

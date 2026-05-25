@@ -122,6 +122,11 @@ public class Market {
 		this.status = MarketStatus.REJECTED;
 	}
 	
+	public void resolve(MarketResult result) {
+		this.status = MarketStatus.RESOLVED;
+		this.result = result;
+	}
+	
 	public MarketResult getResult() {
 		return result;
 	}
