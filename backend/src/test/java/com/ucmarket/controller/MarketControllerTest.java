@@ -8,12 +8,17 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import java.math.BigDecimal;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.ucmarket.entity.Market;
@@ -33,52 +38,253 @@ class MarketControllerTest {
 	void createMarketReturnsCreatedMarket() throws Exception {
 		when(marketRepository.save(any(Market.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-		mockMvc.perform(post("/api/markets")
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("""
-					{
-					  "title": "Will UC beat UCLA this year?",
-					  "description": "A test prediction market",
-					  "category": "sports",
-					  "sourceUrl": "https://example.com/result",
-					  "resolutionRule": "Resolve YES if UC wins the game.",
-					  "closeAt": "2026-12-31T23:59:59"
-					}
-					"""))
-			.andExpect(status().isCreated())
-			.andExpect(jsonPath("$.title").value("Will UC beat UCLA this year?"))
-			.andExpect(jsonPath("$.description").value("A test prediction market"))
-			.andExpect(jsonPath("$.category").value("sports"))
-			.andExpect(jsonPath("$.sourceUrl").value("https://example.com/result"))
-			.andExpect(jsonPath("$.resolutionRule").value("Resolve YES if UC wins the game."))
-			.andExpect(jsonPath("$.closeAt").value("2026-12-31T23:59:59"))
-			.andExpect(jsonPath("$.status").value(MarketStatus.PENDING.name()))
-			.andExpect(jsonPath("$.yesPool").value(100))
-			.andExpect(jsonPath("$.noPool").value(100));
+		mockMvc.perform(post("/api/markets").contentType(MediaType.APPLICATION_JSON).content("""
+				{
+				  "title": "Will UC beat UCLA this year?",
+				  "description": "A test prediction market",
+				  "category": "sports",
+				  "sourceUrl": "https://example.com/result",
+				  "resolutionRule": "Resolve YES if UC wins the game.",
+				  "closeAt": "2026-12-31T23:59:59"
+				}
+				""")).andExpect(status().isCreated())
+				.andExpect(jsonPath("$.title").value("Will UC beat UCLA this year?"))
+				.andExpect(jsonPath("$.description").value("A test prediction market"))
+				.andExpect(jsonPath("$.category").value("sports"))
+				.andExpect(jsonPath("$.sourceUrl").value("https://example.com/result"))
+				.andExpect(jsonPath("$.resolutionRule").value("Resolve YES if UC wins the game."))
+				.andExpect(jsonPath("$.closeAt").value("2026-12-31T23:59:59"))
+				.andExpect(jsonPath("$.status").value(MarketStatus.PENDING.name()))
+				.andExpect(jsonPath("$.yesPool").value(100)).andExpect(jsonPath("$.noPool").value(100));
 
 		ArgumentCaptor<Market> captor = ArgumentCaptor.forClass(Market.class);
 		verify(marketRepository).save(captor.capture());
 		Market savedMarket = captor.getValue();
 		org.assertj.core.api.Assertions.assertThat(savedMarket.getTitle()).isEqualTo("Will UC beat UCLA this year?");
-		org.assertj.core.api.Assertions.assertThat(savedMarket.getCloseAt().toString()).isEqualTo("2026-12-31T23:59:59");
+		org.assertj.core.api.Assertions.assertThat(savedMarket.getCloseAt().toString())
+				.isEqualTo("2026-12-31T23:59:59");
 	}
 
 	@Test
 	void createMarketRejectsBlankTitle() throws Exception {
-		mockMvc.perform(post("/api/markets")
+		mockMvc.perform(post("/api/markets").contentType(MediaType.APPLICATION_JSON).content("""
+				{
+				  "title": "",
+				  "description": "A test prediction market",
+				  "category": "sports",
+				  "sourceUrl": "https://example.com/result",
+				  "resolutionRule": "Resolve YES if UC wins the game.",
+				  "closeAt": "2026-12-31T23:59:59"
+				}
+				""")).andExpect(status().isBadRequest());
+
+		verify(marketRepository, never()).save(any());
+	}
+
+	@Test
+	void quoteTradeReturnsQuoteDetails() throws Exception {
+		UUID marketId = UUID.randomUUID();
+
+		Market activeMarket = new Market(
+				"Will UC beat UCLA this year?",
+				"A test prediction market",
+				"sports",
+				"https://example.com/result",
+				"Resolve YES if UC wins the game.",
+				null
+		);
+		activeMarket.approve();
+
+		when(marketRepository.findById(marketId)).thenReturn(Optional.of(activeMarket));
+
+		mockMvc.perform(post("/api/markets/{id}/trades/quote", marketId)
 				.contentType(MediaType.APPLICATION_JSON)
 				.content("""
 					{
-					  "title": "",
-					  "description": "A test prediction market",
-					  "category": "sports",
-					  "sourceUrl": "https://example.com/result",
-					  "resolutionRule": "Resolve YES if UC wins the game.",
-					  "closeAt": "2026-12-31T23:59:59"
+					  "side": "YES",
+					  "amount": 10
+					}
+					"""))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.side").value("YES"))
+			.andExpect(jsonPath("$.amount").value(10))
+			.andExpect(jsonPath("$.price").value(0.5))
+			.andExpect(jsonPath("$.estimatedCost").value(5.0));
+		
+		verify(marketRepository, never()).save(any(Market.class));
+	}
+
+	@Test
+	void quoteTradeMissingMarketReturnsNotFound() throws Exception {
+		UUID marketId = UUID.randomUUID();
+
+		when(marketRepository.findById(marketId)).thenReturn(Optional.empty());
+
+		mockMvc.perform(
+				post("/api/markets/{id}/trades/quote", marketId).contentType(MediaType.APPLICATION_JSON).content("""
+						{
+						  "side": "YES",
+						  "amount": 10
+						}
+						""")).andExpect(status().isNotFound());
+
+		verify(marketRepository, never()).save(any(Market.class));
+	}
+
+	@Test
+	void quoteTradeRejectsMissingSide() throws Exception {
+		UUID marketId = UUID.randomUUID();
+
+		Market activeMarket = new Market("Will UC beat UCLA this year?", "A test prediction market", "sports",
+				"https://example.com/result", "Resolve YES if UC wins the game.", null);
+		activeMarket.approve();
+
+		when(marketRepository.findById(marketId)).thenReturn(Optional.of(activeMarket));
+
+		mockMvc.perform(
+				post("/api/markets/{id}/trades/quote", marketId).contentType(MediaType.APPLICATION_JSON).content("""
+						{
+						  "amount": 10
+						}
+						""")).andExpect(status().isBadRequest());
+
+		verify(marketRepository, never()).save(any(Market.class));
+	}
+
+	@Test
+	void quoteTradeRejectsMissingAmount() throws Exception {
+		UUID marketId = UUID.randomUUID();
+
+		Market activeMarket = new Market("Will UC beat UCLA this year?", "A test prediction market", "sports",
+				"https://example.com/result", "Resolve YES if UC wins the game.", null);
+		activeMarket.approve();
+
+		when(marketRepository.findById(marketId)).thenReturn(Optional.of(activeMarket));
+
+		mockMvc.perform(
+				post("/api/markets/{id}/trades/quote", marketId).contentType(MediaType.APPLICATION_JSON).content("""
+						{
+						  "side": "YES"
+						}
+						""")).andExpect(status().isBadRequest());
+
+		verify(marketRepository, never()).save(any(Market.class));
+	}
+
+	@Test
+	void quoteTradeRejectsZeroAmount() throws Exception {
+		UUID marketId = UUID.randomUUID();
+
+		Market activeMarket = new Market("Will UC beat UCLA this year?", "A test prediction market", "sports",
+				"https://example.com/result", "Resolve YES if UC wins the game.", null);
+		activeMarket.approve();
+
+		when(marketRepository.findById(marketId)).thenReturn(Optional.of(activeMarket));
+
+		mockMvc.perform(
+				post("/api/markets/{id}/trades/quote", marketId).contentType(MediaType.APPLICATION_JSON).content("""
+						{
+						  "side": "YES",
+						  "amount": 0
+						}
+						""")).andExpect(status().isBadRequest());
+
+		verify(marketRepository, never()).save(any(Market.class));
+	}
+	
+	@Test
+	void quoteTradeCanQuoteNoSide() throws Exception {
+		UUID marketId = UUID.randomUUID();
+
+		Market activeMarket = new Market(
+				"Will UC beat UCLA this year?",
+				"A test prediction market",
+				"sports",
+				"https://example.com/result",
+				"Resolve YES if UC wins the game.",
+				null
+		);
+		activeMarket.approve();
+
+		when(marketRepository.findById(marketId)).thenReturn(Optional.of(activeMarket));
+
+		mockMvc.perform(post("/api/markets/{id}/trades/quote", marketId)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{
+					  "side": "NO",
+					  "amount": 10
+					}
+					"""))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.side").value("NO"))
+			.andExpect(jsonPath("$.amount").value(10))
+			.andExpect(jsonPath("$.price").value(0.5))
+			.andExpect(jsonPath("$.estimatedCost").value(5.0));
+
+		verify(marketRepository, never()).save(any(Market.class));
+	}
+	
+	@Test
+	void quoteTradeUsesOppositePoolForYesPrice() throws Exception {
+		UUID marketId = UUID.randomUUID();
+
+		Market activeMarket = new Market(
+				"Will UC beat UCLA this year?",
+				"A test prediction market",
+				"sports",
+				"https://example.com/result",
+				"Resolve YES if UC wins the game.",
+				null
+		);
+		activeMarket.approve();
+
+		ReflectionTestUtils.setField(activeMarket, "yesPool", BigDecimal.valueOf(150));
+		ReflectionTestUtils.setField(activeMarket, "noPool", BigDecimal.valueOf(50));
+
+		when(marketRepository.findById(marketId)).thenReturn(Optional.of(activeMarket));
+
+		mockMvc.perform(post("/api/markets/{id}/trades/quote", marketId)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{
+					  "side": "YES",
+					  "amount": 10
+					}
+					"""))
+			.andExpect(status().isOk())
+			.andExpect(jsonPath("$.side").value("YES"))
+			.andExpect(jsonPath("$.price").value(0.25))
+			.andExpect(jsonPath("$.estimatedCost").value(2.5));
+
+		verify(marketRepository, never()).save(any(Market.class));
+	}
+	
+	@Test
+	void quoteTradeRejectsNonActiveMarket() throws Exception {
+		UUID marketId = UUID.randomUUID();
+
+		Market pendingMarket = new Market(
+				"Will UC beat UCLA this year?",
+				"A test prediction market",
+				"sports",
+				"https://example.com/result",
+				"Resolve YES if UC wins the game.",
+				null
+		);
+
+		when(marketRepository.findById(marketId)).thenReturn(Optional.of(pendingMarket));
+
+		mockMvc.perform(post("/api/markets/{id}/trades/quote", marketId)
+				.contentType(MediaType.APPLICATION_JSON)
+				.content("""
+					{
+					  "side": "YES",
+					  "amount": 10
 					}
 					"""))
 			.andExpect(status().isBadRequest());
 
-		verify(marketRepository, never()).save(any());
+		verify(marketRepository, never()).save(any(Market.class));
 	}
 }
