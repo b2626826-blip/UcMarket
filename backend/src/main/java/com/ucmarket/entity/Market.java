@@ -139,6 +139,14 @@ public class Market {
 		return noPool;
 	}
 	
+	public void buy(MarketSide side, BigDecimal amount) {
+		if (side == MarketSide.YES) {
+			this.yesPool = this.yesPool.add(amount);
+		} else {
+			this.noPool = this.noPool.add(amount);
+		}
+	}
+	
 	public LocalDateTime getCreatedAt() {
 		return createdAt;
 	}

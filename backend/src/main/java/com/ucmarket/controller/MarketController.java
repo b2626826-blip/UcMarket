@@ -23,6 +23,10 @@ import com.ucmarket.entity.MarketSide;
 import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.repository.MarketRepository;
 
+import com.ucmarket.entity.Trade;
+import com.ucmarket.entity.TradeAction;
+import com.ucmarket.repository.TradeRepository;
+
 import jakarta.validation.Valid;
 
 @RestController
@@ -30,9 +34,12 @@ import jakarta.validation.Valid;
 public class MarketController {
 
 	private final MarketRepository marketRepository;
+	
+	private final TradeRepository tradeRepository;
 
-	public MarketController(MarketRepository marketRepository) {
+	public MarketController(MarketRepository marketRepository, TradeRepository tradeRepository) {
 		this.marketRepository = marketRepository;
+		this.tradeRepository = tradeRepository;
 	}
 
 	@GetMapping
@@ -63,6 +70,37 @@ public class MarketController {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
 		}
 
+		return buildQuote(market, request);
+	}
+	
+	@PostMapping("/{id}/trades")
+	@ResponseStatus(HttpStatus.CREATED)
+	public TradeQuoteResponse createTrade(@PathVariable UUID id, @Valid @RequestBody TradeQuoteRequest request) {
+		Market market = marketRepository.findById(id)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+		if (market.getStatus() != MarketStatus.ACTIVE) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+		}
+
+		TradeQuoteResponse quote = buildQuote(market, request);
+
+		market.buy(request.side(), request.amount());
+		marketRepository.save(market);
+
+		Trade trade = new Trade(
+				id,
+				request.side(),
+				TradeAction.BUY,
+				request.amount(),
+				quote.price()
+		);
+		tradeRepository.save(trade);
+
+		return quote;
+	}
+	
+	private TradeQuoteResponse buildQuote(Market market, TradeQuoteRequest request) {
 		BigDecimal totalPool = market.getYesPool().add(market.getNoPool());
 		BigDecimal sidePool = request.side() == MarketSide.YES
 				? market.getNoPool()
