@@ -84,6 +84,7 @@ public class MarketController {
 		}
 
 		TradeQuoteResponse quote = buildQuote(market, request);
+		BigDecimal shares = request.amount().divide(quote.price(), 4, RoundingMode.HALF_UP);
 
 		market.buy(request.side(), request.amount());
 		marketRepository.save(market);
@@ -93,7 +94,8 @@ public class MarketController {
 				request.side(),
 				TradeAction.BUY,
 				request.amount(),
-				quote.price()
+				quote.price(),
+				shares
 		);
 		tradeRepository.save(trade);
 

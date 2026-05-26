@@ -38,6 +38,9 @@ public class Trade {
 
 	@Column(nullable = false)
 	private BigDecimal price;
+	
+	@Column(nullable = false)
+	private BigDecimal shares;
 
 	@Column(name = "created_at", nullable = false)
 	private LocalDateTime createdAt;
@@ -45,12 +48,13 @@ public class Trade {
 	protected Trade() {
 	}
 
-	public Trade(UUID marketId, MarketSide side, TradeAction action, BigDecimal amount, BigDecimal price) {
+	public Trade(UUID marketId, MarketSide side, TradeAction action, BigDecimal amount, BigDecimal price, BigDecimal shares) {
 		this.marketId = marketId;
 		this.side = side;
 		this.action = action;
 		this.amount = amount;
 		this.price = price;
+		this.shares = shares;
 	}
 
 	@PrePersist
@@ -82,6 +86,10 @@ public class Trade {
 
 	public BigDecimal getPrice() {
 		return price;
+	}
+	
+	public BigDecimal getShares() {
+		return shares;
 	}
 
 	public LocalDateTime getCreatedAt() {

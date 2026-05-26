@@ -341,6 +341,8 @@ class MarketControllerTest {
 		org.assertj.core.api.Assertions.assertThat(savedTrade.getAction()).isEqualTo(TradeAction.BUY);
 		org.assertj.core.api.Assertions.assertThat(savedTrade.getAmount()).isEqualByComparingTo(BigDecimal.valueOf(10));
 		org.assertj.core.api.Assertions.assertThat(savedTrade.getPrice()).isEqualByComparingTo(BigDecimal.valueOf(0.5));
+		org.assertj.core.api.Assertions.assertThat(savedTrade.getShares()).isEqualByComparingTo(BigDecimal.valueOf(20));
+		
 	}
 	
 	@Test
