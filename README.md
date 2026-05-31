@@ -132,7 +132,8 @@ MVP 階段先支援二元市場，也就是每個市場只有 Yes / No 兩個交
 ## 文件
 
 - 專題規格書：[docs/project-spec.md](docs/project-spec.md)
-- 技術架構：[docs/專案架構/技術架構.md](docs/專案架構/技術架構.md)
+- 技術架構：[docs/系統設計/技術架構.md](docs/系統設計/技術架構.md)
+- 資料庫設計：[docs/資料庫設計/ucmarket-integrated-erd.md](docs/資料庫設計/ucmarket-integrated-erd.md)
 
 ## 1. Think Before Coding
 

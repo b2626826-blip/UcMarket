@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UcMarket Frontend Public Template</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar" aria-label="Primary">
+        <a class="brand" href="#" aria-label="UcMarket">
+          <span class="brand-mark">U</span>
+          <span>UcMarket</span>
+        </a>
+
+        <nav class="nav-links" aria-label="Main navigation">
+          <a href="#markets">市場</a>
+          <a href="#portfolio">資產</a>
+          <a href="#review">審核</a>
+          <a href="#ranking">排行</a>
+        </nav>
+
+        <div class="top-actions">
+          <button class="icon-button" type="button" aria-label="搜尋">
+            <span aria-hidden="true">⌕</span>
+          </button>
+          <button class="primary-action" type="button">建立市場</button>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero-section" aria-labelledby="hero-title">
+          <div class="hero-copy">
+            <p class="eyebrow">模擬預測市場</p>
+            <h1 id="hero-title">用清楚的市場問題，交換更接近真相的機率。</h1>
+            <p class="hero-text">
+              UcMarket 以虛擬點數完成開盤、審核、交易與結算流程，讓價格變化成為團隊展示的核心畫面。
+            </p>
+
+            <div class="hero-controls" aria-label="Hero actions">
+              <button class="hero-button hero-button-dark" type="button">探索市場</button>
+              <button class="hero-button" type="button">查看持倉</button>
+            </div>
+          </div>
+
+          <aside class="live-panel" aria-label="Featured market preview">
+            <div class="panel-heading">
+              <div>
+                <p class="panel-kicker">焦點市場</p>
+                <h2>BTC 是否會突破 120,000 美元？</h2>
+              </div>
+              <span class="status-pill">ACTIVE</span>
+            </div>
+
+            <canvas id="heroChart" width="720" height="260" aria-label="Yes price trend"></canvas>
+
+            <div class="quote-row">
+              <div>
+                <span>Yes</span>
+                <strong>64%</strong>
+              </div>
+              <div>
+                <span>No</span>
+                <strong>36%</strong>
+              </div>
+              <div>
+                <span>成交量</span>
+                <strong>42.8K</strong>
+              </div>
+            </div>
+          </aside>
+        </section>
+
+        <section class="metric-strip" aria-label="Platform summary">
+          <article>
+            <span>可交易市場</span>
+            <strong>128</strong>
+          </article>
+          <article>
+            <span>今日成交量</span>
+            <strong>86.4K</strong>
+          </article>
+          <article>
+            <span>待審核市場</span>
+            <strong>12</strong>
+          </article>
+          <article>
+            <span>平均結算時間</span>
+            <strong>18m</strong>
+          </article>
+        </section>
+
+        <section class="workspace-grid">
+          <section class="market-workspace" id="markets" aria-labelledby="markets-title">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Market Board</p>
+                <h2 id="markets-title">市場列表</h2>
+              </div>
+              <label class="search-field">
+                <span>⌕</span>
+                <input id="marketSearch" type="search" placeholder="搜尋市場、分類或狀態" />
+              </label>
+            </div>
+
+            <div class="filter-tabs" role="tablist" aria-label="Market filters">
+              <button class="tab-button is-active" type="button" data-filter="all">全部</button>
+              <button class="tab-button" type="button" data-filter="crypto">加密貨幣</button>
+              <button class="tab-button" type="button" data-filter="tech">科技</button>
+              <button class="tab-button" type="button" data-filter="sports">體育</button>
+            </div>
+
+            <div class="market-list" id="marketList" aria-live="polite"></div>
+          </section>
+
+          <aside class="trade-panel" aria-labelledby="trade-title">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Trade Preview</p>
+                <h2 id="trade-title">交易試算</h2>
+              </div>
+              <span class="status-dot">Live</span>
+            </div>
+
+            <div class="selected-market">
+              <p id="selectedCategory">加密貨幣</p>
+              <h3 id="selectedTitle">BTC 是否會突破 120,000 美元？</h3>
+            </div>
+
+            <div class="segmented-control" aria-label="Trade side">
+              <button class="side-button is-active" type="button" data-side="yes">Yes</button>
+              <button class="side-button" type="button" data-side="no">No</button>
+            </div>
+
+            <label class="amount-field">
+              <span>投入點數</span>
+              <input id="amountInput" type="number" min="10" step="10" value="500" />
+            </label>
+
+            <div class="quote-card" id="quoteCard">
+              <div>
+                <span>成交價格</span>
+                <strong id="quotePrice">0.64</strong>
+              </div>
+              <div>
+                <span>預估份額</span>
+                <strong id="quoteShares">781.25</strong>
+              </div>
+              <div>
+                <span>最高回收</span>
+                <strong id="quoteReturn">781</strong>
+              </div>
+            </div>
+
+            <button class="submit-trade" type="button">送出交易</button>
+
+            <div class="rule-box">
+              <span>結算規則</span>
+              <p id="selectedRule">
+                以 Coinbase 現貨價格為準，若在截止時間前突破門檻，Yes 結算為勝出。
+              </p>
+            </div>
+          </aside>
+        </section>
+
+        <section class="lower-grid">
+          <article class="portfolio-panel" id="portfolio" aria-labelledby="portfolio-title">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Portfolio</p>
+                <h2 id="portfolio-title">我的資產</h2>
+              </div>
+              <span class="balance">12,480 pts</span>
+            </div>
+
+            <div class="position-list">
+              <div class="position-item">
+                <span class="position-color yes"></span>
+                <div>
+                  <strong>Yes / BTC 120K</strong>
+                  <span>420 份額 · 平均 0.58</span>
+                </div>
+                <b>+8.4%</b>
+              </div>
+              <div class="position-item">
+                <span class="position-color no"></span>
+                <div>
+                  <strong>No / 新機發表</strong>
+                  <span>180 份額 · 平均 0.41</span>
+                </div>
+                <b>-2.1%</b>
+              </div>
+            </div>
+          </article>
+
+          <article class="review-panel" id="review" aria-labelledby="review-title">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Admin Review</p>
+                <h2 id="review-title">待審核市場</h2>
+              </div>
+              <span class="review-count">3</span>
+            </div>
+
+            <div class="review-list">
+              <div>
+                <strong>2026 台灣職棒冠軍是否為兄弟？</strong>
+                <span>需確認資料來源與截止時間</span>
+              </div>
+              <div>
+                <strong>AI 晶片供應量是否突破上季？</strong>
+                <span>結算條件需避免主觀描述</span>
+              </div>
+              <div>
+                <strong>指定演說是否提到關鍵詞？</strong>
+                <span>需補官方逐字稿來源</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="ranking-panel" id="ranking" aria-labelledby="ranking-title">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Ranking</p>
+                <h2 id="ranking-title">本週排行</h2>
+              </div>
+            </div>
+
+            <ol class="ranking-list">
+              <li><span>chen_qa</span><strong>+3,420</strong></li>
+              <li><span>market_tim</span><strong>+2,850</strong></li>
+              <li><span>eagle_admin</span><strong>+2,110</strong></li>
+            </ol>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
