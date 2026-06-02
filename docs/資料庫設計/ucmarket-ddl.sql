@@ -1,5 +1,5 @@
 -- UcMarket consolidated PostgreSQL DDL
--- Sources: docs/*, backend entities, and 個人er/*.xlsx.
+-- Sources: docs/project-spec.md, docs/系統設計/技術架構.md, this ERD folder, and backend entities.
 -- Design goal: one canonical table per concept; ranking is computed by views.
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;

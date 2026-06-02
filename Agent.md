@@ -1,6 +1,6 @@
 # Agent.md - UcMarket AI 接手指南
 
-這份文件給未來接手 UcMarket 的 AI agent 使用。請先讀完本檔，再讀 `README.md`、`docs/project-spec.md`、`docs/系統設計/技術架構.md`、`docs/資料庫設計/ucmarket-integrated-erd.md` 與相關 DDL。
+這份文件給未來接手 UcMarket 的 AI agent 使用。請先讀完本檔，再讀 `README.md`、`docs/project-spec.md`、`docs/系統設計/技術架構.md`、`docs/資料庫設計/ucmarket-er-diagram.md` 與 `docs/資料庫設計/ucmarket-ddl.sql`。
 
 ## 1. 這個專案目標是什麼
 
@@ -70,7 +70,7 @@ no_price = yes_pool / (yes_pool + no_pool)
 - `docs/project-spec.md`：完整產品規格、市場規則、角色、流程、資料表草案。
 - `docs/系統設計/技術架構.md`：前後端分離、後端分層、核心模組與建議目錄。
 - `docs/資料庫設計/`：DDL、ERD、資料庫設計文件與圖檔。
-- `docs/resolution-ranking-planning.md`：結算、排行榜、個人績效的分工與資料流規劃。
+- `docs/資料庫設計/ucmarket-er-diagram.md`：整合後的 ER 圖、資料表關係與整併決策。
 - `backend/`：Spring Boot 後端骨架，Java 21、Spring Boot 3.5.0、JPA、Validation、Web、PostgreSQL driver。
 - `frontend/`：前端目錄骨架，目前多數資料夾仍是 `.gitkeep`。
 - `公版/`：獨立靜態前端參照物，Apple-like 簡潔風格，可直接開 `公版/index.html` 檢視；包含市場列表、篩選搜尋、交易試算、資產、審核、排行榜等展示畫面。
@@ -151,7 +151,7 @@ no_price = yes_pool / (yes_pool + no_pool)
 ### 4.4 資料庫規格
 
 - 以 PostgreSQL 為主。
-- 優先對齊 `docs/資料庫設計/ucmarket-ddl.sql` 與整合 ERD。
+- 優先對齊 `docs/資料庫設計/ucmarket-ddl.sql` 與 `docs/資料庫設計/ucmarket-er-diagram.md`。
 - 使用 `users`、`wallets`、`wallet_transactions`、`markets`、`market_reviews`、`market_price_history`、`market_options`、`trades`、`positions` 等核心表。
 - 金額、價格、份額不要用浮點數草率處理；後端與資料庫都要選擇能支援精準計算的型別。
 - 所有重要狀態欄位要有清楚 enum 或限制規則。
@@ -172,6 +172,13 @@ no_price = yes_pool / (yes_pool + no_pool)
 - 前端修改：啟動 dev server 或直接開靜態頁，檢查主要互動與響應式畫面。
 - 文件修改：確認路徑、術語、狀態名稱、資料表名稱與現有文件一致。
 - 若無法驗證，回報原因，不要假裝已經通過。
+
+### 4.7 資料夾整理與 IDE 設定
+
+- 清理資料夾時，可以刪除明確的暫存或建置產物，例如 `.DS_Store`、`target/`、`node_modules/`、`dist/`、log 檔與其他可重新產生的 cache。
+- 不要在未確認 IDE 使用情境前刪除 Eclipse / STS 會用來辨識專案的本機設定，例如 `backend/.project`、`backend/.classpath`、`backend/.settings/`。
+- 即使這些 IDE 設定被 `.gitignore` 忽略，也可能是使用者本機開發環境正在依賴的檔案；清理前要先區分「不進 Git」和「本機不需要」。
+- 若已誤刪 IDE 設定，優先從 `backend/pom.xml` 重新匯入 Maven 專案，或補回最小 Eclipse m2e 設定，讓 IDE 能再次找到 Java source folder。
 
 ## 5. 與使用者合作的方式
 
