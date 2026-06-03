@@ -1,5 +1,6 @@
 package com.ucmarket.controller;
 
+import com.ucmarket.service.ResolutionService;
 import org.springframework.web.bind.annotation.RequestBody;
 
 import com.ucmarket.dto.ResolveMarketRequest;
@@ -24,11 +25,14 @@ import com.ucmarket.repository.MarketRepository;
 @RestController
 @RequestMapping("/api/admin/markets")
 public class AdminMarketController {
+	
+	private final ResolutionService resolutionService;
 
 	private final MarketRepository marketRepository;
 
-	public AdminMarketController(MarketRepository marketRepository) {
+	public AdminMarketController(MarketRepository marketRepository, ResolutionService resolutionService) {
 		this.marketRepository = marketRepository;
+		this.resolutionService = resolutionService;
 	}
 
 	@GetMapping("/pending")
@@ -58,11 +62,6 @@ public class AdminMarketController {
 	
 	@PostMapping("/{id}/resolve")
 	public Market resolveMarket(@PathVariable UUID id, @Valid @RequestBody ResolveMarketRequest request) {
-		Market market = marketRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-
-		market.resolve(request.result());
-
-		return marketRepository.save(market);
+		return resolutionService.resolveMarket(id, request.result());
 	}
 }

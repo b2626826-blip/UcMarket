@@ -1,5 +1,6 @@
 package com.ucmarket.controller;
 
+import com.ucmarket.service.ResolutionService;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -8,6 +9,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import com.ucmarket.entity.MarketResult;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.List;
 import java.util.Optional;
@@ -32,6 +36,9 @@ class AdminMarketControllerTest {
 
 	@MockitoBean
 	private MarketRepository marketRepository;
+	
+	@MockitoBean
+	private ResolutionService resolutionService;
 
 	@Test
 	void listPendingMarketsReturnsOnlyPendingMarkets() throws Exception {
@@ -92,7 +99,7 @@ class AdminMarketControllerTest {
 	void resolveMarketWithYesResultChangesStatusToResolved() throws Exception {
 		UUID marketId = UUID.randomUUID();
 
-		Market activeMarket = new Market(
+		Market resolvedMarket = new Market(
 				"Will UC beat UCLA this year?",
 				"A test prediction market",
 				"sports",
@@ -100,9 +107,10 @@ class AdminMarketControllerTest {
 				"Resolve YES if UC wins the game.",
 				null
 		);
+		resolvedMarket.approve();
+		resolvedMarket.resolve(MarketResult.YES);
 
-		when(marketRepository.findById(marketId)).thenReturn(Optional.of(activeMarket));
-		when(marketRepository.save(any(Market.class))).thenAnswer(invocation -> invocation.getArgument(0));
+		when(resolutionService.resolveMarket(marketId, MarketResult.YES)).thenReturn(resolvedMarket);
 
 		mockMvc.perform(post("/api/admin/markets/{id}/resolve", marketId)
 				.contentType(MediaType.APPLICATION_JSON)
@@ -115,14 +123,15 @@ class AdminMarketControllerTest {
 				.andExpect(jsonPath("$.status").value("RESOLVED"))
 				.andExpect(jsonPath("$.result").value("YES"));
 
-		verify(marketRepository).save(activeMarket);
+		verify(resolutionService).resolveMarket(marketId, MarketResult.YES);
 	}
 	
 	@Test
 	void resolveMissingMarketReturnsNotFound() throws Exception {
 		UUID marketId = UUID.randomUUID();
 
-		when(marketRepository.findById(marketId)).thenReturn(Optional.empty());
+		when(resolutionService.resolveMarket(marketId, MarketResult.YES))
+				.thenThrow(new ResponseStatusException(HttpStatus.NOT_FOUND));
 
 		mockMvc.perform(post("/api/admin/markets/{id}/resolve", marketId)
 				.contentType(MediaType.APPLICATION_JSON)

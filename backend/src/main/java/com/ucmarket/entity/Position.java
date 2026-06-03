@@ -47,7 +47,7 @@ public class Position {
 	@Column(name = "updated_at", nullable = false)
 	private LocalDateTime updatedAt = LocalDateTime.now();
 
-	protected Position() {
+	public Position() {
 	}
 
 	@PreUpdate
