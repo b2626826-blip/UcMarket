@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POLYMARKET Wallet</title>
+
+    <link rel="stylesheet" href="../css/style.css">
+    <script src="../js/wallet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+
+<body>
+
+<header class="wallet-navbar">
+    <div class="logo">
+    <div class="logo-icon">
+        <i class="fa-solid fa-chart-simple"></i>
+    </div>
+    <strong>POLYMARKET</strong>
+</div>
+    </div>
+
+    <nav class="wallet-nav-menu">
+        <a href="#">市場</a>
+        <a href="#">趨勢</a>
+        <a href="#">加密</a>
+        <a href="#">科技</a>
+    </nav>
+
+    <div class="wallet-nav-actions">
+        <a href="#" class="active">
+            <i class="fa-regular fa-credit-card"></i>
+            錢包
+        </a>
+        <a href="#">遊戲玩法</a>
+        <a href="#">登入</a>
+        <button id="registerBtn">註冊</button>
+        <button class="menu-btn">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+    </div>
+</header>
+
+<main class="wallet-wrapper">
+
+    <section class="wallet-page-title">
+        <h1>錢包</h1>
+        <p>管理您的數位資產、查看盈虧與交易紀錄</p>
+    </section>
+
+    <section class="wallet-balance-section">
+
+        <div class="balance-main">
+            <span>總資產價值</span>
+            <h2>$125,430.82</h2>
+
+            <div class="balance-status">
+                <p>
+                    <i class="green-dot"></i>
+                    可用 $89,230.45
+                </p>
+                <p>
+                    <i class="gold-dot"></i>
+                    鎖定倉位 $36,200.37
+                </p>
+            </div>
+        </div>
+
+        <div class="balance-actions">
+        </button>
+
+            <button id="withdrawBtn">
+                <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                充值
+            </button>
+
+
+            <button id="withdrawBtn">
+                <i class="fa-solid fa-arrow-up-from-bracket"></i>
+                提現
+            </button>
+
+            <button id="tradeBtn">
+                <i class="fa-regular fa-circle-play"></i>
+                交易
+            </button>
+        </div>
+
+        <div class="profit-grid">
+            <div class="profit-card">
+                <p>今日盈虧</p>
+                <strong>+$2.3K</strong>
+                <span>+1.90%</span>
+            </div>
+
+            <div class="profit-card">
+                <p>本週盈虧</p>
+                <strong>+$8.9K</strong>
+                <span>+7.66%</span>
+            </div>
+
+            <div class="profit-card">
+                <p>本月盈虧</p>
+                <strong>+$15.4K</strong>
+                <span>+14.02%</span>
+            </div>
+
+            <div class="profit-card">
+                <p>累計盈虧</p>
+                <strong>+$42.3K</strong>
+                <span>+51.02%</span>
+            </div>
+        </div>
+
+    </section>
+
+    <section class="wallet-dashboard">
+
+        <section class="asset-chart-card">
+            <div class="card-header">
+                <div>
+                    <h3>資產走勢</h3>
+                    
+
+                    <div class="asset-chart-value">
+                        <strong>$125,430</strong>
+                        <span>+42.86%</span>
+                    </div>
+                </div>
+
+<div class="range-tabs">
+    <button>7天</button>
+    <button class="active">30天</button>
+    <button>90天</button>
+    <button>1年</button>
+    <button>全部</button>
+</div>
+            </div>
+
+            <div class="chart-box">
+           
+    <canvas id="walletChart"></canvas>
+
+    <canvas id="drawCanvas"></canvas>
+            </div>
+
+            <div class="chart-summary">
+                <div>
+                    <p>起始</p>
+                    <strong>$87,800</strong>
+                </div>
+
+                <div>
+                    <p>當前</p>
+                    <strong>$125,430</strong>
+                </div>
+
+                <div>
+                    <p>變動</p>
+                    <strong class="positive">+$37,630</strong>
+                </div>
+            </div>
+        </section>
+
+        <aside class="asset-allocation-card">
+            <h3>資產配置</h3>
+
+            <div class="allocation-total">
+                <h2>$125,430.82</h2>
+                <p>總資產價值</p>
+            </div>
+
+            <div class="asset-list">
+
+                <div class="asset-item">
+                    <div class="asset-info">
+                        <div class="coin-icon usdc">
+                            <i class="fa-solid fa-circle-dot"></i>
+                        </div>
+                        <div>
+                            <strong>USDC</strong>
+                            <p>USD Coin</p>
+                        </div>
+                    </div>
+
+                    <div class="asset-price">
+                        <strong>$52,340.25</strong>
+                        <p>52,340.25 USDC</p>
+                    </div>
+
+                    <div class="asset-bar">
+                        <span style="width:41.7%"></span>
+                    </div>
+
+                    <em>41.7%</em>
+                </div>
+
+                <div class="asset-item">
+                    <div class="asset-info">
+                        <div class="coin-icon eth">
+                            <i class="fa-brands fa-ethereum"></i>
+                        </div>
+                        <div>
+                            <strong>ETH</strong>
+                            <p>Ethereum</p>
+                        </div>
+                    </div>
+
+                    <div class="asset-price">
+                        <strong>$28,438.5</strong>
+                        <p>8.42 ETH</p>
+                    </div>
+
+                    <div class="asset-bar gold">
+                        <span style="width:22.7%"></span>
+                    </div>
+
+                    <em>22.7%</em>
+                </div>
+
+                <div class="asset-item">
+                    <div class="asset-info">
+                        <div class="coin-icon btc">
+                            <i class="fa-brands fa-bitcoin"></i>
+                        </div>
+                        <div>
+                            <strong>BTC</strong>
+                            <p>Bitcoin</p>
+                        </div>
+                    </div>
+
+                    <div class="asset-price">
+                        <strong>$22,120</strong>
+                        <p>0.28 BTC</p>
+                    </div>
+
+                    <div class="asset-bar gold">
+                        <span style="width:17.6%"></span>
+                    </div>
+
+                    <em>17.6%</em>
+                </div>
+
+                <div class="asset-item">
+                    <div class="asset-info">
+                        <div class="coin-icon sol">
+                            <i class="fa-solid fa-sun"></i>
+                        </div>
+                        <div>
+                            <strong>SOL</strong>
+                            <p>Solana</p>
+                        </div>
+                    </div>
+
+                    <div class="asset-price">
+                        <strong>$12,540.07</strong>
+                        <p>54.3 SOL</p>
+                    </div>
+
+                    <div class="asset-bar">
+                        <span style="width:10%"></span>
+                    </div>
+
+                    <em>10.0%</em>
+                </div>
+
+                <div class="asset-item">
+                    <div class="asset-info">
+                        <div class="coin-icon pol">
+                            <i class="fa-solid fa-square-poll-vertical"></i>
+                        </div>
+                        <div>
+                            <strong>POL</strong>
+                            <p>Polymarket Token</p>
+                        </div>
+                    </div>
+
+                    <div class="asset-price">
+                        <strong>$10,000</strong>
+                        <p>12,500 POL</p>
+                    </div>
+
+                    <div class="asset-bar gray">
+                        <span style="width:8%"></span>
+                    </div>
+
+                    <em>8.0%</em>
+                </div>
+
+            </div>
+        </aside>
+
+    </section>
+
+    <section class="transaction-section">
+
+        <div class="transaction-header">
+            <h3>交易紀錄</h3>
+
+            <div class="transaction-tabs">
+            <button class="active" data-filter="all">全部</button>
+<button data-filter="deposit">充值</button>
+<button data-filter="withdraw">提現</button>
+<button data-filter="trade">交易</button>
+            </div>
+        </div>
+
+        <table class="transaction-table">
+            <thead>
+                <tr>
+                    <th>交易</th>
+                    <th>類型</th>
+                    <th>數量</th>
+                    <th>價值</th>
+                    <th>狀態</th>
+                    <th>時間</th>
+                </tr>
+            </thead>
+
+            <tbody>
+                <tr data-type="deposit">
+                    <td><span class="token usdc"></span>USDC</td>
+                    <td><b class="tag deposit">充值</b></td>
+                    <td class="positive">+5,000.00</td>
+                    <td>$5,000.00</td>
+                    <td><b class="status done">已完成</b></td>
+                    <td>2026-06-13 14:32</td>
+                </tr>
+
+                <tr data-type="trade">
+                    <td><span class="token eth"></span>ETH</td>
+                    <td><b class="tag trade">交易</b></td>
+                    <td class="positive">+1.25</td>
+                    <td>$4,220.00</td>
+                    <td><b class="status done">已完成</b></td>
+                    <td>2026-06-13 11:18</td>
+                </tr>
+
+                <tr data-type="withdraw">
+                    <td><span class="token usdc"></span>USDC</td>
+                    <td><b class="tag withdraw">提現</b></td>
+                    <td class="negative">-2,000.00</td>
+                    <td>$2,000.00</td>
+                    <td><b class="status done">已完成</b></td>
+                    <td>2026-06-12 09:45</td>
+                </tr>
+
+                <tr data-type="trade">
+                    <td><span class="token btc"></span>BTC</td>
+                    <td><b class="tag trade">交易</b></td>
+                    <td class="positive">+0.05</td>
+                    <td>$3,950.00</td>
+                    <td><b class="status done">已完成</b></td>
+                    <td>2026-06-12 08:20</td>
+                </tr>
+
+                <tr data-type="deposit">
+                    <td><span class="token usdc"></span>USDC</td>
+                    <td><b class="tag deposit">充值</b></td>
+                    <td class="positive">+8,000.00</td>
+                    <td>$8,000.00</td>
+                    <td><b class="status done">已完成</b></td>
+                    <td>2026-06-11 16:55</td>
+                </tr>
+
+                <tr data-type="trade">
+                    <td><span class="token sol"></span>SOL</td>
+                    <td><b class="tag trade">交易</b></td>
+                    <td class="positive">+12.50</td>
+                    <td>$2,887.50</td>
+                    <td><b class="status pending">處理中</b></td>
+                    <td>2026-06-11 14:10</td>
+                </tr>
+
+                <tr data-type="withdraw">
+                    <td><span class="token eth"></span>ETH</td>
+                    <td><b class="tag withdraw">提現</b></td>
+                    <td class="negative">-0.50</td>
+                    <td>$1,688.00</td>
+                    <td><b class="status done">已完成</b></td>
+                    <td>2026-06-10 10:30</td>
+                </tr>
+
+                <tr data-type="trade">
+                    <td><span class="token pol"></span>POL</td>
+                    <td><b class="tag trade">交易</b></td>
+                    <td class="positive">+2,500.00</td>
+                    <td>$2,000.00</td>
+                    <td><b class="status done">已完成</b></td>
+                    <td>2026-06-09 18:22</td>
+                </tr>
+
+                <tr data-type="deposit">
+                    <td><span class="token usdc"></span>USDC</td>
+                    <td><b class="tag deposit">充值</b></td>
+                    <td class="positive">+12,000.00</td>
+                    <td>$12,000.00</td>
+                    <td><b class="status done">已完成</b></td>
+                    <td>2026-06-08 07:15</td>
+                </tr>
+
+                <tr data-type="trade">
+                    <td><span class="token btc"></span>BTC</td>
+                    <td><b class="tag trade">交易</b></td>
+                    <td class="positive">+0.03</td>
+                    <td>$2,370.00</td>
+                    <td><b class="status failed">失敗</b></td>
+                    <td>2026-06-07 21:48</td>
+                </tr>
+            </tbody>
+        </table>
+
+    </section>
+
+</main>
+
+<footer class="wallet-footer">
+
+    <div class="footer-grid">
+        <div>
+            <h4>平台</h4>
+            <a href="#">市場</a>
+            <a href="#">熱門事件</a>
+            <a href="#">新上市</a>
+            <a href="#">排行榜</a>
+        </div>
+
+        <div>
+            <h4>資源</h4>
+            <a href="#">玩法介紹</a>
+            <a href="#">白皮書</a>
+            <a href="#">API 文件</a>
+            <a href="#">常見問題</a>
+        </div>
+
+        <div>
+            <h4>公司</h4>
+            <a href="#">關於我們</a>
+            <a href="#">部落格</a>
+            <a href="#">徵才</a>
+            <a href="#">聯絡我們</a>
+        </div>
+
+        <div>
+            <h4>法律</h4>
+            <a href="#">服務條款</a>
+            <a href="#">隱私政策</a>
+            <a href="#">風險聲明</a>
+        </div>
+    </div>
+
+    <div class="footer-bottom">
+        <div class="footer-brand">
+            <div class="wallet-logo-mark small">
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+            <strong>Polymarket</strong>
+        </div>
+
+        <p>Polymarket. All rights reserved.</p>
+
+        <div class="footer-social">
+            <i class="fa-brands fa-x-twitter"></i>
+            <i class="fa-brands fa-discord"></i>
+            <i class="fa-brands fa-telegram"></i>
+            <i class="fa-brands fa-github"></i>
+        </div>
+    </div>
+
+</footer>
+
+<div class="wallet-modal" id="walletModal">
+    <div class="wallet-modal-card">
+        <button class="modal-close" id="modalClose">
+            <i class="fa-solid fa-xmark"></i>
+        </button>
+
+        <h3 id="modalTitle">充值</h3>
+        <p id="modalDesc">請輸入金額</p>
+
+        <input type="number" id="modalAmount" placeholder="輸入金額">
+
+        <div class="modal-actions">
+            <button id="modalCancel">取消</button>
+            <button id="modalConfirm">確認</button>
+        </div>
+    </div>
+</div>
+
+
+
+</body>
+</html>
