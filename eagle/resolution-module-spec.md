@@ -302,3 +302,381 @@ resolution:{marketId}:{userId}
 我的結算模組已經完成 MVP。
 
 交易組員只要確保交易成功後會建立 `positions` 和 `wallets`，我這邊就可以在管理員結算市場時，根據 `OPEN positions` 自動派彩、更新錢包、留下 `RESOLUTION_PAYOUT` 紀錄，並把市場與持倉改成已結算狀態。
+
+## 排行榜 API MVP 整理
+
+排行榜功能目前不建立新的排行榜資料表，而是從既有業務資料即時計算。
+
+主要資料來源：
+
+```text
+users
+wallets
+wallet_transactions
+positions
+markets
+market_price_history
+```
+
+目前 MVP 已完成三支 API：
+
+```text
+GET /api/rankings/profit
+GET /api/rankings/win-rate
+GET /api/rankings/assets
+```
+
+Controller 對應位置：
+
+```java
+@RestController
+@RequestMapping("/api/rankings")
+public class RankingController
+```
+
+Service 對應位置：
+
+```java
+RankingService
+```
+
+Repository 對應位置：
+
+```java
+RankingRepository
+```
+
+Repository 使用 native SQL 查詢，並透過 projection interface 回傳查詢結果，再由 `RankingService` 轉成 API response DTO。
+
+### 1. 盈虧排行榜 API
+
+```http
+GET /api/rankings/profit
+```
+
+用途：
+
+```text
+依使用者已實現盈虧排序，顯示誰目前從已結算市場中賺最多。
+```
+
+計算來源：
+
+```text
+wallet_transactions
+wallets
+positions
+users
+```
+
+計算邏輯：
+
+```text
+totalPayout = 該使用者所有 RESOLUTION_PAYOUT 加總
+settledCost = 該使用者所有 SETTLED positions 的 yesCost + noCost 加總
+realizedProfit = totalPayout - settledCost
+```
+
+排序規則：
+
+```text
+1. realizedProfit 由高到低
+2. username 由 A 到 Z
+```
+
+Response DTO：
+
+```java
+public record RankingProfitResponse(
+		UUID userId,
+		String username,
+		String avatarUrl,
+		BigDecimal totalPayout,
+		BigDecimal settledCost,
+		BigDecimal realizedProfit
+) {
+}
+```
+
+回傳範例：
+
+```json
+[
+  {
+    "userId": "00000000-0000-0000-0000-000000000001",
+    "username": "eagleaby",
+    "avatarUrl": "https://example.com/avatar.png",
+    "totalPayout": 20.00,
+    "settledCost": 12.00,
+    "realizedProfit": 8.00
+  }
+]
+```
+
+目前正式資料庫沒有排行榜資料時，會回傳：
+
+```json
+[]
+```
+
+### 2. 勝率排行榜 API
+
+```http
+GET /api/rankings/win-rate
+```
+
+用途：
+
+```text
+依使用者在已結算市場中的預測正確率排序。
+```
+
+計算來源：
+
+```text
+users
+positions
+markets
+```
+
+計算邏輯：
+
+```text
+只計算 status = RESOLVED 的 markets。
+
+若 market.result = YES，且使用者 yesShares > noShares，視為預測正確。
+若 market.result = NO，且使用者 noShares > yesShares，視為預測正確。
+其他情況視為未預測正確。
+
+resolvedMarketCount = 使用者參與且已結算的市場數
+correctCount = 預測正確次數
+winRate = correctCount / resolvedMarketCount
+```
+
+如果使用者沒有任何已結算市場：
+
+```text
+winRate = 0
+```
+
+排序規則：
+
+```text
+1. winRate 由高到低
+2. resolvedMarketCount 由高到低
+3. username 由 A 到 Z
+```
+
+Response DTO：
+
+```java
+public record RankingWinRateResponse(
+		UUID userId,
+		String username,
+		String avatarUrl,
+		Long resolvedMarketCount,
+		Long correctCount,
+		BigDecimal winRate
+) {
+}
+```
+
+回傳範例：
+
+```json
+[
+  {
+    "userId": "00000000-0000-0000-0000-000000000001",
+    "username": "eagleaby",
+    "avatarUrl": "https://example.com/avatar.png",
+    "resolvedMarketCount": 4,
+    "correctCount": 3,
+    "winRate": 0.7500
+  }
+]
+```
+
+### 3. 資產排行榜 API
+
+```http
+GET /api/rankings/assets
+```
+
+用途：
+
+```text
+依使用者目前總資產估值排序。
+```
+
+計算來源：
+
+```text
+users
+wallets
+positions
+markets
+market_price_history
+```
+
+計算邏輯：
+
+```text
+walletBalance = wallets.balance
+
+openPositionValue =
+  OPEN positions 的 YES 持倉數量 * 最新 yes_price
+  +
+  OPEN positions 的 NO 持倉數量 * 最新 no_price
+
+totalAssetValue = walletBalance + openPositionValue
+```
+
+目前 MVP 只計算二元市場價格，因此 `market_price_history` 會使用：
+
+```text
+option_id IS NULL
+yes_price
+no_price
+recorded_at 最新的一筆
+```
+
+只計算市場狀態為：
+
+```text
+ACTIVE
+CLOSED
+```
+
+排序規則：
+
+```text
+1. totalAssetValue 由高到低
+2. username 由 A 到 Z
+```
+
+Response DTO：
+
+```java
+public record RankingAssetsResponse(
+		UUID userId,
+		String username,
+		String avatarUrl,
+		BigDecimal walletBalance,
+		BigDecimal openPositionValue,
+		BigDecimal totalAssetValue
+) {
+}
+```
+
+回傳範例：
+
+```json
+[
+  {
+    "userId": "00000000-0000-0000-0000-000000000001",
+    "username": "eagleaby",
+    "avatarUrl": "https://example.com/avatar.png",
+    "walletBalance": 100.00,
+    "openPositionValue": 8.50,
+    "totalAssetValue": 108.50
+  }
+]
+```
+
+計算範例：
+
+```text
+walletBalance = 100.00
+yesShares = 10
+noShares = 5
+latest yesPrice = 0.70
+latest noPrice = 0.30
+
+openPositionValue = 10 * 0.70 + 5 * 0.30 = 8.50
+totalAssetValue = 100.00 + 8.50 = 108.50
+```
+
+## 排行榜已完成檔案
+
+```text
+entity/User.java
+
+dto/RankingProfitResponse.java
+dto/RankingWinRateResponse.java
+dto/RankingAssetsResponse.java
+
+repository/RankingProfitRow.java
+repository/RankingWinRateRow.java
+repository/RankingAssetsRow.java
+repository/RankingRepository.java
+
+service/RankingService.java
+
+controller/RankingController.java
+```
+
+## 排行榜已完成測試
+
+目前已補齊三層測試：
+
+```text
+RankingControllerTest
+- GET /api/rankings/profit
+- GET /api/rankings/win-rate
+- GET /api/rankings/assets
+
+RankingServiceTest
+- Profit row 轉 RankingProfitResponse
+- Win-rate row 轉 RankingWinRateResponse
+- Assets row 轉 RankingAssetsResponse
+
+RankingRepositoryTest
+- findProfitRankingsCalculatesRealizedProfit
+- findWinRateRankingsCalculatesCorrectPredictionRate
+- findAssetRankingsCalculatesWalletAndOpenPositionValue
+```
+
+全後端測試目前通過：
+
+```text
+Tests run: 38, Failures: 0, Errors: 0, Skipped: 0
+BUILD SUCCESS
+```
+
+## 排行榜與結算的關係
+
+排行榜不是獨立寫入的結果，而是從結算與交易資料推算出來。
+
+其中盈虧排行榜最依賴結算資料：
+
+```text
+ResolutionService 結算成功
+-> 寫入 wallet_transactions.type = RESOLUTION_PAYOUT
+-> positions.status 改為 SETTLED
+-> profit ranking 才能計算 totalPayout、settledCost、realizedProfit
+```
+
+勝率排行榜依賴市場結算結果：
+
+```text
+markets.status = RESOLVED
+markets.result = YES / NO
+positions.yesShares
+positions.noShares
+```
+
+資產排行榜依賴目前錢包與未結算持倉：
+
+```text
+wallets.balance
+positions.status = OPEN
+market_price_history 最新 yes_price / no_price
+```
+
+所以 Ranking MVP 的定位是：
+
+```text
+不新增排行榜資料表
+不手動儲存排行榜結果
+每次 API 呼叫時從現有資料即時計算
+```

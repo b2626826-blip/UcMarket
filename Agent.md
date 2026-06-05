@@ -1,6 +1,6 @@
 # Agent.md - UcMarket AI 接手指南
 
-這份文件給未來接手 UcMarket 的 AI agent 使用。請先讀完本檔，再讀 `README.md`、`docs/project-spec.md`、`docs/系統設計/技術架構.md`、`docs/資料庫設計/ucmarket-er-diagram.md` 與 `docs/資料庫設計/ucmarket-ddl.sql`。
+這份文件給未來接手 UcMarket 的 AI agent 使用。請先讀完本檔，再讀 `README.md`、`docs/README.md`、`docs/project-spec.md`、`docs/系統設計/技術架構.md`、`docs/資料庫設計/ucmarket-er-diagram.md` 與 `docs/資料庫設計/ucmarket-ddl.sql`。
 
 ## 1. 這個專案目標是什麼
 
@@ -67,15 +67,17 @@ no_price = yes_pool / (yes_pool + no_pool)
 目前專案已有的內容：
 
 - `README.md`：專題定位、技術架構、MVP 功能與開發階段。
+- `docs/README.md`：文件總覽、建議閱讀順序與文件維護提醒。
 - `docs/project-spec.md`：完整產品規格、市場規則、角色、流程、資料表草案。
 - `docs/系統設計/技術架構.md`：前後端分離、後端分層、核心模組與建議目錄。
 - `docs/資料庫設計/`：DDL、ERD、資料庫設計文件與圖檔。
 - `docs/資料庫設計/ucmarket-er-diagram.md`：整合後的 ER 圖、資料表關係與整併決策。
-- `backend/`：Spring Boot 後端骨架，Java 21、Spring Boot 3.5.0、JPA、Validation、Web、PostgreSQL driver。
+- `backend/`：Spring Boot 後端，Java 21、Spring Boot 3.5.0、JPA、Validation、Web、PostgreSQL driver；目前已有市場、交易試算/建立、管理員審核/結算與排行榜 API 雛形。
 - `frontend/`：前端目錄骨架，目前多數資料夾仍是 `.gitkeep`。
-- `公版/`：獨立靜態前端參照物，Apple-like 簡潔風格，可直接開 `公版/index.html` 檢視；包含市場列表、篩選搜尋、交易試算、資產、審核、排行榜等展示畫面。
+- `公版/demo/`：獨立靜態前端參照物，Apple-like 簡潔風格，可直接開 `公版/demo/index.html` 檢視；包含市場列表、篩選搜尋、交易試算、資產、審核、排行榜等展示畫面。
+- `公版/user/`：另一組使用者端靜態頁，目前包含首頁與 `wallet` 子頁，可作為使用者端頁面拆分參考。
 
-重要理解：`公版/` 是給組員對齊畫面與產品感的參照原型，不等於正式 React 前端。除非使用者明確要求，先不要把它直接混進 `frontend/`。
+重要理解：`公版/demo/` 與 `公版/user/` 是給組員對齊畫面與產品感的參照原型，不等於正式 React 前端。除非使用者明確要求，先不要把它們直接混進 `frontend/`。
 
 ## 3. 專案接下來要完成什麼任務
 
@@ -102,7 +104,7 @@ no_price = yes_pool / (yes_pool + no_pool)
 ### 3.3 前端正式化
 
 - 決定正式前端建置方式，原規劃是 React + JavaScript，樣式可用 Bootstrap 或 Tailwind。
-- 以 `公版/` 的視覺與流程當參照，拆成正式 pages / components / api / router / store。
+- 以 `公版/demo/` 與 `公版/user/` 的視覺與流程當參照，拆成正式 pages / components / api / router / store。
 - 優先完成市場列表、市場詳情、交易面板、登入狀態、錢包與持倉頁。
 - 前端只透過 REST API 溝通，不直接操作資料庫。
 
@@ -160,8 +162,8 @@ no_price = yes_pool / (yes_pool + no_pool)
 ### 4.5 前端規格
 
 - 正式前端遵照 `frontend/src/pages`、`components`、`api`、`router`、`store`、`types`、`assets` 的結構。
-- `公版/` 保持為獨立參照原型，除非任務明確要求搬移或改寫成 React。
-- 視覺方向以乾淨、簡潔、有產品感為主；先參考 `公版/` 的 Apple-like 方向。
+- `公版/demo/` 與 `公版/user/` 保持為獨立參照原型，除非任務明確要求搬移或改寫成 React。
+- 視覺方向以乾淨、簡潔、有產品感為主；先參考 `公版/demo/` 的 Apple-like 方向。
 - 頁面應優先支援市場瀏覽、交易試算、登入狀態、錢包、持倉、審核與排行榜。
 - 所有資料存取集中在 `api` 層，不要在元件中散落 fetch 邏輯。
 - 修改前端後要檢查桌機與手機版是否有文字溢出、水平捲動或互動失效。

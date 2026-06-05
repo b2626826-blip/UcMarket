@@ -131,12 +131,20 @@ MVP 階段先支援二元市場，也就是每個市場只有 Yes / No 兩個交
 
 ## 文件
 
+- 文件總覽：[docs/README.md](docs/README.md)
 - 專題規格書：[docs/project-spec.md](docs/project-spec.md)
 - 技術架構：[docs/系統設計/技術架構.md](docs/系統設計/技術架構.md)
 - 網站架構：[docs/系統設計/網站架構.md](docs/系統設計/網站架構.md)
 - 資料庫設計：
   - ER 圖：[docs/資料庫設計/ucmarket-er-diagram.md](docs/資料庫設計/ucmarket-er-diagram.md)
   - DDL：[docs/資料庫設計/ucmarket-ddl.sql](docs/資料庫設計/ucmarket-ddl.sql)
+
+## 前端參考頁
+
+- 公版 demo：[公版/demo/index.html](公版/demo/index.html)
+- 公版 demo 交接文件：[公版/demo/AI_CONTEXT.md](公版/demo/AI_CONTEXT.md)
+- 使用者端靜態頁：[公版/user/index.html](公版/user/index.html)
+- 使用者錢包頁：[公版/user/wallet/view/index.html](公版/user/wallet/view/index.html)
 
 ## 1. Think Before Coding
 
