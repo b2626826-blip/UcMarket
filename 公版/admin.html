@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UcMarket 管理員審核公版</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar polymarket-topbar" aria-label="Primary">
+        <a class="brand" href="./index.html" aria-label="UcMarket">
+          <span class="brand-mark market-logo">U</span>
+          <span>UcMarket</span>
+        </a>
+        <label class="global-search" aria-label="搜尋市場">
+          <span aria-hidden="true">⌕</span>
+          <input type="search" placeholder="搜尋 UcMarket 市場..." />
+          <kbd>/</kbd>
+        </label>
+        <div class="top-actions">
+          <a class="ghost-action" href="./auth.html?mode=login">登入</a>
+          <a class="primary-action" href="./auth.html?mode=register">註冊</a>
+          <a class="create-market-action" href="./create-market.html">新增市場</a>
+          <button class="icon-button menu-button" type="button" aria-label="開啟選單">
+            <span aria-hidden="true">☰</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="page-main">
+        <section class="page-hero">
+          <p class="eyebrow">Admin</p>
+          <h1>市場審核後台</h1>
+          <p>管理員可審核待上架市場、要求修改，並在市場到期後進行結算。</p>
+        </section>
+
+        <section class="admin-grid">
+          <article class="page-card review-case" data-review-card>
+            <span class="status-pill">PENDING</span>
+            <h2>指定演說是否會提到關鍵詞？</h2>
+            <p>需補官方逐字稿來源，並確認時間範圍是否明確。</p>
+            <div class="admin-actions">
+              <button type="button" data-review-action="approved">通過</button>
+              <button type="button" data-review-action="changes">要求修改</button>
+              <button type="button" data-review-action="rejected">拒絕</button>
+            </div>
+            <p class="auth-status" data-review-status aria-live="polite"></p>
+          </article>
+
+          <article class="page-card review-case" data-review-card>
+            <span class="status-pill">PENDING</span>
+            <h2>2026 台灣職棒冠軍是否為兄弟？</h2>
+            <p>資料來源可用官方賽果，但題目需要補截止日期。</p>
+            <div class="admin-actions">
+              <button type="button" data-review-action="approved">通過</button>
+              <button type="button" data-review-action="changes">要求修改</button>
+              <button type="button" data-review-action="rejected">拒絕</button>
+            </div>
+            <p class="auth-status" data-review-status aria-live="polite"></p>
+          </article>
+
+          <aside class="page-card">
+            <p class="eyebrow">Resolution</p>
+            <h2>結算操作</h2>
+            <label>
+              <span>市場結果</span>
+              <select id="resolutionSelect">
+                <option>YES 勝出</option>
+                <option>NO 勝出</option>
+                <option>取消並退款</option>
+              </select>
+            </label>
+            <button class="auth-submit" type="button" id="resolveButton">設定結果</button>
+            <p class="auth-status" id="resolveStatus" aria-live="polite"></p>
+          </aside>
+        </section>
+      </main>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

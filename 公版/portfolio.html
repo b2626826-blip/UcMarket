@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UcMarket 我的資產公版</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar polymarket-topbar" aria-label="Primary">
+        <a class="brand" href="./index.html" aria-label="UcMarket">
+          <span class="brand-mark market-logo">U</span>
+          <span>UcMarket</span>
+        </a>
+        <label class="global-search" aria-label="搜尋市場">
+          <span aria-hidden="true">⌕</span>
+          <input type="search" placeholder="搜尋 UcMarket 市場..." />
+          <kbd>/</kbd>
+        </label>
+        <div class="top-actions">
+          <a class="ghost-action" href="./auth.html?mode=login">登入</a>
+          <a class="primary-action" href="./auth.html?mode=register">註冊</a>
+          <a class="create-market-action" href="./create-market.html">新增市場</a>
+          <button class="icon-button menu-button" type="button" aria-label="開啟選單">
+            <span aria-hidden="true">☰</span>
+          </button>
+        </div>
+      </header>
+
+      <main class="page-main">
+        <section class="page-hero">
+          <p class="eyebrow">Portfolio</p>
+          <h1>我的資產與持倉</h1>
+          <p>給錢包、持倉、交易紀錄模組作畫面參照。</p>
+        </section>
+
+        <section class="summary-grid">
+          <article class="page-card"><span>點數餘額</span><strong>12,480</strong></article>
+          <article class="page-card"><span>未實現盈虧</span><strong>+840</strong></article>
+          <article class="page-card"><span>持倉市場</span><strong>5</strong></article>
+          <article class="page-card"><span>本週交易</span><strong>18</strong></article>
+        </section>
+
+        <section class="dashboard-grid">
+          <article class="page-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Positions</p>
+                <h2>持倉列表</h2>
+              </div>
+            </div>
+            <div class="position-table">
+              <div><strong>BTC 是否突破 120K</strong><span>Yes 420 份額</span><b>+8.4%</b></div>
+              <div><strong>NBA 冠軍市場</strong><span>Yes 180 份額</span><b>+3.1%</b></div>
+              <div><strong>颱風是否登陸</strong><span>No 260 份額</span><b>-1.8%</b></div>
+            </div>
+          </article>
+
+          <article class="page-card">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Trades</p>
+                <h2>交易紀錄</h2>
+              </div>
+              <button class="ghost-action table-filter" type="button">只看買入</button>
+            </div>
+            <div class="activity-list">
+              <div><span>買入 Yes</span><strong>BTC 120K</strong><em>500 pts</em></div>
+              <div><span>買入 No</span><strong>颱風登陸</strong><em>300 pts</em></div>
+              <div><span>結算收入</span><strong>NBA 冠軍</strong><em>+780 pts</em></div>
+            </div>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>

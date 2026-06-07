@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>UcMarket Frontend Public Template</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar polymarket-topbar" aria-label="Primary">
+        <a class="brand" href="./index.html" aria-label="UcMarket">
+          <span class="brand-mark market-logo">U</span>
+          <span>UcMarket</span>
+        </a>
+
+        <label class="global-search" aria-label="搜尋市場">
+          <span aria-hidden="true">⌕</span>
+          <input type="search" placeholder="搜尋 UcMarket 市場..." />
+          <kbd>/</kbd>
+        </label>
+
+        <div class="top-actions">
+          <a class="learn-link" href="#markets">玩法介紹</a>
+          <button class="ghost-action" type="button" data-auth-open="login">登入</button>
+          <button class="primary-action" type="button" data-auth-open="register">註冊</button>
+          <a class="create-market-action" href="./create-market.html">新增市場</a>
+          <button class="icon-button menu-button" type="button" aria-label="開啟選單">
+            <span aria-hidden="true">☰</span>
+          </button>
+        </div>
+      </header>
+
+      <section class="template-nav page-card" aria-labelledby="template-nav-title">
+        <div class="section-heading compact">
+          <div>
+            <p class="eyebrow">Public Pages</p>
+            <h2 id="template-nav-title">頁面公版導覽</h2>
+          </div>
+        </div>
+        <div class="template-link-grid">
+          <a href="./auth.html">登入 / 註冊</a>
+          <a href="./create-market.html">建立市場</a>
+          <a href="./market-detail.html">市場詳情 / 交易</a>
+          <a href="./portfolio.html">我的資產</a>
+          <a href="./admin.html">管理員審核</a>
+          <a href="./rankings.html">排行榜</a>
+        </div>
+      </section>
+
+      <nav class="category-bar" aria-label="Market categories">
+        <a class="is-active" href="#markets">政治</a>
+        <a href="#markets">運動</a>
+        <a href="#markets">天氣</a>
+        <a href="#markets">時事</a>
+        <a href="#markets">金融</a>
+      </nav>
+
+      <main>
+        <section class="market-feature" aria-labelledby="feature-title">
+          <article class="feature-card" aria-label="Featured prediction market">
+            <div class="feature-card-header">
+              <div>
+                <p class="eyebrow">焦點市場</p>
+                <h1 id="feature-title">2026 年 NBA 冠軍會是哪一隊？</h1>
+              </div>
+              <div class="feature-tools" aria-label="Market tools">
+                <button type="button" aria-label="複製連結">↻</button>
+                <button type="button" aria-label="收藏">⌑</button>
+                <button type="button" aria-label="分享">⌁</button>
+                <button type="button" aria-label="書籤">□</button>
+              </div>
+            </div>
+
+            <div class="feature-layout">
+              <div class="trend-area">
+                <div class="market-title-row">
+                  <span class="event-icon" aria-hidden="true">🏆</span>
+                  <div>
+                    <p>運動 · NBA</p>
+                    <h2>冠軍市場機率走勢</h2>
+                  </div>
+                </div>
+
+                <div class="legend-row" aria-label="Chart legend">
+                  <span><i class="legend-blue"></i>塞爾提克 31%</span>
+                  <span><i class="legend-sky"></i>金塊 27%</span>
+                  <span><i class="legend-yellow"></i>雷霆 17%</span>
+                  <span><i class="legend-orange"></i>湖人 9%</span>
+                </div>
+
+                <canvas id="heroChart" width="920" height="420" aria-label="NBA champion probability trend"></canvas>
+
+                <div class="chart-footer">
+                  <span>12 月 31, 2026 截止</span>
+                  <strong>$406M 成交量</strong>
+                  <a class="inline-page-link" href="./market-detail.html">查看市場詳情</a>
+                </div>
+              </div>
+
+              <aside class="outcome-board" aria-label="Outcome prices">
+                <div class="outcome-item">
+                  <span>聖安東尼奧馬刺隊</span>
+                  <strong>64%</strong>
+                </div>
+                <div class="outcome-item">
+                  <span>紐約尼克隊</span>
+                  <strong>36%</strong>
+                </div>
+                <div class="comment-stream" aria-label="Market comments">
+                  <div>
+                    <span class="avatar"></span>
+                    <p><strong>xcvd</strong> 現在很多隊伍的估值還沒被完全反映。</p>
+                  </div>
+                  <div>
+                    <span class="avatar gray"></span>
+                    <p><strong>iherbator</strong> 這季會有很多轉折，冠軍還很難說。</p>
+                  </div>
+                  <div>
+                    <span class="avatar blue"></span>
+                    <p><strong>Farhan</strong> 交易量開始上來了，這盤很適合 Demo。</p>
+                  </div>
+                </div>
+              </aside>
+            </div>
+          </article>
+
+          <aside class="discovery-rail" aria-label="Market discovery">
+            <section>
+              <div class="rail-heading">
+                <h2>突發新聞</h2>
+                <span>›</span>
+              </div>
+              <ol class="rail-list">
+                <li><span>1</span><strong>阿貝拉多是否會在公開辯論後支持指定候選人？</strong></li>
+                <li><span>2</span><strong>Will Iván Cepeda advance to the 1st round?</strong></li>
+                <li><span>3</span><strong>Will Donald Trump meet Tucker Carlson by May?</strong></li>
+              </ol>
+            </section>
+
+            <section>
+              <div class="rail-heading">
+                <h2>熱門話題</h2>
+                <span>›</span>
+              </div>
+              <ol class="rail-list topic-list">
+                <li><span>1</span><strong>Colombia</strong><em>$12M 今日</em></li>
+                <li><span>2</span><strong>IPL</strong><em>$11M 今日</em></li>
+                <li><span>3</span><strong>Ruud</strong><em>$9M 今日</em></li>
+                <li><span>4</span><strong>Fonseca</strong><em>$8M 今日</em></li>
+                <li><span>5</span><strong>Jodar</strong><em>$3M 今日</em></li>
+              </ol>
+            </section>
+
+            <button class="explore-all" type="button">探索全部</button>
+          </aside>
+        </section>
+
+        <section class="workspace-grid">
+          <section class="market-workspace" id="markets" aria-labelledby="markets-title">
+            <div class="section-heading">
+              <div>
+                <p class="eyebrow">Market Board</p>
+                <h2 id="markets-title">市場列表</h2>
+              </div>
+              <label class="search-field">
+                <span>⌕</span>
+                <input id="marketSearch" type="search" placeholder="搜尋市場、分類或狀態" />
+              </label>
+            </div>
+
+            <div class="filter-tabs" role="tablist" aria-label="Market filters">
+              <button class="tab-button is-active" type="button" data-filter="all">全部</button>
+              <button class="tab-button" type="button" data-filter="crypto">加密貨幣</button>
+              <button class="tab-button" type="button" data-filter="tech">科技</button>
+              <button class="tab-button" type="button" data-filter="sports">體育</button>
+            </div>
+
+            <div class="market-list" id="marketList" aria-live="polite"></div>
+          </section>
+
+          <aside class="trade-panel" aria-labelledby="trade-title">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Trade Preview</p>
+                <h2 id="trade-title">交易試算</h2>
+              </div>
+              <span class="status-dot">Live</span>
+            </div>
+
+            <div class="selected-market">
+              <p id="selectedCategory">加密貨幣</p>
+              <h3 id="selectedTitle">BTC 是否會突破 120,000 美元？</h3>
+            </div>
+
+            <div class="segmented-control" aria-label="Trade side">
+              <button class="side-button is-active" type="button" data-side="yes">Yes</button>
+              <button class="side-button" type="button" data-side="no">No</button>
+            </div>
+
+            <label class="amount-field">
+              <span>投入點數</span>
+              <input id="amountInput" type="number" min="10" step="10" value="500" />
+            </label>
+
+            <div class="quote-card" id="quoteCard">
+              <div>
+                <span>成交價格</span>
+                <strong id="quotePrice">0.64</strong>
+              </div>
+              <div>
+                <span>預估份額</span>
+                <strong id="quoteShares">781.25</strong>
+              </div>
+              <div>
+                <span>最高回收</span>
+                <strong id="quoteReturn">781</strong>
+              </div>
+            </div>
+
+            <button class="submit-trade" type="button">送出交易</button>
+
+            <div class="rule-box">
+              <span>結算規則</span>
+              <p id="selectedRule">
+                以 Coinbase 現貨價格為準，若在截止時間前突破門檻，Yes 結算為勝出。
+              </p>
+            </div>
+          </aside>
+        </section>
+
+        <section class="lower-grid">
+          <article class="portfolio-panel" id="portfolio" aria-labelledby="portfolio-title">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Portfolio</p>
+                <h2 id="portfolio-title">我的資產</h2>
+              </div>
+              <span class="balance">12,480 pts</span>
+            </div>
+
+            <div class="position-list">
+              <div class="position-item">
+                <span class="position-color yes"></span>
+                <div>
+                  <strong>Yes / BTC 120K</strong>
+                  <span>420 份額 · 平均 0.58</span>
+                </div>
+                <b>+8.4%</b>
+              </div>
+              <div class="position-item">
+                <span class="position-color no"></span>
+                <div>
+                  <strong>No / 新機發表</strong>
+                  <span>180 份額 · 平均 0.41</span>
+                </div>
+                <b>-2.1%</b>
+              </div>
+            </div>
+          </article>
+
+          <article class="review-panel" id="review" aria-labelledby="review-title">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Admin Review</p>
+                <h2 id="review-title">待審核市場</h2>
+              </div>
+              <span class="review-count">3</span>
+            </div>
+
+            <div class="review-list">
+              <div>
+                <strong>2026 台灣職棒冠軍是否為兄弟？</strong>
+                <span>需確認資料來源與截止時間</span>
+              </div>
+              <div>
+                <strong>AI 晶片供應量是否突破上季？</strong>
+                <span>結算條件需避免主觀描述</span>
+              </div>
+              <div>
+                <strong>指定演說是否提到關鍵詞？</strong>
+                <span>需補官方逐字稿來源</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="ranking-panel" id="ranking" aria-labelledby="ranking-title">
+            <div class="section-heading compact">
+              <div>
+                <p class="eyebrow">Ranking</p>
+                <h2 id="ranking-title">本週排行</h2>
+              </div>
+            </div>
+
+            <ol class="ranking-list">
+              <li><span>chen_qa</span><strong>+3,420</strong></li>
+              <li><span>market_tim</span><strong>+2,850</strong></li>
+              <li><span>eagle_admin</span><strong>+2,110</strong></li>
+            </ol>
+          </article>
+        </section>
+      </main>
+    </div>
+
+    <div class="auth-modal" id="authModal" aria-hidden="true">
+      <div class="auth-backdrop" data-auth-close></div>
+      <section class="auth-dialog" role="dialog" aria-modal="true" aria-labelledby="authTitle">
+        <button class="auth-close" type="button" aria-label="關閉登入註冊視窗" data-auth-close>×</button>
+
+        <div class="auth-heading">
+          <p class="eyebrow">Account Access</p>
+          <h2 id="authTitle">登入 UcMarket</h2>
+          <p>使用虛擬點數參與預測市場，查看持倉與交易紀錄。</p>
+        </div>
+
+        <div class="auth-tabs" role="tablist" aria-label="登入註冊切換">
+          <button class="auth-tab is-active" type="button" data-auth-tab="login">登入</button>
+          <button class="auth-tab" type="button" data-auth-tab="register">註冊</button>
+        </div>
+
+        <form class="auth-form is-active" id="loginForm" data-auth-panel="login">
+          <label>
+            <span>Email</span>
+            <input type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
+          </label>
+          <label>
+            <span>密碼</span>
+            <input type="password" name="password" placeholder="輸入密碼" autocomplete="current-password" required />
+          </label>
+          <button class="auth-submit" type="submit">登入</button>
+        </form>
+
+        <form class="auth-form" id="registerForm" data-auth-panel="register">
+          <label>
+            <span>使用者名稱</span>
+            <input type="text" name="username" placeholder="你的顯示名稱" autocomplete="username" required />
+          </label>
+          <label>
+            <span>Email</span>
+            <input type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
+          </label>
+          <label>
+            <span>密碼</span>
+            <input type="password" name="password" placeholder="至少 8 個字元" autocomplete="new-password" required />
+          </label>
+          <button class="auth-submit" type="submit">建立帳號</button>
+        </form>
+
+        <p class="auth-status" id="authStatus" aria-live="polite"></p>
+      </section>
+    </div>
+
+    <script src="./script.js"></script>
+  </body>
+</html>
