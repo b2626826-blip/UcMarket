@@ -13,9 +13,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.ucmarket.dto.CreateMarketRequest;
+import com.ucmarket.entity.User;
 import com.ucmarket.dto.TradeQuoteRequest;
 import com.ucmarket.dto.TradeQuoteResponse;
 import com.ucmarket.entity.Market;
@@ -54,9 +56,10 @@ public class MarketController {
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	public Market createMarket(@Valid @RequestBody CreateMarketRequest request) {
+	public Market createMarket(@AuthenticationPrincipal User user, @Valid @RequestBody CreateMarketRequest request) {
 		Market market = new Market(request.title(), request.description(), request.category(), request.sourceUrl(),
 				request.resolutionRule(), request.closeAt());
+		market.setCreatorId(user.getId());
 
 		return marketRepository.save(market);
 	}
