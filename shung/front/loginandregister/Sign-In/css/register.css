@@ -1,0 +1,549 @@
+/* ==========================================
+   REGISTER PAGE
+========================================== */
+
+.register-wrapper{
+    position:relative;
+
+    min-height:100vh;
+
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+
+    overflow:hidden;
+}
+
+/* ==========================================
+   BACKGROUND MARQUEE
+========================================== */
+
+.register-bg-layer{
+    position:absolute;
+    inset:0;
+
+    overflow:hidden;
+
+    pointer-events:none;
+}
+
+.register-bg-row{
+
+    position:absolute;
+
+    width:max-content;
+
+    white-space:nowrap;
+
+    font-size:120px;
+    font-weight:900;
+
+    letter-spacing:4px;
+
+    color:rgba(217,170,67,.035);
+}
+
+.row1{
+    top:18%;
+
+    animation:leftMove 35s linear infinite;
+}
+
+.row2{
+    top:58%;
+
+    color:rgba(255,255,255,.025);
+
+    animation:rightMove 45s linear infinite;
+}
+
+@keyframes leftMove{
+
+    from{
+        transform:translateX(0);
+    }
+
+    to{
+        transform:translateX(-50%);
+    }
+
+}
+
+@keyframes rightMove{
+
+    from{
+        transform:translateX(-50%);
+    }
+
+    to{
+        transform:translateX(0);
+    }
+
+}
+
+/* ==========================================
+   HERO
+========================================== */
+
+.register-hero{
+
+    position:relative;
+    z-index:2;
+
+    text-align:center;
+
+    padding-top:120px;
+    padding-bottom:40px;
+}
+
+.register-hero h1{
+
+    margin-top:24px;
+
+    font-size:48px;
+    font-weight:900;
+}
+
+.register-hero p{
+
+    margin-top:12px;
+
+    color:#888;
+
+    font-size:16px;
+}
+
+/* ==========================================
+   CARD
+========================================== */
+
+.register-layout{
+
+    position:relative;
+    z-index:2;
+
+    width:100%;
+
+    display:flex;
+    justify-content:center;
+
+    padding-bottom:100px;
+}
+
+.register-card{
+
+    position:relative;
+
+    width:100%;
+    max-width:560px;
+
+    padding:38px;
+
+    border-radius:28px;
+
+    background:
+    linear-gradient(
+        180deg,
+        rgba(217,170,67,.06),
+        rgba(255,255,255,.02)
+    );
+
+    border:1px solid rgba(255,255,255,.06);
+
+    backdrop-filter:blur(18px);
+
+    overflow:hidden;
+
+    transition:.3s;
+}
+
+.register-card:hover{
+
+    transform:translateY(-6px);
+
+    border-color:
+    rgba(217,170,67,.35);
+
+    box-shadow:
+    0 0 0 1px rgba(217,170,67,.12),
+    0 20px 45px rgba(0,0,0,.45),
+    0 0 38px rgba(217,170,67,.12);
+}
+
+.register-card::after{
+
+    content:"";
+
+    position:absolute;
+    inset:0;
+
+    background:
+    radial-gradient(
+        circle at var(--mouse-x,50%)
+        var(--mouse-y,50%),
+        rgba(217,170,67,.16),
+        transparent 36%
+    );
+
+    opacity:0;
+
+    pointer-events:none;
+
+    transition:.3s;
+}
+
+.register-card:hover::after{
+    opacity:1;
+}
+
+.register-glow{
+
+    position:absolute;
+
+    width:260px;
+    height:260px;
+
+    top:-120px;
+    right:-120px;
+
+    border-radius:50%;
+
+    background:
+    radial-gradient(
+        circle,
+        rgba(217,170,67,.25),
+        transparent 70%
+    );
+}
+
+/* ==========================================
+   HEADER
+========================================== */
+
+.register-card-header{
+
+    text-align:center;
+
+    margin-bottom:30px;
+}
+
+.register-card-header h2{
+
+    font-size:32px;
+    font-weight:900;
+}
+
+.register-card-header p{
+
+    margin-top:10px;
+
+    color:#888;
+}
+
+/* ==========================================
+   FORM
+========================================== */
+
+.form-row{
+
+    display:grid;
+    grid-template-columns:1fr 1fr;
+
+    gap:16px;
+}
+
+.form-group{
+    margin-bottom:18px;
+}
+
+.form-group label{
+
+    display:block;
+
+    margin-bottom:10px;
+
+    color:#aaa;
+
+    font-size:14px;
+}
+
+.input-box{
+    position:relative;
+}
+
+.input-box input,
+.input-box select{
+
+    width:100%;
+    height:56px;
+
+    border-radius:15px;
+
+    background:#050505;
+
+    border:1px solid rgba(255,255,255,.08);
+
+    color:white;
+
+    padding:0 50px 0 16px;
+
+    outline:none;
+
+    transition:.25s;
+}
+
+.input-box input:focus,
+.input-box select:focus{
+
+    border-color:
+    rgba(217,170,67,.45);
+
+    box-shadow:
+    0 0 0 3px rgba(217,170,67,.08);
+}
+
+.input-box i{
+
+    position:absolute;
+
+    right:18px;
+    top:50%;
+
+    transform:translateY(-50%);
+
+    color:#777;
+}
+
+.password-toggle{
+
+    position:absolute;
+
+    right:14px;
+    top:50%;
+
+    transform:translateY(-50%);
+
+    background:none;
+
+    color:#777;
+}
+
+.password-toggle:hover{
+    color:var(--gold);
+}
+
+.error-text,
+.terms-error{
+
+    display:block;
+
+    margin-top:6px;
+
+    color:#ff476d;
+
+    font-size:12px;
+
+    min-height:16px;
+}
+
+.input-error{
+
+    border-color:
+    rgba(255,71,109,.6)!important;
+}
+
+/* ==========================================
+   TERMS
+========================================== */
+
+.terms-area{
+
+    display:flex;
+    gap:12px;
+
+    margin-top:10px;
+    margin-bottom:20px;
+
+    color:#aaa;
+
+    font-size:14px;
+}
+
+.terms-area input{
+    accent-color:var(--gold);
+}
+
+.terms-area a{
+    color:var(--gold);
+}
+
+/* ==========================================
+   BUTTON
+========================================== */
+
+.register-submit-btn{
+
+    width:100%;
+    height:56px;
+
+    border-radius:15px;
+
+    background:var(--gold);
+
+    color:black;
+
+    font-size:16px;
+    font-weight:900;
+
+    transition:.25s;
+}
+
+.register-submit-btn:hover{
+
+    transform:translateY(-3px);
+
+    box-shadow:
+    0 0 30px rgba(217,170,67,.35);
+}
+
+/* ==========================================
+   DIVIDER
+========================================== */
+
+.register-divider{
+
+    display:flex;
+    align-items:center;
+
+    gap:14px;
+
+    margin:26px 0;
+}
+
+.register-divider span{
+
+    flex:1;
+
+    height:1px;
+
+    background:
+    rgba(255,255,255,.06);
+}
+
+.register-divider p{
+
+    color:#777;
+
+    font-size:12px;
+}
+
+/* ==========================================
+   SOCIAL
+========================================== */
+
+.social-register{
+
+    display:grid;
+    grid-template-columns:1fr 1fr;
+
+    gap:12px;
+}
+
+.social-register button{
+
+    height:50px;
+
+    border-radius:14px;
+
+    background:#111;
+
+    color:#aaa;
+
+    border:1px solid rgba(255,255,255,.06);
+
+    transition:.25s;
+}
+
+.social-register button:hover{
+
+    color:var(--gold);
+
+    border-color:
+    rgba(217,170,67,.25);
+}
+
+.login-link{
+
+    margin-top:24px;
+
+    text-align:center;
+
+    color:#aaa;
+}
+
+.login-link a{
+
+    color:var(--gold);
+
+    font-weight:700;
+}
+
+/* ==========================================
+   TOAST
+========================================== */
+
+.register-toast{
+
+    position:fixed;
+
+    right:24px;
+    bottom:24px;
+
+    padding:14px 18px;
+
+    border-radius:14px;
+
+    background:#07140c;
+
+    color:#00d66f;
+
+    border:1px solid rgba(0,214,111,.25);
+
+    opacity:0;
+
+    transform:translateY(20px);
+
+    transition:.3s;
+}
+
+.register-toast.show{
+
+    opacity:1;
+
+    transform:translateY(0);
+}
+
+/* ==========================================
+   RESPONSIVE
+========================================== */
+
+@media(max-width:768px){
+
+    .register-hero h1{
+        font-size:38px;
+    }
+
+    .register-card{
+        margin:0 18px;
+        padding:28px;
+    }
+
+    .form-row{
+        grid-template-columns:1fr;
+    }
+
+    .register-bg-row{
+        font-size:70px;
+    }
+
+}

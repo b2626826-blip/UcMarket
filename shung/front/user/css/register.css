@@ -1,0 +1,219 @@
+/* ==========================================
+   REGISTER MODAL
+   ========================================== */
+
+.register-card-header{
+    text-align:center;
+    margin-bottom:30px;
+}
+
+.register-card-header h2{
+    font-size:28px;
+    font-weight:900;
+}
+
+.register-card-header p{
+    margin-top:10px;
+    color:#888;
+}
+
+/* ==========================================
+   FORM
+   ========================================== */
+
+.register-form .form-row{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:16px;
+}
+
+.register-form .form-group{
+    margin-bottom:18px;
+}
+
+.register-form .form-group label{
+    display:block;
+    margin-bottom:10px;
+    color:#aaa;
+    font-size:14px;
+}
+
+.register-form .input-box{
+    position:relative;
+}
+
+.register-form .input-box input{
+    width:100%;
+    height:56px;
+    border-radius:15px;
+    background:#050505;
+    border:1px solid rgba(255,255,255,.08);
+    color:white;
+    padding:0 50px 0 16px;
+    outline:none;
+    transition:.25s;
+}
+
+.register-form .input-box input:focus{
+    border-color:rgba(217,170,67,.45);
+    box-shadow:0 0 0 3px rgba(217,170,67,.08);
+}
+
+.register-form .input-box i{
+    position:absolute;
+    right:18px;
+    top:50%;
+    transform:translateY(-50%);
+    color:#777;
+}
+
+.register-form .password-toggle{
+    position:absolute;
+    right:14px;
+    top:50%;
+    transform:translateY(-50%);
+    background:none;
+    color:#777;
+}
+
+.register-form .password-toggle:hover{
+    color:var(--gold);
+}
+
+.register-form .error-text{
+    display:block;
+    margin-top:6px;
+    color:#ff476d;
+    font-size:12px;
+    min-height:16px;
+}
+
+.input-error{
+    border-color:rgba(255,71,109,.6)!important;
+}
+
+/* ==========================================
+   TERMS
+   ========================================== */
+
+.terms-area{
+    display:flex;
+    gap:12px;
+    margin-top:10px;
+    margin-bottom:20px;
+    color:#aaa;
+    font-size:14px;
+}
+
+.terms-area input{
+    accent-color:var(--gold);
+}
+
+.terms-area a{
+    color:var(--gold);
+}
+
+.terms-error{
+    display:block;
+    margin-top:6px;
+    color:#ff476d;
+    font-size:12px;
+    min-height:16px;
+}
+
+/* ==========================================
+   BUTTON
+   ========================================== */
+
+.register-submit-btn{
+    width:100%;
+    height:56px;
+    border-radius:15px;
+    background:var(--gold);
+    color:black;
+    font-size:16px;
+    font-weight:900;
+    transition:.25s;
+}
+
+.register-submit-btn:hover{
+    transform:translateY(-3px);
+    box-shadow:0 0 30px rgba(217,170,67,.35);
+}
+
+.register-submit-btn:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+    transform:none;
+    box-shadow:none;
+}
+
+/* ==========================================
+   DIVIDER
+   ========================================== */
+
+.register-divider{
+    display:flex;
+    align-items:center;
+    gap:14px;
+    margin:26px 0;
+}
+
+.register-divider span{
+    flex:1;
+    height:1px;
+    background:rgba(255,255,255,.06);
+}
+
+.register-divider p{
+    color:#777;
+    font-size:12px;
+}
+
+/* ==========================================
+   SOCIAL
+   ========================================== */
+
+.social-register{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:12px;
+}
+
+.social-register button{
+    height:50px;
+    border-radius:14px;
+    background:#111;
+    color:#aaa;
+    border:1px solid rgba(255,255,255,.06);
+    transition:.25s;
+}
+
+.social-register button:hover{
+    color:var(--gold);
+    border-color:rgba(217,170,67,.25);
+}
+
+.login-link{
+    margin-top:24px;
+    text-align:center;
+    color:#aaa;
+}
+
+.login-link a{
+    color:var(--gold);
+    font-weight:700;
+}
+
+/* ==========================================
+   RESPONSIVE
+   ========================================== */
+
+@media(max-width:768px){
+    .register-card-header h2{
+        font-size:24px;
+    }
+    .register-form .form-row{
+        grid-template-columns:1fr;
+    }
+}
