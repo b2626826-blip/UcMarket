@@ -1,6 +1,9 @@
 // HERO SLIDER
 // ===============================
 
+// HERO SLIDER
+// ===============================
+
 const heroSlides = [
     {
         badge: "熱門市場",
@@ -17,11 +20,11 @@ const heroSlides = [
         secondary: "查看走勢"
     },
     {
-        badge: "政治市場",
-        title: "美國大選",
-        text: "即時追蹤全球政治預測市場",
-        primary: "查看盤口",
-        secondary: "了解玩法"
+        badge: "交易系統",
+        title: "UCMARKET",
+        text: "買入、賣出、持倉、結算一次完成",
+        primary: "進入交易",
+        secondary: "查看排行榜"
     }
 ];
 
@@ -30,13 +33,13 @@ const slide = document.querySelector(".slide");
 let slideIndex = 0;
 
 function renderHeroSlide() {
+    if (!slide) return;
+
     const item = heroSlides[slideIndex];
 
     slide.innerHTML = `
         <span class="badge">${item.badge}</span>
-
         <h1>${item.title}</h1>
-
         <p>${item.text}</p>
 
         <div class="hero-buttons">
@@ -46,24 +49,25 @@ function renderHeroSlide() {
     `;
 }
 
-renderHeroSlide();
+if (slide) {
+    renderHeroSlide();
 
-setInterval(() => {
-    slideIndex++;
+    setInterval(() => {
+        slideIndex++;
 
-    if (slideIndex >= heroSlides.length) {
-        slideIndex = 0;
-    }
+        if (slideIndex >= heroSlides.length) {
+            slideIndex = 0;
+        }
 
-    slide.style.opacity = 0;
+        slide.style.opacity = 0;
 
-    setTimeout(() => {
-        renderHeroSlide();
-        slide.style.opacity = 1;
-    }, 400);
+        setTimeout(() => {
+            renderHeroSlide();
+            slide.style.opacity = 1;
+        }, 400);
 
-}, 4000);
-
+    }, 4000);
+}
 
 // ===============================
 // CHART.JS

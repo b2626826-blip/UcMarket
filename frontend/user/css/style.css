@@ -1107,6 +1107,22 @@ img{
 
     margin-bottom:12px;
 }
+/* ===== 只修正 Market Card ===== */
+
+.market-card .market-price{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:18px;
+}
+
+.market-card .yes,
+.market-card .no{
+    min-width:0;
+}
+
+.market-card .trade-btn{
+    width:100%;
+}
 
 /* ==========================================
    TRADE BUTTON
