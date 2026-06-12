@@ -11,4 +11,6 @@ import com.ucmarket.entity.MarketStatus;
 public interface MarketRepository extends JpaRepository<Market, UUID> {
 
 	List<Market> findByStatus(MarketStatus status);
+
+	long countByStatus(MarketStatus status);
 }

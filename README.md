@@ -162,6 +162,8 @@ SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/ucmarket SPRING_DATASOURC
 - 文件總覽：[docs/README.md](docs/README.md)
 - 專題規格書：[docs/project-spec.md](docs/project-spec.md)
 - 技術架構：[docs/系統設計/技術架構.md](docs/系統設計/技術架構.md)
+- 資料庫設計：[docs/資料庫設計/ucmarket-integrated-erd.md](docs/資料庫設計/ucmarket-integrated-erd.md)
+- 技術架構：[docs/系統設計/技術架構.md](docs/系統設計/技術架構.md)
 - 網站架構：[docs/系統設計/網站架構.md](docs/系統設計/網站架構.md)
 - 資料庫設計：
   - ER 圖：[docs/資料庫設計/ucmarket-er-diagram.md](docs/資料庫設計/ucmarket-er-diagram.md)
