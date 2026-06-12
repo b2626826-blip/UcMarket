@@ -1,6 +1,7 @@
 .DS_Store
 __MACOSX/
 ._*
+*.log
 
 # Java / Maven
 target/

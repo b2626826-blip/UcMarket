@@ -28,16 +28,21 @@ class RankingRepositoryTest {
 		String suffix = userId.toString().substring(0, 8);
 
 		jdbcTemplate.update("""
-				INSERT INTO users (
-					id,
-					username,
-					email,
-					password_hash
-				)
-				VALUES (?, ?, ?, ?)
-				""",
-				userId,
-				"ranking_" + suffix,
+					INSERT INTO users (
+						id,
+						username,
+						email,
+						password_hash,
+						role,
+						status,
+						reputation,
+						created_at,
+						updated_at
+					)
+					VALUES (?, ?, ?, ?, 'USER', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+					""",
+					userId,
+					"ranking_" + suffix,
 				"ranking-" + suffix + "@example.com",
 				"test-password-hash"
 		);
@@ -45,15 +50,17 @@ class RankingRepositoryTest {
 		jdbcTemplate.update("""
 				INSERT INTO wallets (
 					id,
-					user_id,
-					balance,
-					locked_balance,
-					version
-				)
-				VALUES (?, ?, ?, ?, ?)
-				""",
-				walletId,
-				userId,
+						user_id,
+						balance,
+						locked_balance,
+						version,
+						created_at,
+						updated_at
+					)
+					VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+					""",
+					walletId,
+					userId,
 				100.00,
 				0.00,
 				0
@@ -62,32 +69,39 @@ class RankingRepositoryTest {
 		jdbcTemplate.update("""
 				INSERT INTO markets (
 					id,
-					creator_id,
-					title,
-					close_at,
-					status
-				)
-				VALUES (?, ?, ?, CURRENT_TIMESTAMP, 'DRAFT')
-				""",
-				marketId,
-				userId,
+						creator_id,
+						title,
+						close_at,
+						status,
+						market_type,
+						yes_pool,
+						no_pool,
+						created_at,
+						updated_at
+					)
+					VALUES (?, ?, ?, CURRENT_TIMESTAMP, 'DRAFT', 'BINARY', 100.00, 100.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+					""",
+					marketId,
+					userId,
 				"Ranking repository test market"
 		);
 
 		jdbcTemplate.update("""
-				INSERT INTO positions (
-					user_id,
-					market_id,
-					yes_shares,
-					no_shares,
-					yes_cost,
-					no_cost,
-					status
-				)
-				VALUES (?, ?, ?, ?, ?, ?, 'SETTLED')
-				""",
-				userId,
-				marketId,
+					INSERT INTO positions (
+						id,
+						user_id,
+						market_id,
+						yes_shares,
+						no_shares,
+						yes_cost,
+						no_cost,
+						status,
+						updated_at
+					)
+					VALUES (random_uuid(), ?, ?, ?, ?, ?, ?, 'SETTLED', CURRENT_TIMESTAMP)
+					""",
+					userId,
+					marketId,
 				20.00,
 				0.00,
 				12.00,
@@ -95,19 +109,21 @@ class RankingRepositoryTest {
 		);
 
 		jdbcTemplate.update("""
-				INSERT INTO wallet_transactions (
-					wallet_id,
-					type,
-					amount,
-					balance_after,
-					reference_type,
-					reference_id,
-					idempotency_key
-				)
-				VALUES (?, 'RESOLUTION_PAYOUT', ?, ?, 'MARKET', ?, ?)
-				""",
-				walletId,
-				20.00,
+					INSERT INTO wallet_transactions (
+						id,
+						wallet_id,
+						type,
+						amount,
+						balance_after,
+						reference_type,
+						reference_id,
+						idempotency_key,
+						created_at
+					)
+					VALUES (random_uuid(), ?, 'RESOLUTION_PAYOUT', ?, ?, 'MARKET', ?, ?, CURRENT_TIMESTAMP)
+					""",
+					walletId,
+					20.00,
 				120.00,
 				marketId,
 				"ranking-test-" + suffix
@@ -115,10 +131,10 @@ class RankingRepositoryTest {
 		
 		List<RankingProfitRow> rankings = rankingRepository.findProfitRankings();
 
-		RankingProfitRow ranking = rankings.stream()
-				.filter(row -> row.getUserId().equals(userId))
-				.findFirst()
-				.orElseThrow();
+			RankingProfitRow ranking = rankings.stream()
+					.filter(row -> row.getUsername().equals("ranking_" + suffix))
+					.findFirst()
+					.orElseThrow();
 
 		assertThat(ranking.getUsername()).isEqualTo("ranking_" + suffix);
 		assertThat(ranking.getTotalPayout()).isEqualByComparingTo("20.00");
@@ -136,16 +152,21 @@ class RankingRepositoryTest {
 		String suffix = userId.toString().substring(0, 8);
 
 		jdbcTemplate.update("""
-				INSERT INTO users (
-					id,
-					username,
-					email,
-					password_hash
-				)
-				VALUES (?, ?, ?, ?)
-				""",
-				userId,
-				"win_rate_" + suffix,
+					INSERT INTO users (
+						id,
+						username,
+						email,
+						password_hash,
+						role,
+						status,
+						reputation,
+						created_at,
+						updated_at
+					)
+					VALUES (?, ?, ?, ?, 'USER', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+					""",
+					userId,
+					"win_rate_" + suffix,
 				"win-rate-" + suffix + "@example.com",
 				"test-password-hash"
 		);
@@ -156,15 +177,20 @@ class RankingRepositoryTest {
 					creator_id,
 					title,
 					close_at,
-					status,
-					result,
-					resolved_at,
-					resolved_by
-				)
-				VALUES (?, ?, ?, CURRENT_TIMESTAMP, 'RESOLVED', 'YES', CURRENT_TIMESTAMP, ?)
-				""",
-				yesMarketId,
-				userId,
+						status,
+						result,
+						resolved_at,
+						resolved_by,
+						market_type,
+						yes_pool,
+						no_pool,
+						created_at,
+						updated_at
+					)
+					VALUES (?, ?, ?, CURRENT_TIMESTAMP, 'RESOLVED', 'YES', CURRENT_TIMESTAMP, ?, 'BINARY', 100.00, 100.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+					""",
+					yesMarketId,
+					userId,
 				"Resolved YES market",
 				userId
 		);
@@ -175,33 +201,40 @@ class RankingRepositoryTest {
 					creator_id,
 					title,
 					close_at,
-					status,
-					result,
-					resolved_at,
-					resolved_by
-				)
-				VALUES (?, ?, ?, CURRENT_TIMESTAMP, 'RESOLVED', 'NO', CURRENT_TIMESTAMP, ?)
-				""",
-				noMarketId,
-				userId,
+						status,
+						result,
+						resolved_at,
+						resolved_by,
+						market_type,
+						yes_pool,
+						no_pool,
+						created_at,
+						updated_at
+					)
+					VALUES (?, ?, ?, CURRENT_TIMESTAMP, 'RESOLVED', 'NO', CURRENT_TIMESTAMP, ?, 'BINARY', 100.00, 100.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+					""",
+					noMarketId,
+					userId,
 				"Resolved NO market",
 				userId
 		);
 
 		jdbcTemplate.update("""
-				INSERT INTO positions (
-					user_id,
-					market_id,
-					yes_shares,
-					no_shares,
-					yes_cost,
-					no_cost,
-					status
-				)
-				VALUES (?, ?, ?, ?, ?, ?, 'SETTLED')
-				""",
-				userId,
-				yesMarketId,
+					INSERT INTO positions (
+						id,
+						user_id,
+						market_id,
+						yes_shares,
+						no_shares,
+						yes_cost,
+						no_cost,
+						status,
+						updated_at
+					)
+					VALUES (random_uuid(), ?, ?, ?, ?, ?, ?, 'SETTLED', CURRENT_TIMESTAMP)
+					""",
+					userId,
+					yesMarketId,
 				10.00,
 				0.00,
 				5.00,
@@ -209,19 +242,21 @@ class RankingRepositoryTest {
 		);
 
 		jdbcTemplate.update("""
-				INSERT INTO positions (
-					user_id,
-					market_id,
-					yes_shares,
-					no_shares,
-					yes_cost,
-					no_cost,
-					status
-				)
-				VALUES (?, ?, ?, ?, ?, ?, 'SETTLED')
-				""",
-				userId,
-				noMarketId,
+					INSERT INTO positions (
+						id,
+						user_id,
+						market_id,
+						yes_shares,
+						no_shares,
+						yes_cost,
+						no_cost,
+						status,
+						updated_at
+					)
+					VALUES (random_uuid(), ?, ?, ?, ?, ?, ?, 'SETTLED', CURRENT_TIMESTAMP)
+					""",
+					userId,
+					noMarketId,
 				8.00,
 				0.00,
 				4.00,
@@ -230,10 +265,10 @@ class RankingRepositoryTest {
 		
 		List<RankingWinRateRow> rankings = rankingRepository.findWinRateRankings();
 
-		RankingWinRateRow ranking = rankings.stream()
-				.filter(row -> row.getUserId().equals(userId))
-				.findFirst()
-				.orElseThrow();
+			RankingWinRateRow ranking = rankings.stream()
+					.filter(row -> row.getUsername().equals("win_rate_" + suffix))
+					.findFirst()
+					.orElseThrow();
 
 		assertThat(ranking.getUsername()).isEqualTo("win_rate_" + suffix);
 		assertThat(ranking.getResolvedMarketCount()).isEqualTo(2L);
@@ -249,16 +284,21 @@ class RankingRepositoryTest {
 		String suffix = userId.toString().substring(0, 8);
 
 		jdbcTemplate.update("""
-				INSERT INTO users (
-					id,
-					username,
-					email,
-					password_hash
-				)
-				VALUES (?, ?, ?, ?)
-				""",
-				userId,
-				"assets_" + suffix,
+					INSERT INTO users (
+						id,
+						username,
+						email,
+						password_hash,
+						role,
+						status,
+						reputation,
+						created_at,
+						updated_at
+					)
+					VALUES (?, ?, ?, ?, 'USER', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+					""",
+					userId,
+					"assets_" + suffix,
 				"assets-" + suffix + "@example.com",
 				"test-password-hash"
 		);
@@ -266,15 +306,17 @@ class RankingRepositoryTest {
 		jdbcTemplate.update("""
 				INSERT INTO wallets (
 					id,
-					user_id,
-					balance,
-					locked_balance,
-					version
-				)
-				VALUES (?, ?, ?, ?, ?)
-				""",
-				walletId,
-				userId,
+						user_id,
+						balance,
+						locked_balance,
+						version,
+						created_at,
+						updated_at
+					)
+					VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+					""",
+					walletId,
+					userId,
 				100.00,
 				0.00,
 				0
@@ -286,14 +328,19 @@ class RankingRepositoryTest {
 					creator_id,
 					title,
 					source_url,
-					resolution_rule,
-					close_at,
-					status
-				)
-				VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'ACTIVE')
-				""",
-				marketId,
-				userId,
+						resolution_rule,
+						close_at,
+						status,
+						market_type,
+						yes_pool,
+						no_pool,
+						created_at,
+						updated_at
+					)
+					VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'ACTIVE', 'BINARY', 100.00, 100.00, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+					""",
+					marketId,
+					userId,
 				"Assets ranking test market",
 				"https://example.com/source",
 				"Resolve by official source"
@@ -315,19 +362,21 @@ class RankingRepositoryTest {
 		);
 
 		jdbcTemplate.update("""
-				INSERT INTO positions (
-					user_id,
-					market_id,
-					yes_shares,
-					no_shares,
-					yes_cost,
-					no_cost,
-					status
-				)
-				VALUES (?, ?, ?, ?, ?, ?, 'OPEN')
-				""",
-				userId,
-				marketId,
+					INSERT INTO positions (
+						id,
+						user_id,
+						market_id,
+						yes_shares,
+						no_shares,
+						yes_cost,
+						no_cost,
+						status,
+						updated_at
+					)
+					VALUES (random_uuid(), ?, ?, ?, ?, ?, ?, 'OPEN', CURRENT_TIMESTAMP)
+					""",
+					userId,
+					marketId,
 				10.00,
 				5.00,
 				6.00,
@@ -336,10 +385,10 @@ class RankingRepositoryTest {
 
 		List<RankingAssetsRow> rankings = rankingRepository.findAssetRankings();
 
-		RankingAssetsRow ranking = rankings.stream()
-				.filter(row -> row.getUserId().equals(userId))
-				.findFirst()
-				.orElseThrow();
+			RankingAssetsRow ranking = rankings.stream()
+					.filter(row -> row.getUsername().equals("assets_" + suffix))
+					.findFirst()
+					.orElseThrow();
 
 		assertThat(ranking.getUsername()).isEqualTo("assets_" + suffix);
 		assertThat(ranking.getWalletBalance()).isEqualByComparingTo("100.00");

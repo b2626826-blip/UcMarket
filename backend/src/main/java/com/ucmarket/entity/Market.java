@@ -94,6 +94,17 @@ public class Market {
 		String title,
 		String description,
 		String category,
+		String sourceUrl,
+		String resolutionRule,
+		LocalDateTime closeAt
+	) {
+		this(title, description, category, null, sourceUrl, resolutionRule, closeAt);
+	}
+
+	public Market(
+		String title,
+		String description,
+		String category,
 		String marketType,
 		String sourceUrl,
 		String resolutionRule,
@@ -175,6 +186,10 @@ public class Market {
 		this.approvedBy = adminId;
 	}
 
+	public void approve() {
+		approve(null);
+	}
+
 	public void reject() {
 		this.status = MarketStatus.REJECTED;
 	}
@@ -184,6 +199,10 @@ public class Market {
 		this.result = result;
 		this.resolvedAt = LocalDateTime.now();
 		this.resolvedBy = adminId;
+	}
+
+	public void resolve(MarketResult result) {
+		resolve(result, null);
 	}
 
 	public void cancel() {

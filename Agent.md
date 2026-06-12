@@ -1,6 +1,6 @@
 # Agent.md - UcMarket AI 接手指南
 
-這份文件給未來接手 UcMarket 的 AI agent 使用。請先讀完本檔，再讀 `README.md`、`docs/project-spec.md`、`docs/系統設計/技術架構.md`、`docs/資料庫設計/ucmarket-integrated-erd.md` 與相關 DDL。
+這份文件給未來接手 UcMarket 的 AI agent 使用。請先讀完本檔，再讀 `README.md`、`docs/project-spec.md`、`docs/系統設計/技術架構.md`、`docs/資料庫設計/ucmarket-er-diagram.md` 與相關 DDL。
 
 ## 1. 這個專案目標是什麼
 
@@ -70,7 +70,6 @@ no_price = yes_pool / (yes_pool + no_pool)
 - `docs/project-spec.md`：完整產品規格、市場規則、角色、流程、資料表草案。
 - `docs/系統設計/技術架構.md`：前後端分離、後端分層、核心模組與建議目錄。
 - `docs/資料庫設計/`：DDL、ERD、資料庫設計文件與圖檔。
-- `docs/resolution-ranking-planning.md`：結算、排行榜、個人績效的分工與資料流規劃。
 - `backend/`：Spring Boot 後端骨架，Java 21、Spring Boot 3.5.0、JPA、Validation、Web、PostgreSQL driver。
 - `frontend/`：前端目錄骨架，目前多數資料夾仍是 `.gitkeep`。
 - `公版/`：獨立靜態前端參照物，Apple-like 簡潔風格，可直接開 `公版/index.html` 檢視；包含市場列表、篩選搜尋、交易試算、資產、審核、排行榜等展示畫面。
@@ -97,7 +96,7 @@ no_price = yes_pool / (yes_pool + no_pool)
 - 錢包：餘額查詢、扣款、退款、結算入帳、wallet_transactions。
 - 持倉：查詢個人持倉、更新份額、結算後標記。
 - 結算：管理員設定結果、防止重複結算、派發收益。
-- 排行榜：依資產、已實現盈虧、勝率、活躍度或交易量排序。
+- 排行榜：依資產、已實現盈虧與勝率排序。
 
 ### 3.3 前端正式化
 

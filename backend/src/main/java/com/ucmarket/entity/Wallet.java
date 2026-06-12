@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.ucmarket.exception.InsufficientFundsException;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
@@ -41,7 +43,7 @@ public class Wallet {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
-    protected Wallet() {}
+    public Wallet() {}
 
     public Wallet(UUID userId) {
         this.userId = userId;
@@ -68,4 +70,15 @@ public class Wallet {
     public Integer getVersion() { return version; }
     public LocalDateTime getCreatedAt() { return createdAt; }
     public LocalDateTime getUpdatedAt() { return updatedAt; }
+
+    public void applyCredit(BigDecimal amount) {
+        balance = balance.add(amount);
+    }
+
+    public void applyDebit(BigDecimal amount) {
+        if (balance.compareTo(amount) < 0) {
+            throw new InsufficientFundsException(userId, amount, balance);
+        }
+        balance = balance.subtract(amount);
+    }
 }

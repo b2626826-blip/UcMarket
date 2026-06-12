@@ -12,16 +12,20 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.ucmarket.dto.RankingWinRateResponse;
 import com.ucmarket.dto.RankingProfitResponse;
+import com.ucmarket.repository.UserRepository;
+import com.ucmarket.security.JwtTokenProvider;
 import com.ucmarket.service.RankingService;
 import com.ucmarket.dto.RankingAssetsResponse;
 
 @WebMvcTest(RankingController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class RankingControllerTest {
 
 	@Autowired
@@ -29,6 +33,12 @@ class RankingControllerTest {
 
 	@MockitoBean
 	private RankingService rankingService;
+
+	@MockitoBean
+	private JwtTokenProvider jwtTokenProvider;
+
+	@MockitoBean
+	private UserRepository userRepository;
 
 	@Test
 	void getProfitRankingsReturnsRankedUsers() throws Exception {

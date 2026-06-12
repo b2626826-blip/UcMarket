@@ -67,7 +67,7 @@ public class ResolutionService {
 			position.settle();
 		}
 
-		market.resolve(result);
+			market.resolve(result);
 
 		return marketRepository.save(market);
 	}
@@ -90,7 +90,7 @@ public class ResolutionService {
 		Wallet wallet = walletRepository.findByUserId(position.getUserId())
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wallet not found"));
 
-		wallet.addBalance(payout);
+			wallet.applyCredit(payout);
 
 		WalletTransaction transaction = new WalletTransaction(
 				wallet.getId(),

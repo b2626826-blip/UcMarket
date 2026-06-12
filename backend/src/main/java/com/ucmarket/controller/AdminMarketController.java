@@ -1,11 +1,6 @@
 package com.ucmarket.controller;
 
 import java.util.HashMap;
-import com.ucmarket.service.ResolutionService;
-import org.springframework.web.bind.annotation.RequestBody;
-
-import com.ucmarket.dto.ResolveMarketRequest;
-
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -20,10 +15,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ucmarket.dto.ResolveMarketRequest;
 import com.ucmarket.dto.admin.AdminMarketListResponse;
 import com.ucmarket.dto.admin.MarketSummaryItem;
 import com.ucmarket.dto.admin.ReviewMarketRequest;
-import com.ucmarket.dto.ResolveMarketRequest;
 import com.ucmarket.entity.Market;
 import com.ucmarket.entity.MarketReview;
 import com.ucmarket.entity.User;
@@ -38,8 +33,6 @@ import jakarta.validation.Valid;
 @RestController
 @RequestMapping("/api/admin/markets")
 public class AdminMarketController {
-	
-	private final ResolutionService resolutionService;
 
     private final MarketService marketService;
     private final AdminDashboardService adminDashboardService;
@@ -121,40 +114,4 @@ public class AdminMarketController {
     public List<MarketReview> listReviews(@PathVariable UUID id) {
         return marketReviewRepository.findByMarketIdOrderByCreatedAtDesc(id);
     }
-	private final MarketRepository marketRepository;
-
-	public AdminMarketController(MarketRepository marketRepository, ResolutionService resolutionService) {
-		this.marketRepository = marketRepository;
-		this.resolutionService = resolutionService;
-	}
-
-	@GetMapping("/pending")
-	public List<Market> listPendingMarkets() {
-		return marketRepository.findByStatus(MarketStatus.PENDING);
-	}
-	
-	@PostMapping("/{id}/approve")
-	public Market approveMarket(@PathVariable UUID id) {
-		Market market = marketRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-
-		market.approve();
-
-		return marketRepository.save(market);
-	}
-	
-	@PostMapping("/{id}/reject")
-	public Market rejectMarket(@PathVariable UUID id) {
-		Market market = marketRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-
-		market.reject();
-
-		return marketRepository.save(market);
-	}
-	
-	@PostMapping("/{id}/resolve")
-	public Market resolveMarket(@PathVariable UUID id, @Valid @RequestBody ResolveMarketRequest request) {
-		return resolutionService.resolveMarket(id, request.result());
-	}
 }

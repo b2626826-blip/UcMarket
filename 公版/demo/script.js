@@ -430,7 +430,7 @@ const detailTradeButton = document.querySelector("#detailTradeButton");
 if (detailTradeButton) {
   detailTradeButton.addEventListener("click", () => {
     const status = document.querySelector("#detailTradeStatus");
-    if (status) status.textContent = "交易試算已確認，正式版可串接 POST /api/markets/:id/trades。";
+    if (status) status.textContent = "交易試算已確認，正式版可串接 POST /api/markets/{id}/trades。";
   });
 }
 
@@ -467,17 +467,17 @@ const leaderboardData = {
     ["eagle_admin", "+2,110 pts"],
     ["roy_position", "+1,680 pts"]
   ],
-  reputation: [
-    ["market_tim", "980 rep"],
-    ["eagle_admin", "870 rep"],
-    ["harry_wallet", "720 rep"],
-    ["roy_position", "690 rep"]
+  "win-rate": [
+    ["market_tim", "78%"],
+    ["eagle_admin", "72%"],
+    ["harry_wallet", "68%"],
+    ["roy_position", "64%"]
   ],
-  volume: [
-    ["chen_qa", "86.4K pts"],
-    ["tim_trade", "72.1K pts"],
-    ["shung_market", "65.8K pts"],
-    ["eagle_admin", "58.0K pts"]
+  assets: [
+    ["chen_qa", "186.4K pts"],
+    ["tim_trade", "172.1K pts"],
+    ["shung_market", "165.8K pts"],
+    ["eagle_admin", "158.0K pts"]
   ]
 };
 
