@@ -78,8 +78,9 @@ img{
 
     padding:0 60px;
 
-    display:flex;
-    justify-content:space-between;
+    display:grid;
+    grid-template-columns:max-content minmax(160px,1fr) max-content;
+    column-gap:36px;
     align-items:center;
 
     backdrop-filter:blur(20px);
@@ -94,6 +95,8 @@ img{
     display:flex;
     align-items:center;
     gap:12px;
+
+    justify-self:start;
 
     font-weight:800;
     letter-spacing:.5px;
@@ -122,6 +125,9 @@ img{
 
     display:flex;
     gap:28px;
+
+    justify-self:center;
+    min-width:0;
 }
 
 .nav-menu a{
@@ -142,6 +148,8 @@ img{
     display:flex;
     align-items:center;
     gap:18px;
+
+    justify-self:end;
 }
 
 .nav-right a{
@@ -1331,6 +1339,8 @@ img{
     .navbar{
 
         padding:0 20px;
+        grid-template-columns:auto 1fr auto;
+        column-gap:18px;
     }
 }
 

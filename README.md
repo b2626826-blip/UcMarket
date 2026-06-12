@@ -129,6 +129,34 @@ MVP 階段先支援二元市場，也就是每個市場只有 Yes / No 兩個交
 - 撰寫 README 與架構圖
 - 準備 Demo 帳號與展示流程
 
+## 後端資料庫設定
+
+後端預設連線到本機 PostgreSQL：
+
+```properties
+spring.datasource.url=${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ucmarket}
+spring.datasource.username=${SPRING_DATASOURCE_USERNAME:postgres}
+spring.datasource.password=${SPRING_DATASOURCE_PASSWORD:post}
+```
+
+團隊共用的 `application.properties` 不要改成個人帳號。每個人如果本機 PostgreSQL 帳號、密碼或 port 不同，請用環境變數覆蓋。
+
+例如本機帳號是 `eagleaby` 且密碼為空，可以在 STS Run Configuration 或 Terminal 設定：
+
+```bash
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/ucmarket
+SPRING_DATASOURCE_USERNAME=eagleaby
+SPRING_DATASOURCE_PASSWORD=
+```
+
+在 `backend` 目錄執行測試時，也可以直接帶環境變數：
+
+```bash
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/ucmarket SPRING_DATASOURCE_USERNAME=eagleaby SPRING_DATASOURCE_PASSWORD= ./mvnw test
+```
+
+如果使用 Docker PostgreSQL，請確認 `SPRING_DATASOURCE_URL`、帳號、密碼與 Docker container 對外開放的 port 一致。
+
 ## 文件
 
 - 文件總覽：[docs/README.md](docs/README.md)

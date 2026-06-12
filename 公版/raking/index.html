@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>排行榜 | PolyMarket Taiwan</title>
+    <title>排行榜 | UcMarket Taiwan</title>
 
     <link rel="stylesheet" href="./css/style.css">
     <link rel="stylesheet" href="./css/ranking.css">
@@ -22,17 +22,15 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
         <div class="logo-icon">
             <i class="fa-solid fa-chart-simple"></i>
         </div>
-        <span>POLYMARKET</span>
+        <span>UCMARKET</span>
     </div>
 
     <nav class="nav-menu">
-        <a href="#">錢包</a>
+        
         <a href="#">交易</a>
         <a href="#">持倉</a>
-        <a href="#">新聞</a>
         <a href="#">市場</a>
-        <a href="#">Bloomberg</a>
-        <a href="#">Reuters</a>
+        
     </nav>
 
     <div class="nav-right">
@@ -73,12 +71,6 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
     <section class="ranking-stats">
 
         <div class="ranking-stat-card">
-            <span>總參與用戶</span>
-            <strong>45,231</strong>
-            <p>本月新增 +12.4%</p>
-        </div>
-
-        <div class="ranking-stat-card">
             <span>最高收益</span>
             <strong>$128,430</strong>
             <p>來自政治市場</p>
@@ -106,18 +98,22 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
         </div>
 
         <!-- TABS -->
-        <div class="ranking-tabs">
+        <div class="ranking-tabs" aria-label="排行榜類型">
 
-            <button class="active">總收益</button>
-            <button>勝率</button>
-            <button>交易量</button>
-            <button>本週排行</button>
-            <button>本月排行</button>
+            <button class="active" data-rank="profit" aria-pressed="true">
+                盈虧榜
+            </button>
+            <button data-rank="winRate" aria-pressed="false">
+                勝率榜
+            </button>
+            <button data-rank="volume" aria-pressed="false">
+                交易量榜
+            </button>
 
         </div>
 
         <!-- TOP 3 -->
-        <div class="top-rank-grid">
+        <div class="top-rank-grid" aria-live="polite">
 
             <div class="top-card second">
                 <div class="rank-medal">2</div>
@@ -155,8 +151,6 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
         <div class="ranking-table-card">
 
             <div class="table-header">
-                <h3>完整排名</h3>
-
                 <div class="table-search">
                     <input type="text" placeholder="搜尋使用者...">
                     <button>
@@ -175,45 +169,6 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
                     <span>勝率</span>
                     <span>交易量</span>
                     <span>狀態</span>
-                </div>
-
-                <div class="ranking-row">
-                    <span class="rank-number">#1</span>
-                    <span class="user-info">
-                        <b>MarketWolf</b>
-                        <small>@wolf88</small>
-                    </span>
-                    <span>政治</span>
-                    <span class="green">+$128,430</span>
-                    <span>92.8%</span>
-                    <span>$2.4M</span>
-                    <span class="status hot">熱門</span>
-                </div>
-
-                <div class="ranking-row">
-                    <span class="rank-number">#2</span>
-                    <span class="user-info">
-                        <b>CryptoKing</b>
-                        <small>@btc_king</small>
-                    </span>
-                    <span>加密</span>
-                    <span class="green">+$94,280</span>
-                    <span>86.2%</span>
-                    <span>$1.8M</span>
-                    <span class="status active">活躍</span>
-                </div>
-
-                <div class="ranking-row">
-                    <span class="rank-number">#3</span>
-                    <span class="user-info">
-                        <b>FutureAce</b>
-                        <small>@futureace</small>
-                    </span>
-                    <span>金融</span>
-                    <span class="green">+$76,540</span>
-                    <span>81.5%</span>
-                    <span>$1.2M</span>
-                    <span class="status active">活躍</span>
                 </div>
 
                 <div class="ranking-row">
@@ -305,12 +260,12 @@ href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css"
                     <i class="fa-solid fa-chart-simple"></i>
                 </div>
 
-                <strong>POLYMARKET</strong>
+                <strong>UCMARKET</strong>
             </div>
 
         </div>
 
-        <p>© 2026 Polymarket. All rights reserved.</p>
+        <p>© 2026 UCmarket. All rights reserved.</p>
 
         <div class="footer-social">
             <i class="fa-brands fa-x-twitter"></i>
