@@ -1,5 +1,6 @@
 package com.ucmarket.exception;
 
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -29,6 +30,14 @@ public class GlobalExceptionHandler {
     public ResponseEntity<ErrorResponse> handleValidation(MethodArgumentNotValidException ex) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)            // 400
                 .body(new ErrorResponse("VALIDATION", "輸入驗證失敗"));
+    }
+    
+    @ExceptionHandler(ResponseStatusException.class)
+    public ResponseEntity<ErrorResponse> handleResponseStatus(ResponseStatusException ex) {
+        String message = ex.getReason() == null ? ex.getStatusCode().toString() : ex.getReason();
+
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(new ErrorResponse("HTTP_" + ex.getStatusCode().value(), message));
     }
 
     // 兜底：沒接到的未預期錯誤 → 500，且「不洩內部細節」（不回 ex.getMessage()）
