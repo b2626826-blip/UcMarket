@@ -41,8 +41,14 @@
           <i class="bi bi-journal-text"></i> 操作日誌
         </a>
       </div>
+      <div class="sidebar-footer p-3">
+        <a href="#" class="sidebar-link text-secondary" id="logout-link" onclick="window.doLogout();return false">
+          <i class="bi bi-box-arrow-right"></i> 登出
+        </a>
+      </div>
     </nav>
-    <main class="main-content" id="main-content"></main>
+    <main class="main-content" id="main-content">    </main>
+    <div class="toast-container" id="toast-container"></div>
   </div>
   <script src="js/api.js"></script>
   <script src="js/auth.js"></script>

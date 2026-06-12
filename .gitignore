@@ -19,6 +19,3 @@ dist/
 
 # Environment
 .env
-
-# google drive
-desktop.ini

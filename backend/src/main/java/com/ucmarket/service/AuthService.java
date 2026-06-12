@@ -78,7 +78,8 @@ public class AuthService {
     public UserInfo getCurrentUser(UUID userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
-        return new UserInfo(user.getId(), user.getUsername(), user.getEmail(), user.getRole().name());
+        return new UserInfo(user.getId(), user.getUsername(), user.getEmail(), user.getRole().name(),
+                user.getStatus().name(), user.getReputation(), user.getAvatarUrl(), user.getBio());
     }
 
     public void logout(String refreshToken) {
@@ -87,6 +88,56 @@ public class AuthService {
             session.revoke();
             userSessionRepository.save(session);
         });
+    }
+
+    public AuthResponse refresh(String rawRefreshToken) {
+        String hash = sha256(rawRefreshToken);
+        UserSession session = userSessionRepository.findByRefreshTokenHash(hash)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
+
+        if (session.getRevokedAt() != null) {
+            throw new IllegalArgumentException("Refresh token has been revoked");
+        }
+        if (session.getExpiresAt().isBefore(LocalDateTime.now())) {
+            throw new IllegalArgumentException("Refresh token has expired");
+        }
+
+        session.revoke();
+        userSessionRepository.save(session);
+
+        User user = userRepository.findById(session.getUserId())
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        return buildAuthResponse(user);
+    }
+
+    public UserInfo updateProfile(UUID userId, String username, String avatarUrl, String bio) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (username != null && !username.equals(user.getUsername())) {
+            if (userRepository.existsByUsername(username)) {
+                throw new IllegalArgumentException("Username already taken");
+            }
+            user.setUsername(username);
+        }
+        user.updateProfile(avatarUrl, bio);
+        userRepository.save(user);
+
+        return new UserInfo(user.getId(), user.getUsername(), user.getEmail(), user.getRole().name(),
+                user.getStatus().name(), user.getReputation(), user.getAvatarUrl(), user.getBio());
+    }
+
+    public void changePassword(UUID userId, String oldPassword, String newPassword) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
+            throw new IllegalArgumentException("Current password is incorrect");
+        }
+
+        user.setPasswordHash(passwordEncoder.encode(newPassword));
+        userRepository.save(user);
     }
 
     private AuthResponse buildAuthResponse(User user) {
@@ -98,7 +149,8 @@ public class AuthService {
         UserSession session = new UserSession(user.getId(), hash, LocalDateTime.now().plusSeconds(expiresIn / 1000), null);
         userSessionRepository.save(session);
 
-        UserInfo userInfo = new UserInfo(user.getId(), user.getUsername(), user.getEmail(), user.getRole().name());
+        UserInfo userInfo = new UserInfo(user.getId(), user.getUsername(), user.getEmail(), user.getRole().name(),
+                user.getStatus().name(), user.getReputation(), user.getAvatarUrl(), user.getBio());
         return new AuthResponse(accessToken, refreshToken, expiresIn / 1000, userInfo);
     }
 

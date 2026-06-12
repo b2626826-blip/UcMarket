@@ -8,5 +8,5 @@ public record AuthResponse(
     long expiresIn,
     UserInfo user
 ) {
-    public record UserInfo(UUID id, String username, String email, String role) {}
+    public record UserInfo(UUID id, String username, String email, String role, String status, int reputation, String avatarUrl, String bio) {}
 }

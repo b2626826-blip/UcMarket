@@ -1,37 +1,35 @@
 (function () {
   'use strict';
 
-  var mockData = {
-    summary: [
-      { label: "總用戶", value: 1248, tone: "primary" },
-      { label: "今日活躍", value: 327, tone: "success" },
-      { label: "停權中", value: 9, tone: "danger" },
-      { label: "待審核開盤者", value: 14, tone: "warning" }
-    ],
-    users: [
-      { id: "USR-1001", username: "user_1234", role: "user", reputation: 78, status: "active", balance: "28,500", lastLogin: "2026-06-03 09:12" },
-      { id: "USR-1002", username: "trader_nick", role: "user", reputation: 91, status: "active", balance: "35,040", lastLogin: "2026-06-03 08:41" },
-      { id: "USR-1003", username: "apple_fan", role: "user", reputation: 63, status: "suspended", balance: "4,880", lastLogin: "2026-05-26 23:10" },
-      { id: "USR-1004", username: "admin", role: "admin", reputation: 99, status: "active", balance: "--", lastLogin: "2026-06-03 10:01" },
-      { id: "USR-1005", username: "market_maker", role: "user", reputation: 84, status: "active", balance: "18,230", lastLogin: "2026-06-02 22:34" }
-    ]
-  };
+  var currentUsers = [];
+
+  function accountStatusBadge(status) {
+    if (status === 'ACTIVE') return '<span class="status-badge status-active">正常</span>';
+    if (status === 'BANNED') return '<span class="status-badge status-rejected">停權</span>';
+    return '<span class="status-badge status-closed">停用</span>';
+  }
 
   function roleBadge(role) {
-    if (role === "admin") return '<span class="status-badge status-active">管理員</span>';
+    if (role === 'ADMIN') return '<span class="status-badge status-approved">管理員</span>';
     return '<span class="status-badge status-closed">一般用戶</span>';
   }
 
-  function accountStatusBadge(status) {
-    if (status === "active") return '<span class="status-badge status-active">正常</span>';
-    return '<span class="status-badge status-rejected">停權</span>';
+  function actionButtons(u) {
+    if (u.status === 'ACTIVE') {
+      return '<button class="btn btn-sm btn-outline-danger usr-suspend" data-id="' + u.id + '">停權</button>';
+    } else if (u.status === 'BANNED') {
+      return '<button class="btn btn-sm btn-outline-success usr-unsuspend" data-id="' + u.id + '">啟用</button>';
+    }
+    return '<span class="text-secondary small">—</span>';
   }
 
-  function renderSummary(summary) {
-    for (var i = 0; i < summary.length; i++) {
-      var el = document.getElementById('u-sum-' + i);
-      if (el) el.textContent = summary[i].value;
-    }
+  function renderSummary(data) {
+    setText('u-sum-0', data.length);
+  }
+
+  function setText(id, val) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = val;
   }
 
   function getFilterValues() {
@@ -47,10 +45,9 @@
   function filterUsers(users, filters) {
     return users.filter(function (u) {
       var byKeyword = !filters.keyword ||
-        (u.id + ' ' + u.username).toLowerCase().indexOf(filters.keyword.toLowerCase()) !== -1;
-      var byRole = !filters.role || u.role === filters.role;
+        ((u.id || '') + ' ' + (u.username || '') + ' ' + (u.email || '')).toLowerCase().indexOf(filters.keyword.toLowerCase()) !== -1;
       var byStatus = !filters.status || u.status === filters.status;
-      return byKeyword && byRole && byStatus;
+      return byKeyword && byStatus;
     });
   }
 
@@ -60,41 +57,71 @@
     if (!tbody) return;
     if (title) title.textContent = '用戶資料 (' + rows.length + ')';
 
-    if (rows.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="7" class="text-center text-secondary py-3">找不到符合條件的用戶。</td></tr>';
+    if (!rows.length) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center text-secondary py-3">找不到符合條件的用戶。</td></tr>';
       return;
     }
 
     tbody.innerHTML = rows.map(function (u) {
       return '<tr>' +
-        '<td class="ps-3 fw-semibold">' + u.id + '</td>' +
-        '<td>' + u.username + '</td>' +
+        '<td class="ps-3 fw-semibold small">' + (u.code || (u.id || '').substring(0, 8)) + '</td>' +
+        '<td>' + (u.username || '') + '</td>' +
         '<td>' + roleBadge(u.role) + '</td>' +
         '<td>' + accountStatusBadge(u.status) + '</td>' +
-        '<td>' + u.reputation + '</td>' +
-        '<td>' + u.balance + '</td>' +
-        '<td>' + u.lastLogin + '</td>' +
+        '<td>' + (u.reputation || 0) + '</td>' +
+        '<td>-</td>' +
+        '<td>' + formatTime(u.lastLoginAt) + '</td>' +
+        '<td class="text-center">' + actionButtons(u) + '</td>' +
       '</tr>';
     }).join('');
+
+    document.querySelectorAll('.usr-suspend').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = this.getAttribute('data-id');
+        api.postApi('/api/admin/users/' + id + '/suspend', null)
+          .then(function () { window.showToast('warning', '已停權', '用戶已停權。'); loadUsers(); })
+          .catch(function (err) { window.showToast('danger', '失敗', err.message); });
+      });
+    });
+    document.querySelectorAll('.usr-unsuspend').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = this.getAttribute('data-id');
+        api.postApi('/api/admin/users/' + id + '/unsuspend', null)
+          .then(function () { window.showToast('success', '已啟用', '用戶已解除停權。'); loadUsers(); })
+          .catch(function (err) { window.showToast('danger', '失敗', err.message); });
+      });
+    });
+  }
+
+  function formatTime(val) {
+    if (!val) return '';
+    return val.replace('T', ' ').substring(0, 16);
   }
 
   function draw() {
     var filters = getFilterValues();
-    var rows = filterUsers(mockData.users, filters);
+    var rows = filterUsers(currentUsers, filters);
     renderTable(rows);
   }
 
-  window.initUsers = function () {
-    renderSummary(mockData.summary);
-    draw();
+  function loadUsers() {
+    api.fetchApi('/api/admin/users').then(function (data) {
+      currentUsers = Array.isArray(data) ? data : [];
+      renderSummary(currentUsers);
+      draw();
+    }).catch(function (err) {
+      console.error('[users] load failed:', err);
+    });
+  }
 
+  window.initUsers = function () {
+    loadUsers();
     var form = document.getElementById('users-filter');
     if (form) {
       form.addEventListener('submit', function (e) { e.preventDefault(); draw(); });
       form.addEventListener('input', draw);
       form.addEventListener('change', draw);
     }
-
     var resetBtn = document.getElementById('users-filter-reset');
     if (resetBtn) {
       resetBtn.addEventListener('click', function () {

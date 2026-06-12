@@ -3,6 +3,8 @@ package com.ucmarket.entity;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.ucmarket.util.CodeGenerator;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -24,6 +26,9 @@ public class MarketReview {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
+
+    @Column(length = 32)
+    private String code;
 
     @Column(name = "market_id", nullable = false)
     private UUID marketId;
@@ -52,12 +57,16 @@ public class MarketReview {
 
     @PrePersist
     void onCreate() {
+        if (code == null && CodeGenerator.isReady()) {
+            code = CodeGenerator.next("REV", "seq_market_review_code");
+        }
         if (createdAt == null) {
             createdAt = LocalDateTime.now();
         }
     }
 
     public UUID getId() { return id; }
+    public String getCode() { return code; }
     public UUID getMarketId() { return marketId; }
     public UUID getReviewerId() { return reviewerId; }
     public ReviewStatus getStatus() { return status; }

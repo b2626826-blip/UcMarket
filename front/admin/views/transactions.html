@@ -28,20 +28,19 @@
     <input class="form-control" type="search" data-filter-key="keyword" placeholder="搜尋交易編號、帳號、事件編號">
   </div>
   <div>
-    <label class="form-label small text-secondary mb-1">交易狀態</label>
-    <select class="form-select" data-filter-key="status">
-      <option value="">全部狀態</option>
-      <option value="completed">完成</option>
-      <option value="flagged">異常</option>
-      <option value="refunded">退款</option>
+    <label class="form-label small text-secondary mb-1">類型</label>
+    <select class="form-select" data-filter-key="action">
+      <option value="">全部類型</option>
+      <option value="BUY">買入</option>
+      <option value="SELL">賣出</option>
     </select>
   </div>
   <div>
     <label class="form-label small text-secondary mb-1">方向</label>
     <select class="form-select" data-filter-key="side">
       <option value="">全部方向</option>
-      <option value="yes">YES</option>
-      <option value="no">NO</option>
+      <option value="YES">YES</option>
+      <option value="NO">NO</option>
     </select>
   </div>
   <div>
@@ -58,13 +57,14 @@
         <thead class="table-light">
           <tr>
             <th class="ps-3">交易編號</th>
-            <th>帳號</th>
+            <th>用戶 ID</th>
             <th>事件編號</th>
+            <th>類型</th>
             <th>方向</th>
             <th>金額</th>
             <th>成交價</th>
+            <th>股數</th>
             <th>成交時間</th>
-            <th>狀態</th>
           </tr>
         </thead>
         <tbody id="transactions-list"></tbody>

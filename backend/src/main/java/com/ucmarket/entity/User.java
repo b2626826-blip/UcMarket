@@ -3,6 +3,8 @@ package com.ucmarket.entity;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.ucmarket.util.CodeGenerator;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -21,6 +23,9 @@ public class User {
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
 	private UUID id;
+
+	@Column(length = 32)
+	private String code;
 
 	@Column(nullable = false, length = 32, unique = true)
 	private String username;
@@ -69,6 +74,9 @@ public class User {
 
 	@PrePersist
 	void onCreate() {
+		if (code == null && CodeGenerator.isReady()) {
+			code = CodeGenerator.next("USR", "seq_user_code");
+		}
 		LocalDateTime now = LocalDateTime.now();
 		if (createdAt == null) {
 			createdAt = now;
@@ -94,8 +102,16 @@ public class User {
 		return id;
 	}
 
+	public String getCode() {
+		return code;
+	}
+
 	public String getUsername() {
 		return username;
+	}
+
+	public void setUsername(String username) {
+		this.username = username;
 	}
 
 	public String getEmail() {
@@ -104,6 +120,10 @@ public class User {
 
 	public String getPasswordHash() {
 		return passwordHash;
+	}
+
+	public void setPasswordHash(String passwordHash) {
+		this.passwordHash = passwordHash;
 	}
 
 	public UserRole getRole() {

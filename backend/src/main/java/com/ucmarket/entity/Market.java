@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.ucmarket.util.CodeGenerator;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -23,6 +25,9 @@ public class Market {
 	@Id
 	@GeneratedValue( strategy = GenerationType.UUID)
 	private UUID id;
+
+	@Column(length = 32)
+	private String code;
 	
 	@Column( nullable = false, length = 255)
 	private String title;
@@ -89,6 +94,7 @@ public class Market {
 		String title,
 		String description,
 		String category,
+		String marketType,
 		String sourceUrl,
 		String resolutionRule,
 		LocalDateTime closeAt
@@ -96,6 +102,9 @@ public class Market {
 		this.title = title;
 		this.description = description;
 		this.category = category;
+		if (marketType != null) {
+			this.marketType = marketType;
+		}
 		this.sourceUrl = sourceUrl;
 		this.resolutionRule = resolutionRule;
 		this.closeAt = closeAt;
@@ -103,6 +112,9 @@ public class Market {
 	
 	@PrePersist
 	void onCreate() {
+		if (code == null && CodeGenerator.isReady()) {
+			code = CodeGenerator.next("MKT", "seq_market_code");
+		}
 		LocalDateTime now = LocalDateTime.now();
 		if (createdAt == null) {
 			createdAt = now;
@@ -119,6 +131,10 @@ public class Market {
 	
 	public UUID getId() {
 		return id;
+	}
+
+	public String getCode() {
+		return code;
 	}
 	
 	public String getTitle() {
@@ -169,6 +185,10 @@ public class Market {
 		this.resolvedAt = LocalDateTime.now();
 		this.resolvedBy = adminId;
 	}
+
+	public void cancel() {
+		this.status = MarketStatus.CANCELED;
+	}
 	
 	public MarketResult getResult() {
 		return result;
@@ -184,6 +204,19 @@ public class Market {
 	public UUID getCreatorId() { return creatorId; }
 	public void setCreatorId(UUID creatorId) { this.creatorId = creatorId; }
 	public String getMarketType() { return marketType; }
+	public void setMarketType(String marketType) { this.marketType = marketType; }
+	public void setTitle(String title) { this.title = title; }
+	public void setDescription(String description) { this.description = description; }
+	public void setCategory(String category) { this.category = category; }
+	public void setSourceUrl(String sourceUrl) { this.sourceUrl = sourceUrl; }
+	public void setResolutionRule(String resolutionRule) { this.resolutionRule = resolutionRule; }
+	public void setCloseAt(LocalDateTime closeAt) { this.closeAt = closeAt; }
+
+	@jakarta.persistence.Transient
+	private String creatorCode;
+
+	public String getCreatorCode() { return creatorCode; }
+	public void setCreatorCode(String creatorCode) { this.creatorCode = creatorCode; }
 
 	public BigDecimal getYesPool() {
 		return yesPool;

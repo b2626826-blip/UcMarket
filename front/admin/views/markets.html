@@ -31,10 +31,10 @@
     <label class="form-label small text-secondary mb-1">狀態</label>
     <select class="form-select" data-filter-key="status">
       <option value="">全部狀態</option>
-      <option value="pending">待審核</option>
-      <option value="active">進行中</option>
-      <option value="closed">已截止</option>
-      <option value="resolved">已結算</option>
+      <option value="PENDING">待審核</option>
+      <option value="ACTIVE">進行中</option>
+      <option value="CLOSED">已截止</option>
+      <option value="RESOLVED">已結算</option>
     </select>
   </div>
   <div>
@@ -61,8 +61,10 @@
             <th>分類</th>
             <th>建立者</th>
             <th>截止日</th>
-            <th>交易量</th>
+            <th>YES 池</th>
+            <th>NO 池</th>
             <th>狀態</th>
+            <th class="text-center">操作</th>
           </tr>
         </thead>
         <tbody id="markets-list"></tbody>

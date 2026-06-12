@@ -4,8 +4,16 @@
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+-- Human-readable code sequences (UUID display identifier)
+CREATE SEQUENCE IF NOT EXISTS seq_user_code         START 1;
+CREATE SEQUENCE IF NOT EXISTS seq_market_code       START 1;
+CREATE SEQUENCE IF NOT EXISTS seq_trade_code        START 1;
+CREATE SEQUENCE IF NOT EXISTS seq_admin_log_code    START 1;
+CREATE SEQUENCE IF NOT EXISTS seq_market_review_code START 1;
+
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(32),
     username VARCHAR(32) NOT NULL,
     email VARCHAR(128) NOT NULL,
     password_hash VARCHAR(128) NOT NULL,
@@ -22,7 +30,8 @@ CREATE TABLE users (
     CONSTRAINT uk_users_email UNIQUE (email),
     CONSTRAINT ck_users_role CHECK (role IN ('USER', 'ADMIN')),
     CONSTRAINT ck_users_status CHECK (status IN ('ACTIVE', 'BANNED', 'DISABLED')),
-    CONSTRAINT ck_users_reputation CHECK (reputation >= 0)
+    CONSTRAINT ck_users_reputation CHECK (reputation >= 0),
+    CONSTRAINT uk_users_code UNIQUE (code)
 );
 
 CREATE TABLE user_sessions (
@@ -61,6 +70,7 @@ CREATE TABLE wallets (
 
 CREATE TABLE markets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(32),
     creator_id UUID NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -119,11 +129,13 @@ CREATE TABLE markets (
             AND resolved_at IS NULL
             AND resolved_by IS NULL
         )
-    )
+    ),
+    CONSTRAINT uk_markets_code UNIQUE (code)
 );
 
 CREATE TABLE market_reviews (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(32),
     market_id UUID NOT NULL,
     reviewer_id UUID NOT NULL,
     status VARCHAR(32) NOT NULL,
@@ -136,7 +148,8 @@ CREATE TABLE market_reviews (
     CONSTRAINT ck_market_reviews_comment_required CHECK (
         status = 'APPROVED'
         OR (comment IS NOT NULL AND btrim(comment) <> '')
-    )
+    ),
+    CONSTRAINT uk_market_reviews_code UNIQUE (code)
 );
 
 CREATE TABLE market_options (
@@ -161,6 +174,7 @@ CREATE TABLE market_options (
 
 CREATE TABLE trades (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(32),
     user_id UUID NOT NULL,
     market_id UUID NOT NULL,
     option_id UUID,
@@ -182,7 +196,8 @@ CREATE TABLE trades (
     CONSTRAINT ck_trades_binary_or_option CHECK (
         (side IS NOT NULL AND option_id IS NULL)
         OR (side IS NULL AND option_id IS NOT NULL)
-    )
+    ),
+    CONSTRAINT uk_trades_code UNIQUE (code)
 );
 
 CREATE TABLE positions (
@@ -297,6 +312,7 @@ CREATE TABLE notifications (
 
 CREATE TABLE admin_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(32),
     admin_user_id UUID NOT NULL,
     action VARCHAR(64) NOT NULL,
     target_type VARCHAR(64),
@@ -304,7 +320,8 @@ CREATE TABLE admin_logs (
     metadata JSONB,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_admin_logs_admin_user FOREIGN KEY (admin_user_id) REFERENCES users (id)
+    CONSTRAINT fk_admin_logs_admin_user FOREIGN KEY (admin_user_id) REFERENCES users (id),
+    CONSTRAINT uk_admin_logs_code UNIQUE (code)
 );
 
 -- Unique keys and indexes

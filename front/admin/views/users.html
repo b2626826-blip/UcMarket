@@ -31,7 +31,6 @@
     <label class="form-label small text-secondary mb-1">角色</label>
     <select class="form-select" data-filter-key="role">
       <option value="">全部角色</option>
-      <option value="admin">管理員</option>
       <option value="user">一般用戶</option>
     </select>
   </div>
@@ -39,8 +38,9 @@
     <label class="form-label small text-secondary mb-1">帳戶狀態</label>
     <select class="form-select" data-filter-key="status">
       <option value="">全部狀態</option>
-      <option value="active">正常</option>
-      <option value="suspended">停權</option>
+      <option value="ACTIVE">正常</option>
+      <option value="BANNED">停權</option>
+      <option value="DISABLED">停用</option>
     </select>
   </div>
   <div>
@@ -63,6 +63,7 @@
             <th>聲望</th>
             <th>點數餘額</th>
             <th>最後登入</th>
+            <th class="text-center">操作</th>
           </tr>
         </thead>
         <tbody id="users-list"></tbody>

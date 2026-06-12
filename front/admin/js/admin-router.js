@@ -35,6 +35,14 @@
           loadScript('js/users.js', 'initUsers');
         } else if (pageUrl.indexOf('transactions') !== -1) {
           loadScript('js/transactions.js', 'initTransactions');
+        } else if (pageUrl.indexOf('create-market') !== -1) {
+          loadScript('js/create-market.js', 'initCreateMarket');
+        } else if (pageUrl.indexOf('admins') !== -1) {
+          loadScript('js/admins.js', 'initAdmins');
+        } else if (pageUrl.indexOf('settings') !== -1) {
+          loadScript('js/settings.js', 'initSettings');
+        } else if (pageUrl.indexOf('logs') !== -1) {
+          loadScript('js/logs.js', 'initLogs');
         }
       })
       .catch(function (err) {
@@ -62,7 +70,9 @@
   });
 
   document.addEventListener('DOMContentLoaded', function () {
+    console.log('[router] DOMContentLoaded, calling checkAuth...');
     window.checkAuth().then(function (ok) {
+      console.log('[router] checkAuth returned:', ok);
       if (!ok) return;
       var defaultLink = sidebarNav.querySelector('.sidebar-link.active') ||
         sidebarNav.querySelector('.sidebar-link[data-page="views/dashboard.html"]');
@@ -70,4 +80,35 @@
       loadPage('views/dashboard.html');
     });
   });
+
+  window.showToast = function (type, title, message) {
+    var container = document.getElementById('toast-container');
+    if (!container) return;
+    var id = 'toast-' + Date.now();
+    var iconMap = {
+      success: 'bi-check-circle-fill text-success',
+      danger: 'bi-x-circle-fill text-danger',
+      warning: 'bi-exclamation-circle-fill text-warning',
+      info: 'bi-info-circle-fill text-primary'
+    };
+    var icon = iconMap[type] || iconMap.info;
+    var toastClass = 'admin-toast toast-' + (type || 'info');
+    var html =
+      '<div id="' + id + '" class="' + toastClass + '" role="alert">' +
+        '<i class="bi ' + icon + '"></i>' +
+        '<div class="admin-toast-body">' +
+          '<div class="fw-semibold small mb-1">' + title + '</div>' +
+          '<div class="small text-secondary">' + message + '</div>' +
+        '</div>' +
+        '<button type="button" class="toast-close" onclick="document.getElementById(\'' + id + '\').classList.add(\'hide\');setTimeout(function(){document.getElementById(\'' + id + '\').remove()},300)">&times;</button>' +
+      '</div>';
+    container.insertAdjacentHTML('beforeend', html);
+    setTimeout(function () {
+      var el = document.getElementById(id);
+      if (el) {
+        el.classList.add('hide');
+        setTimeout(function () { if (el.parentNode) el.remove(); }, 300);
+      }
+    }, 5000);
+  };
 })();
