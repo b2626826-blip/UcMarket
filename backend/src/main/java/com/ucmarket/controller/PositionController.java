@@ -1,5 +1,5 @@
 package com.ucmarket.controller;
-
+import com.ucmarket.dto.PositionRequest;
 import com.ucmarket.entity.Position;
 import com.ucmarket.service.PositionService;
 import org.springframework.web.bind.annotation.*;
@@ -16,6 +16,11 @@ public class PositionController {
         this.positionService = positionService;
     }
 
+    @PostMapping
+    public Position createPosition(@RequestBody PositionRequest request) {
+        return positionService.createPosition(request);
+    }
+
     @GetMapping("/user/{userId}")
     public List<Position> getPositionsByUserId(@PathVariable String userId) {
         return positionService.getPositionsByUserId(userId);
@@ -25,4 +30,5 @@ public class PositionController {
     public List<Position> getActivePositionsByUserId(@PathVariable String userId) {
         return positionService.getActivePositionsByUserId(userId);
     }
+
 }

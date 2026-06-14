@@ -16,5 +16,7 @@ public interface PositionRepository extends JpaRepository<Position, Long> {
             String userId,
             Long marketId,
             Long optionId
+
     );
+    
 }

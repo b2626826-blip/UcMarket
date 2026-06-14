@@ -1,2 +1,26 @@
-工作計畫書
-docs裡面的檔案新增與更新(除了資料庫)
+api說明 api1 在閃電延伸外掛
+/api/positions/user/roy
+= 全部持倉
+/api/positions/user/roy/active
+= 只看 ACTIVE 持倉
+---------------------------------
+GET /api/positions/user/roy
+回傳
+id=1 ACTIVE
+id=2 CLOSED
+id=3 ACTIVE
+---------------------------------
+所以它會回傳 roy 的全部持倉。
+
+GET /api/positions/user/roy/active
+回傳
+id=1 ACTIVE
+id=3 ACTIVE
+把 CLOSED 過濾掉。
+---------------------------------
+POST /api/positions
+新增一筆持倉
+↓
+存進資料庫
+↓
+回傳新增成功的資料
