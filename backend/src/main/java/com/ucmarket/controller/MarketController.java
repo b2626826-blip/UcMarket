@@ -42,6 +42,7 @@ public class MarketController {
 		this.tradeRepository = tradeRepository;
 	}
 
+
 	@GetMapping
 	public List<Market> listMarkets() {
 		return marketRepository.findAll();
@@ -118,4 +119,6 @@ public class MarketController {
 				estimatedCost
 		);
 	}
+
+	
 }

@@ -24,3 +24,18 @@ POST /api/positions
 存進資料庫
 ↓
 回傳新增成功的資料
+---------------------------------
+POST /api/positions/buy
+買入持倉API
+
+當使用者在前端按下：
+
+買 YES
+買 NO
+下注
+
+前端就會呼叫：
+
+POST /api/positions/buy
+
+送資料給後端。

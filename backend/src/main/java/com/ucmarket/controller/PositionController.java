@@ -3,7 +3,7 @@ import com.ucmarket.dto.PositionRequest;
 import com.ucmarket.entity.Position;
 import com.ucmarket.service.PositionService;
 import org.springframework.web.bind.annotation.*;
-
+import com.ucmarket.dto.BuyRequest;
 import java.util.List;
 
 @RestController
@@ -21,6 +21,10 @@ public class PositionController {
         return positionService.createPosition(request);
     }
 
+    @PostMapping("/buy")
+public Position buy(@RequestBody BuyRequest request) {
+    return positionService.buy(request);
+}
     @GetMapping("/user/{userId}")
     public List<Position> getPositionsByUserId(@PathVariable String userId) {
         return positionService.getPositionsByUserId(userId);
