@@ -5,7 +5,8 @@ import com.ucmarket.service.PositionService;
 import org.springframework.web.bind.annotation.*;
 import com.ucmarket.dto.BuyRequest;
 import java.util.List;
-
+import com.ucmarket.dto.SellRequest;
+import com.ucmarket.dto.PositionPnlRequest;
 @RestController
 @RequestMapping("/api/positions")
 public class PositionController {
@@ -15,11 +16,24 @@ public class PositionController {
     public PositionController(PositionService positionService) {
         this.positionService = positionService;
     }
+@PostMapping("/pnl")
+public Position updatePnl(@RequestBody PositionPnlRequest request) {
+    return positionService.updatePnl(request);
+}
+
+
+    
 
     @PostMapping
     public Position createPosition(@RequestBody PositionRequest request) {
         return positionService.createPosition(request);
     }
+@PostMapping("/sell")
+public Position sell(@RequestBody SellRequest request) {
+    return positionService.sell(request);
+}
+
+
 
     @PostMapping("/buy")
 public Position buy(@RequestBody BuyRequest request) {

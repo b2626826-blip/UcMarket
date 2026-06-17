@@ -25,6 +25,7 @@ POST /api/positions
 ↓
 回傳新增成功的資料
 ---------------------------------
+加倉概念,如果從沒買過BUY()就會加倉
 POST /api/positions/buy
 買入持倉API
 
@@ -39,3 +40,19 @@ POST /api/positions/buy
 POST /api/positions/buy
 
 送資料給後端。
+--------------------------------
+POST /api/positions/sell
+
+賣出持倉
+減倉
+平倉 
+
+例如:當使用者賣出50股前端就呼叫POST /api/positions/sell
+剩下剩餘0股系統就會close變以平倉
+--------------------------------
+POST/api/positions/pnl
+根據目前市場價格，重新計算持倉的浮動盈虧 (Unrealized PNL)
+計算
+(0.80 - 0.686667) × 200
+=
+22.6666
