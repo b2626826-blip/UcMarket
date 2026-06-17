@@ -14,38 +14,37 @@ import com.ucmarket.entity.MarketResult;
 import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.entity.Position;
 import com.ucmarket.entity.PositionStatus;
-import com.ucmarket.entity.Wallet;
-import com.ucmarket.entity.WalletTransaction;
-import com.ucmarket.entity.WalletTransactionType;
 import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.PositionRepository;
-import com.ucmarket.repository.WalletRepository;
-import com.ucmarket.repository.WalletTransactionRepository;
 
 @Service
 public class ResolutionService {
 
+	private static final String BINARY_MARKET_TYPE = "BINARY";
+
 	private final MarketRepository marketRepository;
 	private final PositionRepository positionRepository;
-	private final WalletRepository walletRepository;
-	private final WalletTransactionRepository walletTransactionRepository;
+	private final WalletService walletService;
 
 	public ResolutionService(
 			MarketRepository marketRepository,
 			PositionRepository positionRepository,
-			WalletRepository walletRepository,
-			WalletTransactionRepository walletTransactionRepository
+			WalletService walletService
 	) {
 		this.marketRepository = marketRepository;
 		this.positionRepository = positionRepository;
-		this.walletRepository = walletRepository;
-		this.walletTransactionRepository = walletTransactionRepository;
+		this.walletService = walletService;
 	}
 
 	@Transactional
 	public Market resolveMarket(UUID marketId, MarketResult result) {
 		Market market = marketRepository.findById(marketId)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+		if (!BINARY_MARKET_TYPE.equals(market.getMarketType())) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+					"ResolutionService only supports BINARY markets, got: " + market.getMarketType());
+		}
 
 		if (market.getStatus() == MarketStatus.RESOLVED) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Market is already resolved");
@@ -67,7 +66,7 @@ public class ResolutionService {
 			position.settle();
 		}
 
-		market.resolve(result);
+			market.resolve(result);
 
 		return marketRepository.save(market);
 	}
@@ -82,26 +81,6 @@ public class ResolutionService {
 
 	private void payWinner(Position position, UUID marketId, BigDecimal payout) {
 		String idempotencyKey = "resolution:" + marketId + ":" + position.getUserId();
-
-		if (walletTransactionRepository.existsByIdempotencyKey(idempotencyKey)) {
-			return;
-		}
-
-		Wallet wallet = walletRepository.findByUserId(position.getUserId())
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wallet not found"));
-
-		wallet.addBalance(payout);
-
-		WalletTransaction transaction = new WalletTransaction(
-				wallet.getId(),
-				WalletTransactionType.RESOLUTION_PAYOUT,
-				payout,
-				wallet.getBalance(),
-				"MARKET",
-				marketId,
-				idempotencyKey
-		);
-
-		walletTransactionRepository.save(transaction);
+		walletService.credit(position.getUserId(), payout, "MARKET", marketId, idempotencyKey);
 	}
 }

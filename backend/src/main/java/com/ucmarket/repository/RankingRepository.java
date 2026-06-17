@@ -48,13 +48,20 @@ public interface RankingRepository extends JpaRepository<User, UUID> {
 					p.user_id,
 					p.market_id,
 					CASE
-						WHEN m.result = 'YES' AND p.yes_shares > p.no_shares THEN 1
-						WHEN m.result = 'NO' AND p.no_shares > p.yes_shares THEN 1
+						WHEN EXISTS (
+							SELECT 1
+							FROM wallet_transactions wt
+							JOIN wallets w ON w.id = wt.wallet_id
+							WHERE wt.type = 'RESOLUTION_PAYOUT'
+								AND wt.reference_type = 'MARKET'
+								AND wt.reference_id = p.market_id
+								AND w.user_id = p.user_id
+						) THEN 1
 						ELSE 0
 					END AS is_correct
 				FROM positions p
 				JOIN markets m ON m.id = p.market_id
-				WHERE m.status = 'RESOLVED'
+				WHERE m.status = 'RESOLVED' AND p.status = 'SETTLED'
 			)
 			SELECT
 				u.id AS "userId",
@@ -64,7 +71,7 @@ public interface RankingRepository extends JpaRepository<User, UUID> {
 				COALESCE(SUM(sp.is_correct), 0) AS "correctCount",
 				CASE
 					WHEN COUNT(sp.market_id) = 0 THEN 0
-					ELSE ROUND(SUM(sp.is_correct)::NUMERIC / COUNT(sp.market_id), 4)
+					ELSE ROUND(CAST(SUM(sp.is_correct) AS NUMERIC) / COUNT(sp.market_id), 4)
 				END AS "winRate"
 			FROM users u
 			LEFT JOIN settled_predictions sp ON sp.user_id = u.id
@@ -74,14 +81,22 @@ public interface RankingRepository extends JpaRepository<User, UUID> {
 	List<RankingWinRateRow> findWinRateRankings();
 	
 	@Query(value = """
-			WITH latest_binary_price AS (
-				SELECT DISTINCT ON (market_id)
+			WITH ranked_binary_price AS (
+				SELECT
+					market_id,
+					yes_price,
+					no_price,
+					ROW_NUMBER() OVER (PARTITION BY market_id ORDER BY recorded_at DESC) AS rn
+				FROM market_price_history
+				WHERE option_id IS NULL
+			),
+			latest_binary_price AS (
+				SELECT
 					market_id,
 					yes_price,
 					no_price
-				FROM market_price_history
-				WHERE option_id IS NULL
-				ORDER BY market_id, recorded_at DESC
+				FROM ranked_binary_price
+				WHERE rn = 1
 			),
 			open_position_values AS (
 				SELECT

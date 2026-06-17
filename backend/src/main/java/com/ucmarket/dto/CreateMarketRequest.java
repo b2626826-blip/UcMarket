@@ -9,6 +9,7 @@ public record CreateMarketRequest(
 	@NotBlank String title,
 	String description,
 	String category,
+	String marketType,
 	String sourceUrl,
 	String resolutionRule,
 	@NotNull LocalDateTime closeAt

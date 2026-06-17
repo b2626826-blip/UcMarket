@@ -1,6 +1,6 @@
 # Agent.md - UcMarket AI 接手指南
 
-這份文件給未來接手 UcMarket 的 AI agent 使用。請先讀完本檔，再讀 `README.md`、`docs/README.md`、`docs/project-spec.md`、`docs/系統設計/技術架構.md`、`docs/資料庫設計/ucmarket-er-diagram.md` 與 `docs/資料庫設計/ucmarket-ddl.sql`。
+這份文件給未來接手 UcMarket 的 AI agent 使用。請先讀完本檔，再讀 `README.md`、`docs/project-spec.md`、`docs/系統設計/技術架構.md`、`docs/資料庫設計/ucmarket-er-diagram.md` 與相關 DDL。
 
 ## 1. 這個專案目標是什麼
 
@@ -67,17 +67,14 @@ no_price = yes_pool / (yes_pool + no_pool)
 目前專案已有的內容：
 
 - `README.md`：專題定位、技術架構、MVP 功能與開發階段。
-- `docs/README.md`：文件總覽、建議閱讀順序與文件維護提醒。
 - `docs/project-spec.md`：完整產品規格、市場規則、角色、流程、資料表草案。
 - `docs/系統設計/技術架構.md`：前後端分離、後端分層、核心模組與建議目錄。
 - `docs/資料庫設計/`：DDL、ERD、資料庫設計文件與圖檔。
-- `docs/資料庫設計/ucmarket-er-diagram.md`：整合後的 ER 圖、資料表關係與整併決策。
-- `backend/`：Spring Boot 後端，Java 21、Spring Boot 3.5.0、JPA、Validation、Web、PostgreSQL driver；目前已有市場、交易試算/建立、管理員審核/結算與排行榜 API 雛形。
+- `backend/`：Spring Boot 後端骨架，Java 21、Spring Boot 3.5.0、JPA、Validation、Web、PostgreSQL driver。
 - `frontend/`：前端目錄骨架，目前多數資料夾仍是 `.gitkeep`。
-- `公版/demo/`：獨立靜態前端參照物，Apple-like 簡潔風格，可直接開 `公版/demo/index.html` 檢視；包含市場列表、篩選搜尋、交易試算、資產、審核、排行榜等展示畫面。
-- `公版/user/`：另一組使用者端靜態頁，目前包含首頁與 `wallet` 子頁，可作為使用者端頁面拆分參考。
+- `公版/`：獨立靜態前端參照物，Apple-like 簡潔風格，可直接開 `公版/index.html` 檢視；包含市場列表、篩選搜尋、交易試算、資產、審核、排行榜等展示畫面。
 
-重要理解：`公版/demo/` 與 `公版/user/` 是給組員對齊畫面與產品感的參照原型，不等於正式 React 前端。除非使用者明確要求，先不要把它們直接混進 `frontend/`。
+重要理解：`公版/` 是給組員對齊畫面與產品感的參照原型，不等於正式 React 前端。除非使用者明確要求，先不要把它直接混進 `frontend/`。
 
 ## 3. 專案接下來要完成什麼任務
 
@@ -99,12 +96,12 @@ no_price = yes_pool / (yes_pool + no_pool)
 - 錢包：餘額查詢、扣款、退款、結算入帳、wallet_transactions。
 - 持倉：查詢個人持倉、更新份額、結算後標記。
 - 結算：管理員設定結果、防止重複結算、派發收益。
-- 排行榜：依資產、已實現盈虧、勝率、活躍度或交易量排序。
+- 排行榜：依資產、已實現盈虧與勝率排序。
 
 ### 3.3 前端正式化
 
 - 決定正式前端建置方式，原規劃是 React + JavaScript，樣式可用 Bootstrap 或 Tailwind。
-- 以 `公版/demo/` 與 `公版/user/` 的視覺與流程當參照，拆成正式 pages / components / api / router / store。
+- 以 `公版/` 的視覺與流程當參照，拆成正式 pages / components / api / router / store。
 - 優先完成市場列表、市場詳情、交易面板、登入狀態、錢包與持倉頁。
 - 前端只透過 REST API 溝通，不直接操作資料庫。
 
@@ -153,7 +150,7 @@ no_price = yes_pool / (yes_pool + no_pool)
 ### 4.4 資料庫規格
 
 - 以 PostgreSQL 為主。
-- 優先對齊 `docs/資料庫設計/ucmarket-ddl.sql` 與 `docs/資料庫設計/ucmarket-er-diagram.md`。
+- 優先對齊 `docs/資料庫設計/ucmarket-ddl.sql` 與整合 ERD。
 - 使用 `users`、`wallets`、`wallet_transactions`、`markets`、`market_reviews`、`market_price_history`、`market_options`、`trades`、`positions` 等核心表。
 - 金額、價格、份額不要用浮點數草率處理；後端與資料庫都要選擇能支援精準計算的型別。
 - 所有重要狀態欄位要有清楚 enum 或限制規則。
@@ -162,8 +159,8 @@ no_price = yes_pool / (yes_pool + no_pool)
 ### 4.5 前端規格
 
 - 正式前端遵照 `frontend/src/pages`、`components`、`api`、`router`、`store`、`types`、`assets` 的結構。
-- `公版/demo/` 與 `公版/user/` 保持為獨立參照原型，除非任務明確要求搬移或改寫成 React。
-- 視覺方向以乾淨、簡潔、有產品感為主；先參考 `公版/demo/` 的 Apple-like 方向。
+- `公版/` 保持為獨立參照原型，除非任務明確要求搬移或改寫成 React。
+- 視覺方向以乾淨、簡潔、有產品感為主；先參考 `公版/` 的 Apple-like 方向。
 - 頁面應優先支援市場瀏覽、交易試算、登入狀態、錢包、持倉、審核與排行榜。
 - 所有資料存取集中在 `api` 層，不要在元件中散落 fetch 邏輯。
 - 修改前端後要檢查桌機與手機版是否有文字溢出、水平捲動或互動失效。
@@ -174,13 +171,6 @@ no_price = yes_pool / (yes_pool + no_pool)
 - 前端修改：啟動 dev server 或直接開靜態頁，檢查主要互動與響應式畫面。
 - 文件修改：確認路徑、術語、狀態名稱、資料表名稱與現有文件一致。
 - 若無法驗證，回報原因，不要假裝已經通過。
-
-### 4.7 資料夾整理與 IDE 設定
-
-- 清理資料夾時，可以刪除明確的暫存或建置產物，例如 `.DS_Store`、`target/`、`node_modules/`、`dist/`、log 檔與其他可重新產生的 cache。
-- 不要在未確認 IDE 使用情境前刪除 Eclipse / STS 會用來辨識專案的本機設定，例如 `backend/.project`、`backend/.classpath`、`backend/.settings/`。
-- 即使這些 IDE 設定被 `.gitignore` 忽略，也可能是使用者本機開發環境正在依賴的檔案；清理前要先區分「不進 Git」和「本機不需要」。
-- 若已誤刪 IDE 設定，優先從 `backend/pom.xml` 重新匯入 Maven 專案，或補回最小 Eclipse m2e 設定，讓 IDE 能再次找到 Java source folder。
 
 ## 5. 與使用者合作的方式
 

@@ -1,11 +1,19 @@
 -- UcMarket consolidated PostgreSQL DDL
--- Sources: docs/project-spec.md, docs/系統設計/技術架構.md, this ERD folder, and backend entities.
+-- Sources: docs/*, backend entities, and 個人er/*.xlsx.
 -- Design goal: one canonical table per concept; ranking is computed by views.
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
+-- Human-readable code sequences (UUID display identifier)
+CREATE SEQUENCE IF NOT EXISTS seq_user_code         START 1;
+CREATE SEQUENCE IF NOT EXISTS seq_market_code       START 1;
+CREATE SEQUENCE IF NOT EXISTS seq_trade_code        START 1;
+CREATE SEQUENCE IF NOT EXISTS seq_admin_log_code    START 1;
+CREATE SEQUENCE IF NOT EXISTS seq_market_review_code START 1;
+
 CREATE TABLE users (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(32),
     username VARCHAR(32) NOT NULL,
     email VARCHAR(128) NOT NULL,
     password_hash VARCHAR(128) NOT NULL,
@@ -22,7 +30,8 @@ CREATE TABLE users (
     CONSTRAINT uk_users_email UNIQUE (email),
     CONSTRAINT ck_users_role CHECK (role IN ('USER', 'ADMIN')),
     CONSTRAINT ck_users_status CHECK (status IN ('ACTIVE', 'BANNED', 'DISABLED')),
-    CONSTRAINT ck_users_reputation CHECK (reputation >= 0)
+    CONSTRAINT ck_users_reputation CHECK (reputation >= 0),
+    CONSTRAINT uk_users_code UNIQUE (code)
 );
 
 CREATE TABLE user_sessions (
@@ -61,6 +70,7 @@ CREATE TABLE wallets (
 
 CREATE TABLE markets (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(32),
     creator_id UUID NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
@@ -68,7 +78,6 @@ CREATE TABLE markets (
     market_type VARCHAR(32) NOT NULL DEFAULT 'BINARY',
     source_url TEXT,
     resolution_rule TEXT,
-    preopen_at TIMESTAMP,
     close_at TIMESTAMP NOT NULL,
     status VARCHAR(32) NOT NULL DEFAULT 'DRAFT',
     result VARCHAR(32),
@@ -90,9 +99,6 @@ CREATE TABLE markets (
     CONSTRAINT ck_markets_result CHECK (result IS NULL OR result IN ('YES', 'NO')),
     CONSTRAINT ck_markets_yes_pool CHECK (yes_pool >= 0),
     CONSTRAINT ck_markets_no_pool CHECK (no_pool >= 0),
-    CONSTRAINT ck_markets_preopen_before_close CHECK (
-        preopen_at IS NULL OR preopen_at <= close_at
-    ),
     CONSTRAINT ck_markets_approved_pair CHECK (
         (approved_at IS NULL AND approved_by IS NULL)
         OR (approved_at IS NOT NULL AND approved_by IS NOT NULL)
@@ -123,11 +129,13 @@ CREATE TABLE markets (
             AND resolved_at IS NULL
             AND resolved_by IS NULL
         )
-    )
+    ),
+    CONSTRAINT uk_markets_code UNIQUE (code)
 );
 
 CREATE TABLE market_reviews (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(32),
     market_id UUID NOT NULL,
     reviewer_id UUID NOT NULL,
     status VARCHAR(32) NOT NULL,
@@ -140,7 +148,8 @@ CREATE TABLE market_reviews (
     CONSTRAINT ck_market_reviews_comment_required CHECK (
         status = 'APPROVED'
         OR (comment IS NOT NULL AND btrim(comment) <> '')
-    )
+    ),
+    CONSTRAINT uk_market_reviews_code UNIQUE (code)
 );
 
 CREATE TABLE market_options (
@@ -165,6 +174,7 @@ CREATE TABLE market_options (
 
 CREATE TABLE trades (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(32),
     user_id UUID NOT NULL,
     market_id UUID NOT NULL,
     option_id UUID,
@@ -186,7 +196,8 @@ CREATE TABLE trades (
     CONSTRAINT ck_trades_binary_or_option CHECK (
         (side IS NOT NULL AND option_id IS NULL)
         OR (side IS NULL AND option_id IS NOT NULL)
-    )
+    ),
+    CONSTRAINT uk_trades_code UNIQUE (code)
 );
 
 CREATE TABLE positions (
@@ -240,6 +251,8 @@ CREATE TABLE market_price_history (
 CREATE TABLE wallet_transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wallet_id UUID NOT NULL,
+    user_id UUID NOT NULL,
+    market_id UUID,
     type VARCHAR(32) NOT NULL,
     amount NUMERIC(18, 2) NOT NULL,
     balance_after NUMERIC(18, 2) NOT NULL,
@@ -250,6 +263,8 @@ CREATE TABLE wallet_transactions (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_wallet_transactions_wallet FOREIGN KEY (wallet_id) REFERENCES wallets (id),
+    CONSTRAINT fk_wallet_transactions_user FOREIGN KEY (user_id) REFERENCES users (id),
+    CONSTRAINT fk_wallet_transactions_market FOREIGN KEY (market_id) REFERENCES markets (id),
     CONSTRAINT ck_wallet_transactions_type CHECK (
         type IN ('SIGNUP_BONUS', 'TRADE_BUY', 'TRADE_SELL', 'RESOLUTION_PAYOUT', 'REFUND', 'BONUS', 'ADJUSTMENT')
     ),
@@ -297,6 +312,7 @@ CREATE TABLE notifications (
 
 CREATE TABLE admin_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(32),
     admin_user_id UUID NOT NULL,
     action VARCHAR(64) NOT NULL,
     target_type VARCHAR(64),
@@ -304,7 +320,8 @@ CREATE TABLE admin_logs (
     metadata JSONB,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-    CONSTRAINT fk_admin_logs_admin_user FOREIGN KEY (admin_user_id) REFERENCES users (id)
+    CONSTRAINT fk_admin_logs_admin_user FOREIGN KEY (admin_user_id) REFERENCES users (id),
+    CONSTRAINT uk_admin_logs_code UNIQUE (code)
 );
 
 -- Unique keys and indexes
@@ -326,7 +343,6 @@ CREATE INDEX idx_user_sessions_expires_at ON user_sessions (expires_at);
 
 CREATE INDEX idx_markets_creator_id ON markets (creator_id);
 CREATE INDEX idx_markets_status ON markets (status);
-CREATE INDEX idx_markets_preopen_at ON markets (preopen_at);
 CREATE INDEX idx_markets_close_at ON markets (close_at);
 CREATE INDEX idx_markets_approved_by ON markets (approved_by);
 CREATE INDEX idx_markets_resolved_by ON markets (resolved_by);
@@ -350,8 +366,11 @@ CREATE INDEX idx_market_price_history_option_id ON market_price_history (option_
 CREATE INDEX idx_market_price_history_recorded_at ON market_price_history (recorded_at);
 
 CREATE INDEX idx_wallet_transactions_wallet_id ON wallet_transactions (wallet_id);
+CREATE INDEX idx_wallet_transactions_user_id ON wallet_transactions (user_id);
+CREATE INDEX idx_wallet_transactions_market_id ON wallet_transactions (market_id);
 CREATE INDEX idx_wallet_transactions_created_at ON wallet_transactions (created_at);
 CREATE INDEX idx_wallet_transactions_reference ON wallet_transactions (reference_type, reference_id);
+CREATE INDEX idx_wallet_transactions_type_wallet ON wallet_transactions (type, wallet_id);
 
 CREATE INDEX idx_user_portfolio_snapshots_user_recorded
     ON user_portfolio_snapshots (user_id, recorded_at DESC);
@@ -366,12 +385,11 @@ CREATE INDEX idx_admin_logs_target ON admin_logs (target_type, target_id);
 CREATE VIEW v_ranking_profit AS
 WITH payouts AS (
     SELECT
-        w.user_id,
-        SUM(wt.amount) AS total_payout
-    FROM wallet_transactions wt
-    JOIN wallets w ON w.id = wt.wallet_id
-    WHERE wt.type = 'RESOLUTION_PAYOUT'
-    GROUP BY w.user_id
+        user_id,
+        SUM(amount) AS total_payout
+    FROM wallet_transactions
+    WHERE type = 'RESOLUTION_PAYOUT'
+    GROUP BY user_id
 ),
 settled_costs AS (
     SELECT
@@ -499,3 +517,4 @@ COMMENT ON TABLE wallet_transactions IS '錢包異動流水帳，包含扣款、
 COMMENT ON TABLE user_portfolio_snapshots IS '個人資產歷史快照，用於個人績效折線圖。';
 COMMENT ON TABLE notifications IS '通知紀錄，用於交易成功、市場截止、結算等事件提醒。';
 COMMENT ON TABLE admin_logs IS '後台操作稽核紀錄。';
+

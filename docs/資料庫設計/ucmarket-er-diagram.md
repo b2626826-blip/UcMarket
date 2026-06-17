@@ -1,6 +1,6 @@
 # UcMarket 整合 ER 圖
 
-整理來源：`docs/project-spec.md`、`docs/資料庫設計/ucmarket-ddl.sql`、`docs/系統設計/技術架構.md`、`backend/src/main/java/com/ucmarket/entity/*`。
+整理來源：`docs/project-spec.md`、`docs/資料庫設計/ucmarket-ddl.sql`、`docs/資料庫設計/ucmarket-er-diagram.mmd`、`docs/系統設計/技術架構.md`、`backend/src/main/java/com/ucmarket/entity/*`。
 
 ## 整併決策
 

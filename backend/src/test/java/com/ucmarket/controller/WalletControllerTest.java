@@ -14,6 +14,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -21,6 +22,8 @@ import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MockMvc;
 
 import com.ucmarket.entity.Wallet;
+import com.ucmarket.repository.UserRepository;
+import com.ucmarket.security.JwtTokenProvider;
 import com.ucmarket.service.WalletService;
 
 /**
@@ -29,6 +32,7 @@ import com.ucmarket.service.WalletService;
  * 跟你專案裡的 MarketControllerTest 同一套寫法。
  */
 @WebMvcTest(WalletController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class WalletControllerTest {
 
 	@Autowired
@@ -36,6 +40,12 @@ class WalletControllerTest {
 
 	@MockitoBean
 	private WalletService walletService;
+
+	@MockitoBean
+	private JwtTokenProvider jwtTokenProvider;
+
+	@MockitoBean
+	private UserRepository userRepository;
 
 	@Test
 	@DisplayName("POST /api/wallets → 201 + 回傳 balance 0 的錢包")
