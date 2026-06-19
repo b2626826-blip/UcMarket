@@ -1,0 +1,72 @@
+<div class="page-header mb-3">
+  <h1 class="h3 mb-1">用戶清單</h1>
+  <p class="text-secondary mb-0">管理會員角色、帳戶狀態與最近登入活動。</p>
+</div>
+
+<section class="admin-kpi-row mb-3" id="users-summary">
+  <article class="admin-kpi-card shadow-sm">
+    <div class="small text-secondary mb-2">總用戶</div>
+    <div class="h4 mb-0 text-primary" id="u-sum-0">-</div>
+  </article>
+  <article class="admin-kpi-card shadow-sm">
+    <div class="small text-secondary mb-2">今日活躍</div>
+    <div class="h4 mb-0 text-success" id="u-sum-1">-</div>
+  </article>
+  <article class="admin-kpi-card shadow-sm">
+    <div class="small text-secondary mb-2">停權中</div>
+    <div class="h4 mb-0 text-danger" id="u-sum-2">-</div>
+  </article>
+  <article class="admin-kpi-card shadow-sm">
+    <div class="small text-secondary mb-2">待審核開盤者</div>
+    <div class="h4 mb-0 text-warning" id="u-sum-3">-</div>
+  </article>
+</section>
+
+<form id="users-filter" class="admin-filter-bar mb-3">
+  <div>
+    <label class="form-label small text-secondary mb-1">關鍵字</label>
+    <input class="form-control" type="search" data-filter-key="keyword" placeholder="搜尋帳號編號、使用者名稱">
+  </div>
+  <div>
+    <label class="form-label small text-secondary mb-1">角色</label>
+    <select class="form-select" data-filter-key="role">
+      <option value="">全部角色</option>
+      <option value="user">一般用戶</option>
+    </select>
+  </div>
+  <div>
+    <label class="form-label small text-secondary mb-1">帳戶狀態</label>
+    <select class="form-select" data-filter-key="status">
+      <option value="">全部狀態</option>
+      <option value="ACTIVE">正常</option>
+      <option value="BANNED">停權</option>
+      <option value="DISABLED">停用</option>
+    </select>
+  </div>
+  <div>
+    <button type="submit" class="btn btn-primary">搜尋</button>
+    <button type="button" class="btn btn-outline-secondary" id="users-filter-reset">清除篩選</button>
+  </div>
+</form>
+
+<section class="block-card shadow-sm">
+  <div class="block-card-header" id="users-table-title">用戶資料</div>
+  <div class="block-card-body p-0">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0 admin-data-table">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">帳號編號</th>
+            <th>使用者</th>
+            <th>角色</th>
+            <th>帳戶狀態</th>
+            <th>聲望</th>
+            <th>點數餘額</th>
+            <th>最後登入</th>
+          </tr>
+        </thead>
+        <tbody id="users-list"></tbody>
+      </table>
+    </div>
+  </div>
+</section>

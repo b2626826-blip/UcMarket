@@ -1,0 +1,713 @@
+/* ==========================================
+   ROOT
+========================================== */
+
+:root{
+    --bg:#040404;
+    --card:#090909;
+
+    --gold:#d9aa43;
+    --gold-soft:#b88b2f;
+
+    --green:#00d66f;
+    --red:#ff476d;
+
+    --text:#ffffff;
+    --text-secondary:#8f8f8f;
+
+    --border:rgba(255,255,255,.06);
+}
+
+/* ==========================================
+   PAGE
+========================================== */
+
+body{
+    background:#040404;
+    color:#fff;
+}
+
+/* ==========================================
+   HERO
+========================================== */
+
+.ranking-hero{
+    text-align:center;
+    padding:100px 20px 80px;
+}
+
+.badge{
+    display:inline-flex;
+    align-items:center;
+    gap:10px;
+
+    padding:10px 18px;
+
+    border-radius:999px;
+
+    background:rgba(217,170,67,.12);
+
+    border:1px solid rgba(217,170,67,.25);
+
+    color:var(--gold);
+
+    font-size:14px;
+}
+
+.ranking-hero h1{
+    margin-top:25px;
+
+    font-size:72px;
+    font-weight:900;
+
+    letter-spacing:-2px;
+}
+
+.ranking-hero p{
+    margin-top:18px;
+
+    color:var(--text-secondary);
+
+    font-size:18px;
+}
+
+/* ==========================================
+   STATS
+========================================== */
+
+.ranking-stats{
+    width:92%;
+    max-width:1500px;
+
+    margin:auto;
+
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+
+    gap:24px;
+}
+
+.ranking-stat-card{
+    padding:28px;
+
+    border-radius:24px;
+
+    background:linear-gradient(
+        180deg,
+        rgba(217,170,67,.08),
+        rgba(255,255,255,.02)
+    );
+
+    border:1px solid var(--border);
+
+    transition:.35s;
+}
+
+.ranking-stat-card:hover{
+    transform:translateY(-6px);
+
+    border-color:rgba(217,170,67,.25);
+
+    box-shadow:
+    0 0 30px rgba(217,170,67,.12);
+}
+
+.ranking-stat-card span{
+    color:#999;
+    font-size:14px;
+}
+
+.ranking-stat-card strong{
+    display:block;
+
+    margin-top:10px;
+    margin-bottom:10px;
+
+    font-size:36px;
+    font-weight:800;
+}
+
+.ranking-stat-card p{
+    color:var(--gold);
+}
+
+/* ==========================================
+   SECTION
+========================================== */
+
+.ranking-section{
+    width:92%;
+    max-width:1500px;
+
+    margin:80px auto;
+}
+
+/* ==========================================
+   TABS
+========================================== */
+
+.ranking-tabs{
+    display:flex;
+    flex-wrap:wrap;
+
+    gap:12px;
+
+    margin-bottom:35px;
+}
+
+.ranking-tabs button{
+    padding:12px 18px;
+
+    border-radius:999px;
+
+    background:#111;
+
+    color:#999;
+
+    transition:.3s;
+}
+
+.ranking-tabs button:hover{
+    color:white;
+}
+
+.ranking-tabs button.active{
+    background:var(--gold);
+    color:black;
+    font-weight:700;
+}
+
+/* ==========================================
+   TOP 3
+========================================== */
+
+.top-rank-grid{
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+
+    gap:24px;
+
+    margin-bottom:50px;
+}
+
+.top-card{
+    position:relative;
+
+    background:#090909;
+
+    border:1px solid var(--border);
+
+    border-radius:28px;
+
+    padding:35px;
+
+    text-align:center;
+
+    transition:.35s;
+}
+
+.top-card:hover{
+    transform:translateY(-6px);
+
+    border-color:
+    rgba(217,170,67,.3);
+}
+
+.first{
+    transform:scale(1.05);
+}
+
+.first:hover{
+    transform:
+    scale(1.05)
+    translateY(-6px);
+}
+
+.rank-medal{
+    position:absolute;
+
+    top:18px;
+    right:18px;
+
+    width:44px;
+    height:44px;
+
+    border-radius:50%;
+
+    background:#111;
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    font-weight:800;
+}
+
+.gold{
+    background:var(--gold);
+    color:black;
+}
+
+.avatar{
+    width:90px;
+    height:90px;
+
+    margin:auto;
+
+    border-radius:50%;
+
+    background:#111;
+
+    color:var(--gold);
+
+    display:flex;
+    justify-content:center;
+    align-items:center;
+
+    font-size:34px;
+}
+
+.champion{
+    box-shadow:
+    0 0 35px rgba(217,170,67,.45);
+}
+
+.top-card h3{
+    margin-top:20px;
+    font-size:26px;
+}
+
+.top-card p{
+    margin:10px 0;
+
+    color:#999;
+}
+
+/* ==========================================
+   TABLE CARD
+========================================== */
+
+.ranking-table-card{
+    background:#090909;
+
+    border:1px solid var(--border);
+
+    border-radius:28px;
+
+    overflow:hidden;
+}
+
+/* ==========================================
+   TABLE HEADER
+========================================== */
+
+.table-header{
+    padding:28px;
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    border-bottom:
+    1px solid rgba(255,255,255,.05);
+}
+
+.table-header h3{
+    font-size:28px;
+}
+
+.table-search{
+    display:flex;
+    gap:10px;
+}
+
+.table-search input{
+    width:280px;
+    height:50px;
+
+    background:#111;
+
+    border:none;
+
+    border-radius:14px;
+
+    color:white;
+
+    padding:0 18px;
+
+    outline:none;
+}
+
+.table-search button{
+    width:50px;
+    height:50px;
+
+    border-radius:14px;
+
+    background:var(--gold);
+
+    color:black;
+}
+
+/* ==========================================
+   TABLE
+========================================== */
+
+.ranking-table{
+    width:100%;
+}
+
+.ranking-row{
+    display:grid;
+
+    grid-template-columns:
+    80px
+    2fr
+    1fr
+    1fr
+    1fr
+    1fr
+    120px;
+
+    align-items:center;
+
+    padding:22px 30px;
+
+    border-bottom:
+    1px solid rgba(255,255,255,.04);
+
+    transition:.3s;
+}
+
+.ranking-row:hover{
+    background:
+    rgba(217,170,67,.04);
+}
+
+.table-title{
+    background:
+    rgba(217,170,67,.05);
+
+    color:var(--gold);
+
+    font-weight:700;
+}
+
+.rank-number{
+    color:var(--gold);
+    font-weight:800;
+}
+
+.user-info{
+    display:flex;
+    flex-direction:column;
+}
+
+.user-info small{
+    color:#777;
+}
+
+/* ==========================================
+   STATUS
+========================================== */
+
+.status{
+    display:inline-flex;
+
+    justify-content:center;
+    align-items:center;
+
+    padding:8px 12px;
+
+    border-radius:999px;
+
+    font-size:13px;
+    font-weight:700;
+}
+
+.status.hot{
+    background:
+    rgba(217,170,67,.15);
+
+    color:var(--gold);
+}
+
+.status.active-status{
+    background:
+    rgba(0,214,111,.15);
+
+    color:var(--green);
+}
+
+.status.normal{
+    background:
+    rgba(255,255,255,.08);
+
+    color:#ccc;
+}
+
+.green{
+    color:var(--green);
+}
+
+/* ==========================================
+   SCROLLBAR
+========================================== */
+
+::-webkit-scrollbar{
+    width:4px;
+}
+
+::-webkit-scrollbar-track{
+    background:#040404;
+}
+
+::-webkit-scrollbar-thumb{
+    background:var(--gold);
+    border-radius:999px;
+}
+
+/* ==========================================
+   RESPONSIVE
+========================================== */
+
+@media(max-width:1200px){
+
+    .ranking-stats{
+        grid-template-columns:
+        repeat(2,1fr);
+    }
+
+    .top-rank-grid{
+        grid-template-columns:1fr;
+    }
+
+    .first{
+        transform:none;
+    }
+
+    .first:hover{
+        transform:translateY(-6px);
+    }
+}
+
+@media(max-width:768px){
+
+    .ranking-hero h1{
+        font-size:48px;
+    }
+
+    .ranking-stats{
+        grid-template-columns:1fr;
+    }
+
+    .table-header{
+        flex-direction:column;
+        gap:20px;
+    }
+
+    .table-search{
+        width:100%;
+    }
+
+    .table-search input{
+        width:100%;
+    }
+
+    .ranking-row{
+        grid-template-columns:
+        60px
+        2fr
+        1fr
+        1fr;
+    }
+
+    .ranking-row span:nth-child(3),
+    .ranking-row span:nth-child(5),
+    .ranking-row span:nth-child(6),
+    .ranking-row span:nth-child(7){
+        display:none;
+    }
+}
+/* ==========================
+   RANKING HOVER GLOW
+========================== */
+
+.ranking-stat-card,
+.top-card,
+.ranking-table-card{
+
+    position:relative;
+    overflow:hidden;
+
+    transition:
+        transform .3s ease,
+        border-color .3s ease,
+        box-shadow .3s ease;
+}
+
+.ranking-stat-card::after,
+.top-card::after,
+.ranking-table-card::after{
+
+    content:"";
+
+    position:absolute;
+    inset:0;
+
+    background:
+    radial-gradient(
+        circle at var(--mouse-x,50%)
+        var(--mouse-y,50%),
+
+        rgba(217,170,67,.16),
+        transparent 35%
+    );
+
+    opacity:0;
+
+    pointer-events:none;
+
+    transition:.3s;
+}
+
+.ranking-stat-card:hover,
+.top-card:hover,
+.ranking-table-card:hover{
+
+    border-color:
+    rgba(217,170,67,.35);
+
+    box-shadow:
+    0 0 0 1px rgba(217,170,67,.12),
+    0 20px 45px rgba(0,0,0,.45),
+    0 0 38px rgba(217,170,67,.12);
+}
+
+.ranking-stat-card:hover::after,
+.top-card:hover::after,
+.ranking-table-card:hover::after{
+
+    opacity:1;
+}
+/* ==========================
+   FOOTER
+========================== */
+
+.wallet-footer{
+    width:100%;
+    padding:90px 4% 70px;
+    border-top:1px solid #111;
+}
+
+.footer-grid{
+    max-width:1500px;
+    margin:0 auto 80px;
+
+    display:grid;
+    grid-template-columns:repeat(4,1fr);
+    gap:60px;
+}
+
+.footer-grid h4{
+    font-size:16px;
+    margin-bottom:20px;
+    color:#fff;
+}
+
+.footer-grid a{
+    display:block;
+    color:#888;
+    text-decoration:none;
+    font-size:14px;
+    margin-bottom:12px;
+    transition:.25s;
+}
+
+.footer-grid a:hover{
+    color:#fff;
+}
+
+.footer-bottom{
+    max-width:1500px;
+    margin:auto;
+
+    padding-top:28px;
+
+    border-top:1px solid #111;
+
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+
+    color:#777;
+    font-size:13px;
+}
+
+.footer-brand{
+    display:flex;
+    align-items:center;
+    gap:12px;
+}
+
+.footer-social{
+    display:flex;
+    gap:22px;
+    font-size:17px;
+}
+
+.footer-social i{
+    color:#888;
+    cursor:pointer;
+    transition:.25s;
+}
+
+.footer-social i:hover{
+    color:#fff;
+    transform:translateY(-2px);
+}
+
+@media(max-width:768px){
+
+    .footer-grid{
+        grid-template-columns:1fr;
+        gap:35px;
+    }
+
+    .footer-bottom{
+     .footer-bottom{
+
+    max-width:1500px;
+
+    margin:auto;
+
+    padding-top:28px;
+
+    border-top:1px solid #111;
+
+    display:grid;
+
+    grid-template-columns:
+        1fr
+        auto
+        1fr;
+
+    align-items:center;
+}
+    }
+}
+.footer-brand{
+    justify-self:start;
+}
+
+.footer-bottom p{
+    justify-self:center;
+    color:#777;
+}
+
+.footer-social{
+    justify-self:end;
+
+    display:flex;
+    gap:22px;
+}

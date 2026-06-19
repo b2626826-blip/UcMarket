@@ -1,0 +1,67 @@
+<div class="page-header mb-3">
+  <h1 class="h3 mb-1">操作日誌</h1>
+  <p class="text-secondary mb-0">檢視管理員操作紀錄與稽核軌跡。</p>
+</div>
+
+<section class="admin-kpi-row mb-3" id="logs-summary">
+  <article class="admin-kpi-card shadow-sm">
+    <div class="small text-secondary mb-2">今日操作</div>
+    <div class="h4 mb-0 text-primary" id="l-sum-0">-</div>
+  </article>
+  <article class="admin-kpi-card shadow-sm">
+    <div class="small text-secondary mb-2">審核操作</div>
+    <div class="h4 mb-0 text-success" id="l-sum-1">-</div>
+  </article>
+  <article class="admin-kpi-card shadow-sm">
+    <div class="small text-secondary mb-2">用戶管理</div>
+    <div class="h4 mb-0 text-warning" id="l-sum-2">-</div>
+  </article>
+  <article class="admin-kpi-card shadow-sm">
+    <div class="small text-secondary mb-2">系統操作</div>
+    <div class="h4 mb-0 text-info" id="l-sum-3">-</div>
+  </article>
+</section>
+
+<form id="logs-filter" class="admin-filter-bar mb-3">
+  <div>
+    <label class="form-label small text-secondary mb-1">關鍵字</label>
+    <input class="form-control" type="search" data-filter-key="keyword" placeholder="搜尋管理員、動作、目標ID">
+  </div>
+  <div>
+    <label class="form-label small text-secondary mb-1">動作類型</label>
+    <select class="form-select" data-filter-key="action">
+      <option value="">全部動作</option>
+      <option value="MARKET_APPROVE">核准事件</option>
+      <option value="MARKET_REJECT">拒絕事件</option>
+      <option value="MARKET_RESOLVE">結算事件</option>
+      <option value="MARKET_REQUEST_CHANGES">要求修改</option>
+      <option value="USER_SUSPEND">停權用戶</option>
+      <option value="USER_UNSUSPEND">解除停權</option>
+    </select>
+  </div>
+  <div>
+    <button type="submit" class="btn btn-primary">搜尋</button>
+    <button type="button" class="btn btn-outline-secondary" id="logs-filter-reset">清除篩選</button>
+  </div>
+</form>
+
+<section class="block-card shadow-sm">
+  <div class="block-card-header" id="logs-table-title">操作紀錄</div>
+  <div class="block-card-body p-0">
+    <div class="table-responsive">
+      <table class="table align-middle mb-0 admin-data-table">
+        <thead class="table-light">
+          <tr>
+            <th class="ps-3">時間</th>
+            <th>管理員</th>
+            <th>動作</th>
+            <th>目標類型</th>
+            <th>目標 ID</th>
+            <th>詳細資訊</th>
+          </tr>
+        </thead>
+        <tbody id="logs-list"></tbody>
+      </table>
+    </div>
+  </div>
+</section>

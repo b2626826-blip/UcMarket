@@ -1,0 +1,77 @@
+<div class="page-header mb-3">
+  <h1 class="h3 mb-1">事件審核</h1>
+  <p class="text-secondary mb-0">審核使用者提交的事件，確保符合上架規則。</p>
+</div>
+
+<section class="stats-row mb-3" id="stats-cards">
+  <article class="stat-card shadow-sm">
+    <div class="d-flex justify-content-between align-items-start gap-3">
+      <div>
+        <div class="text-secondary small mb-2">待審核事件</div>
+        <div class="stat-value" id="stat-pending">-</div>
+      </div>
+      <div class="fs-4 text-primary"><i class="bi bi-clock-history"></i></div>
+    </div>
+  </article>
+  <article class="stat-card shadow-sm">
+    <div class="d-flex justify-content-between align-items-start gap-3">
+      <div>
+        <div class="text-secondary small mb-2">已核准</div>
+        <div class="stat-value" id="stat-approved">-</div>
+      </div>
+      <div class="fs-4 text-success"><i class="bi bi-check-circle"></i></div>
+    </div>
+  </article>
+  <article class="stat-card shadow-sm">
+    <div class="d-flex justify-content-between align-items-start gap-3">
+      <div>
+        <div class="text-secondary small mb-2">已拒絕</div>
+        <div class="stat-value" id="stat-rejected">-</div>
+      </div>
+      <div class="fs-4 text-danger"><i class="bi bi-x-circle"></i></div>
+    </div>
+  </article>
+  <article class="stat-card shadow-sm">
+    <div class="d-flex justify-content-between align-items-start gap-3">
+      <div>
+        <div class="text-secondary small mb-2">要求修改</div>
+        <div class="stat-value" id="stat-changes">-</div>
+      </div>
+      <div class="fs-4 text-warning"><i class="bi bi-pencil-square"></i></div>
+    </div>
+  </article>
+</section>
+
+<section class="page-grid align-items-start">
+  <div>
+    <section class="block-card shadow-sm">
+      <div class="block-card-header">待審核事件列表</div>
+      <div class="block-card-body p-0">
+        <div class="table-responsive">
+          <table class="table align-middle mb-0">
+            <thead class="table-light">
+              <tr>
+                <th class="ps-3">標題</th>
+                <th>提交者</th>
+                <th>提交時間</th>
+                <th>類別</th>
+                <th>截止時間</th>
+                <th class="text-center">操作</th>
+              </tr>
+            </thead>
+            <tbody id="dashboard-reviews"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </div>
+
+      <aside>
+    <div class="d-grid gap-3">
+      <section class="block-card shadow-sm">
+        <div class="block-card-header">系統資訊</div>
+        <div class="block-card-body system-list" id="system-info"></div>
+      </section>
+    </div>
+  </aside>
+</section>

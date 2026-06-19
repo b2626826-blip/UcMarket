@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>註冊 | UCMARKET</title>
+
+    <link rel="stylesheet" href="../css/style.css">
+    <link rel="stylesheet" href="../css/register.css">
+
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+</head>
+
+<body>
+
+<header class="navbar">
+
+    <div class="logo">
+        <div class="logo-icon">
+            <i class="fa-solid fa-chart-simple"></i>
+        </div>
+        <span>UCMARKET</span>
+    </div>
+
+    <nav class="nav-menu">
+        <a href="#">市場</a>
+        <a href="#">交易</a>
+        <a href="#">持倉</a>
+        <a href="#">排行榜</a>
+        <a href="#">結算</a>
+    </nav>
+
+    <div class="nav-right">
+        <a href="#">繁體</a>
+        <a href="#">遊戲玩法</a>
+        <a href="#">登入</a>
+
+        <button class="register-btn">
+            註冊
+        </button>
+
+        <button class="menu-btn">
+            <i class="fa-solid fa-bars"></i>
+        </button>
+    </div>
+
+</header>
+
+<main class="register-wrapper">
+
+    <div class="register-bg-layer">
+
+        <div class="register-bg-row row1">
+            UCMARKET • PREDICT • TRADE • WIN • UCMARKET • PREDICT • TRADE • WIN •
+            UCMARKET • PREDICT • TRADE • WIN • UCMARKET • PREDICT • TRADE • WIN •
+        </div>
+
+        <div class="register-bg-row row2">
+            MARKET • CRYPTO • POLITICS • SPORTS • MARKET • CRYPTO • POLITICS • SPORTS •
+            MARKET • CRYPTO • POLITICS • SPORTS • MARKET • CRYPTO • POLITICS • SPORTS •
+        </div>
+
+    </div>
+
+    <section class="register-hero">
+
+        <span class="badge">
+            <i class="fa-solid fa-user-plus"></i>
+            建立帳號
+        </span>
+
+        <h1>加入 UCMARKET</h1>
+
+        <p>
+            建立您的預測市場帳號，開始交易、管理持倉與查看排行榜。
+        </p>
+
+    </section>
+
+    <section class="register-layout">
+
+        <section class="register-card">
+
+            <div class="register-glow"></div>
+
+            <div class="register-card-header">
+                <h2>會員註冊</h2>
+                <p>請輸入以下資料建立帳號</p>
+            </div>
+
+            <form class="register-form" id="registerForm">
+
+                <div class="form-group">
+                    <label>用戶名稱</label>
+
+                    <div class="input-box">
+                        <input type="text" id="username" placeholder="輸入您的用戶名稱">
+                        <i class="fa-regular fa-user"></i>
+                    </div>
+
+                    <small class="error-text"></small>
+                </div>
+
+                <div class="form-group">
+                    <label>電子郵件</label>
+
+                    <div class="input-box">
+                        <input type="email" id="email" placeholder="name@example.com">
+                        <i class="fa-regular fa-envelope"></i>
+                    </div>
+
+                    <small class="error-text"></small>
+                </div>
+
+                <div class="form-row">
+
+                    <div class="form-group">
+                        <label>設定密碼</label>
+
+                        <div class="input-box">
+                            <input type="password" id="password" placeholder="至少 8 個字元">
+
+                            <button type="button" class="password-toggle" data-target="password">
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+                        </div>
+
+                        <small class="error-text"></small>
+                    </div>
+
+                    <div class="form-group">
+                        <label>確認密碼</label>
+
+                        <div class="input-box">
+                            <input type="password" id="confirmPassword" placeholder="再次輸入密碼">
+
+                            <button type="button" class="password-toggle" data-target="confirmPassword">
+                                <i class="fa-regular fa-eye"></i>
+                            </button>
+                        </div>
+
+                        <small class="error-text"></small>
+                    </div>
+
+                </div>
+
+                <label class="terms-area">
+                    <input type="checkbox" id="terms">
+
+                    <span>
+                        我同意 UCMARKET 的
+                        <a href="#">服務條款</a>、
+                        <a href="#">隱私政策</a>
+                        與
+                        <a href="#">風險披露聲明</a>
+                    </span>
+                </label>
+
+                <small class="terms-error" id="termsError"></small>
+
+                <button type="submit" class="register-submit-btn" id="registerSubmitBtn">
+                    立即註冊
+                    <i class="fa-solid fa-arrow-right"></i>
+                </button>
+
+            </form>
+
+            <div class="register-divider">
+                <span></span>
+                <p>或使用以下方式繼續</p>
+                <span></span>
+            </div>
+
+            <div class="social-register">
+
+                <button>
+                    <i class="fa-brands fa-google"></i>
+                    Google
+                </button>
+
+                <button>
+                    <i class="fa-solid fa-wallet"></i>
+                    錢包連接
+                </button>
+
+            </div>
+
+            <p class="login-link">
+                已經有帳號？
+                <a href="#">立即登入</a>
+            </p>
+
+        </section>
+
+    </section>
+
+</main>
+
+<div class="register-toast" id="registerToast">
+    <i class="fa-solid fa-check"></i>
+    註冊成功，帳號已建立
+</div>
+
+<script src="../js/sign.js"></script>
+
+</body>
+
+</html>

@@ -1,0 +1,94 @@
+查全部持倉
+GET /api/positions
+positionRepository.findAll()
+---------------------------------
+建立持倉
+POST /api/positions
+功能：直接新增一筆持倉。
+
+邏輯:
+建立 Position
+設定 userId / marketId / optionId
+設定 shares / avgCost / amount
+status = ACTIVE
+unrealizedPnl = 0
+存進資料庫
+---------------------------------
+功能：買入持倉。
+
+POST /api/positions/buy
+
+如果沒有這筆持倉：
+新增一筆 position
+shares = 買入股數
+avgCost = 買入價格
+amount = shares × price
+status = ACTIVE
+
+如果已經有這筆持倉：
+新股數 = 舊股數 + 買入股數
+新總成本 = 舊 amount + 本次 shares × price
+新平均成本 = 新總成本 / 新股數
+更新 position
+status = ACTIVE
+settledAt = null
+----------------------------------
+賣出持倉
+
+POST /api/positions/sell
+
+功能：賣出部分持倉。
+邏輯:
+找到 userId + marketId + optionId 的持倉
+剩餘股數 = 原本股數 - 賣出股數
+如果賣出股數超過持有股數 → 報錯
+更新 shares
+更新 amount = 剩餘股數 × avgCost
+如果剩餘股數 = 0 → status = CLOSED
+-----------------------------------
+功能：更新目前這筆持倉的浮動盈虧。
+
+POST /api/positions/pnl
+
+邏輯:
+找到 positionId
+unrealizedPnl = (currentPrice - avgCost) × shares
+存回資料庫
+-----------------------------------
+POST /api/positions/close
+功能：把持倉狀態改成已平倉。
+邏輯:
+找到 positionId
+status = CLOSED
+存回資料庫
+-----------------------------------
+結算
+功能：把持倉標記為已結算。
+POST /api/positions/settle
+
+找到 positionId
+status = SETTLED
+settledAt = 現在時間
+存回資料庫
+-----------------------------------
+查某使用者全部持倉
+
+功能：只查 roy 的持倉。
+
+GET /api/positions/user/roy
+
+邏輯：
+findByUserId("roy")
+-----------------------------------
+查某使用者持倉中
+
+功能：只查 roy 狀態是 ACTIVE 的持倉。
+
+GET /api/positions/user/roy/active
+
+邏輯：
+
+findByUserIdAndStatus("roy", "ACTIVE")
+
+------------------------------------
+positions = 使用者現在持有什麼、多少股、平均成本、盈虧、狀態
