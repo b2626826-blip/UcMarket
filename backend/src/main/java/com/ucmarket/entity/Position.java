@@ -31,7 +31,7 @@ public class Position {
     private BigDecimal amount = BigDecimal.ZERO;
 
     @Column(name = "unrealized_pnl", precision = 18, scale = 6)
-    private BigDecimal unrealizedPnl;
+    private BigDecimal unrealizedPnl = BigDecimal.ZERO;
 
     @Column(nullable = false, length = 20)
     private String status = "ACTIVE";
@@ -127,6 +127,12 @@ public class Position {
 
     public void setSettledAt(LocalDateTime settledAt) {
         this.settledAt = settledAt;
+    }
+
+    @PrePersist
+    public void onCreate() {
+        this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate

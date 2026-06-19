@@ -1,58 +1,94 @@
-api說明 api1 在閃電延伸外掛
-/api/positions/user/roy
-= 全部持倉
-/api/positions/user/roy/active
-= 只看 ACTIVE 持倉
+查全部持倉
+GET /api/positions
+positionRepository.findAll()
 ---------------------------------
-GET /api/positions/user/roy
-回傳
-id=1 ACTIVE
-id=2 CLOSED
-id=3 ACTIVE
----------------------------------
-所以它會回傳 roy 的全部持倉。
-
-GET /api/positions/user/roy/active
-回傳
-id=1 ACTIVE
-id=3 ACTIVE
-把 CLOSED 過濾掉。
----------------------------------
+建立持倉
 POST /api/positions
-新增一筆持倉
-↓
+功能：直接新增一筆持倉。
+
+邏輯:
+建立 Position
+設定 userId / marketId / optionId
+設定 shares / avgCost / amount
+status = ACTIVE
+unrealizedPnl = 0
 存進資料庫
-↓
-回傳新增成功的資料
 ---------------------------------
-加倉概念,如果從沒買過BUY()就會加倉
-POST /api/positions/buy
-買入持倉API
-
-當使用者在前端按下：
-
-買 YES
-買 NO
-下注
-
-前端就會呼叫：
+功能：買入持倉。
 
 POST /api/positions/buy
 
-送資料給後端。
---------------------------------
+如果沒有這筆持倉：
+新增一筆 position
+shares = 買入股數
+avgCost = 買入價格
+amount = shares × price
+status = ACTIVE
+
+如果已經有這筆持倉：
+新股數 = 舊股數 + 買入股數
+新總成本 = 舊 amount + 本次 shares × price
+新平均成本 = 新總成本 / 新股數
+更新 position
+status = ACTIVE
+settledAt = null
+----------------------------------
+賣出持倉
+
 POST /api/positions/sell
 
-賣出持倉
-減倉
-平倉 
+功能：賣出部分持倉。
+邏輯:
+找到 userId + marketId + optionId 的持倉
+剩餘股數 = 原本股數 - 賣出股數
+如果賣出股數超過持有股數 → 報錯
+更新 shares
+更新 amount = 剩餘股數 × avgCost
+如果剩餘股數 = 0 → status = CLOSED
+-----------------------------------
+功能：更新目前這筆持倉的浮動盈虧。
 
-例如:當使用者賣出50股前端就呼叫POST /api/positions/sell
-剩下剩餘0股系統就會close變以平倉
---------------------------------
-POST/api/positions/pnl
-根據目前市場價格，重新計算持倉的浮動盈虧 (Unrealized PNL)
-計算
-(0.80 - 0.686667) × 200
-=
-22.6666
+POST /api/positions/pnl
+
+邏輯:
+找到 positionId
+unrealizedPnl = (currentPrice - avgCost) × shares
+存回資料庫
+-----------------------------------
+POST /api/positions/close
+功能：把持倉狀態改成已平倉。
+邏輯:
+找到 positionId
+status = CLOSED
+存回資料庫
+-----------------------------------
+結算
+功能：把持倉標記為已結算。
+POST /api/positions/settle
+
+找到 positionId
+status = SETTLED
+settledAt = 現在時間
+存回資料庫
+-----------------------------------
+查某使用者全部持倉
+
+功能：只查 roy 的持倉。
+
+GET /api/positions/user/roy
+
+邏輯：
+findByUserId("roy")
+-----------------------------------
+查某使用者持倉中
+
+功能：只查 roy 狀態是 ACTIVE 的持倉。
+
+GET /api/positions/user/roy/active
+
+邏輯：
+
+findByUserIdAndStatus("roy", "ACTIVE")
+
+------------------------------------
+positions = 使用者現在持有什麼、多少股、平均成本、盈虧、狀態

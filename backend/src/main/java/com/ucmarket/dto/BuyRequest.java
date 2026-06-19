@@ -7,6 +7,8 @@ public class BuyRequest {
     private String userId;
     private Long marketId;
     private Long optionId;
+
+    private String side;
     private BigDecimal shares;
     private BigDecimal price;
 
@@ -32,6 +34,14 @@ public class BuyRequest {
 
     public void setOptionId(Long optionId) {
         this.optionId = optionId;
+    }
+
+    public String getSide() {
+        return side;
+    }
+
+    public void setSide(String side) {
+        this.side = side;
     }
 
     public BigDecimal getShares() {

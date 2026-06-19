@@ -21,10 +21,9 @@ import com.ucmarket.dto.TradeQuoteResponse;
 import com.ucmarket.entity.Market;
 import com.ucmarket.entity.MarketSide;
 import com.ucmarket.entity.MarketStatus;
-import com.ucmarket.repository.MarketRepository;
-
 import com.ucmarket.entity.Trade;
 import com.ucmarket.entity.TradeAction;
+import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.TradeRepository;
 
 import jakarta.validation.Valid;
@@ -33,92 +32,111 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/markets")
 public class MarketController {
 
-	private final MarketRepository marketRepository;
-	
-	private final TradeRepository tradeRepository;
+    private final MarketRepository marketRepository;
+    private final TradeRepository tradeRepository;
 
-	public MarketController(MarketRepository marketRepository, TradeRepository tradeRepository) {
-		this.marketRepository = marketRepository;
-		this.tradeRepository = tradeRepository;
-	}
+    public MarketController(
+            MarketRepository marketRepository,
+            TradeRepository tradeRepository
+    ) {
+        this.marketRepository = marketRepository;
+        this.tradeRepository = tradeRepository;
+    }
 
+    @GetMapping
+    public List<Market> listMarkets() {
+        return marketRepository.findAll();
+    }
 
-	@GetMapping
-	public List<Market> listMarkets() {
-		return marketRepository.findAll();
-	}
+    @GetMapping("/{id}")
+    public Market getMarket(@PathVariable UUID id) {
+        return marketRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    }
 
-	@GetMapping("/{id}")
-	public Market getMarket(@PathVariable UUID id) {
-		return marketRepository.findById(id).orElseThrow();
-	}
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public Market createMarket(@Valid @RequestBody CreateMarketRequest request) {
+        Market market = new Market(
+                request.title(),
+                request.description(),
+                request.category(),
+                request.sourceUrl(),
+                request.resolutionRule(),
+                request.closeAt()
+        );
 
-	@PostMapping
-	@ResponseStatus(HttpStatus.CREATED)
-	public Market createMarket(@Valid @RequestBody CreateMarketRequest request) {
-		Market market = new Market(request.title(), request.description(), request.category(), request.sourceUrl(),
-				request.resolutionRule(), request.closeAt());
+        return marketRepository.save(market);
+    }
 
-		return marketRepository.save(market);
-	}
+    @PostMapping("/{id}/trades/quote")
+    public TradeQuoteResponse quoteTrade(
+            @PathVariable UUID id,
+            @Valid @RequestBody TradeQuoteRequest request
+    ) {
+        Market market = marketRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-	@PostMapping("/{id}/trades/quote")
-	public TradeQuoteResponse quoteTrade(@PathVariable UUID id, @Valid @RequestBody TradeQuoteRequest request) {
-		Market market = marketRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-		
-		if (market.getStatus() != MarketStatus.ACTIVE) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
-		}
+        if (market.getStatus() != MarketStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
 
-		return buildQuote(market, request);
-	}
-	
-	@PostMapping("/{id}/trades")
-	@ResponseStatus(HttpStatus.CREATED)
-	public TradeQuoteResponse createTrade(@PathVariable UUID id, @Valid @RequestBody TradeQuoteRequest request) {
-		Market market = marketRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        return buildQuote(market, request);
+    }
 
-		if (market.getStatus() != MarketStatus.ACTIVE) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
-		}
+    @PostMapping("/{id}/trades")
+    @ResponseStatus(HttpStatus.CREATED)
+    public TradeQuoteResponse createTrade(
+            @PathVariable UUID id,
+            @Valid @RequestBody TradeQuoteRequest request
+    ) {
+        Market market = marketRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-		TradeQuoteResponse quote = buildQuote(market, request);
-		BigDecimal shares = request.amount().divide(quote.price(), 4, RoundingMode.HALF_UP);
+        if (market.getStatus() != MarketStatus.ACTIVE) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+        }
 
-		market.buy(request.side(), request.amount());
-		marketRepository.save(market);
+        TradeQuoteResponse quote = buildQuote(market, request);
 
-		Trade trade = new Trade(
-				id,
-				request.side(),
-				TradeAction.BUY,
-				request.amount(),
-				quote.price(),
-				shares
-		);
-		tradeRepository.save(trade);
+        BigDecimal shares = request.amount()
+                .divide(quote.price(), 4, RoundingMode.HALF_UP);
 
-		return quote;
-	}
-	
-	private TradeQuoteResponse buildQuote(Market market, TradeQuoteRequest request) {
-		BigDecimal totalPool = market.getYesPool().add(market.getNoPool());
-		BigDecimal sidePool = request.side() == MarketSide.YES
-				? market.getNoPool()
-				: market.getYesPool();
+        market.buy(request.side(), request.amount());
+        marketRepository.save(market);
 
-		BigDecimal price = sidePool.divide(totalPool, 4, RoundingMode.HALF_UP);
-		BigDecimal estimatedCost = request.amount().multiply(price);
+        Trade trade = new Trade(
+                id,
+                request.side(),
+                TradeAction.BUY,
+                request.amount(),
+                quote.price(),
+                shares
+        );
 
-		return new TradeQuoteResponse(
-				request.side(),
-				request.amount(),
-				price,
-				estimatedCost
-		);
-	}
+        tradeRepository.save(trade);
 
-	
+        return quote;
+    }
+
+    private TradeQuoteResponse buildQuote(
+            Market market,
+            TradeQuoteRequest request
+    ) {
+        BigDecimal totalPool = market.getYesPool().add(market.getNoPool());
+
+        BigDecimal sidePool = request.side() == MarketSide.YES
+                ? market.getNoPool()
+                : market.getYesPool();
+
+        BigDecimal price = sidePool.divide(totalPool, 4, RoundingMode.HALF_UP);
+        BigDecimal estimatedCost = request.amount().multiply(price);
+
+        return new TradeQuoteResponse(
+                request.side(),
+                request.amount(),
+                price,
+                estimatedCost
+        );
+    }
 }

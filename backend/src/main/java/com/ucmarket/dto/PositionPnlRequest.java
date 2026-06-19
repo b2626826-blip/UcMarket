@@ -11,7 +11,15 @@ public class PositionPnlRequest {
         return positionId;
     }
 
+    public void setPositionId(Long positionId) {
+        this.positionId = positionId;
+    }
+
     public BigDecimal getCurrentPrice() {
         return currentPrice;
+    }
+
+    public void setCurrentPrice(BigDecimal currentPrice) {
+        this.currentPrice = currentPrice;
     }
 }
