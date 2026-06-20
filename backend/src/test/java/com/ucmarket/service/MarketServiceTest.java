@@ -185,6 +185,19 @@ class MarketServiceTest {
     }
 
     @Test
+    void findMarket_shouldAutoCloseExpiredActiveMarket_onAccess() {
+        Market market = createMarket(MarketStatus.ACTIVE);
+        ReflectionTestUtils.setField(market, "closeAt", LocalDateTime.now().minusDays(1));
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(marketRepository.save(any())).thenReturn(market);
+
+        assertThrows(IllegalStateException.class,
+                () -> marketService.approveMarket(marketId, adminId));
+
+        assertEquals(MarketStatus.CLOSED, market.getStatus());
+    }
+
+    @Test
     void anyOperation_shouldThrow_whenMarketNotFound() {
         when(marketRepository.findById(marketId)).thenReturn(Optional.empty());
         when(resolutionService.resolveMarket(marketId, MarketResult.YES, adminId))
