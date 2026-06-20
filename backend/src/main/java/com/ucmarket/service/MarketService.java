@@ -23,12 +23,14 @@ public class MarketService {
     private final MarketRepository marketRepository;
     private final MarketReviewRepository marketReviewRepository;
     private final AdminLogRepository adminLogRepository;
+    private final ResolutionService resolutionService;
 
     public MarketService(MarketRepository marketRepository, MarketReviewRepository marketReviewRepository,
-            AdminLogRepository adminLogRepository) {
+            AdminLogRepository adminLogRepository, ResolutionService resolutionService) {
         this.marketRepository = marketRepository;
         this.marketReviewRepository = marketReviewRepository;
         this.adminLogRepository = adminLogRepository;
+        this.resolutionService = resolutionService;
     }
 
     public Market approveMarket(UUID marketId, UUID adminId) {
@@ -83,14 +85,7 @@ public class MarketService {
     }
 
     public Market resolveMarket(UUID marketId, UUID adminId, com.ucmarket.entity.MarketResult result) {
-        Market market = findMarket(marketId);
-
-        if (market.getStatus() != MarketStatus.CLOSED && market.getStatus() != MarketStatus.ACTIVE) {
-            throw new IllegalStateException("Only CLOSED or ACTIVE markets can be resolved");
-        }
-
-        market.resolve(result, adminId);
-        marketRepository.save(market);
+        Market market = resolutionService.resolveMarket(marketId, result, adminId);
 
         adminLogRepository.save(new AdminLog(adminId, "MARKET_RESOLVE", "MARKET", marketId,
                 "{\"result\":\"" + result.name() + "\"}"));

@@ -43,7 +43,7 @@ public class ResolutionService {
 	}
 
 	@Transactional
-	public Market resolveMarket(UUID marketId, MarketResult result) {
+	public Market resolveMarket(UUID marketId, MarketResult result, UUID adminId) {
 		Market market = marketRepository.findById(marketId)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
@@ -67,7 +67,7 @@ public class ResolutionService {
 			position.settle();
 		}
 
-			market.resolve(result);
+		market.resolve(result, adminId);
 
 		return marketRepository.save(market);
 	}
@@ -87,10 +87,11 @@ public class ResolutionService {
 			return;
 		}
 
-		Wallet wallet = walletRepository.findByUserId(position.getUserId())
+		Wallet wallet = walletRepository.findByUserIdForUpdate(position.getUserId())
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wallet not found"));
 
-			wallet.applyCredit(payout);
+		wallet.applyCredit(payout);
+		walletRepository.save(wallet);
 
 		WalletTransaction transaction = new WalletTransaction(
 				wallet.getId(),

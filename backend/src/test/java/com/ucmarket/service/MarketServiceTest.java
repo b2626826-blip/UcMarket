@@ -33,6 +33,7 @@ class MarketServiceTest {
     @Mock private MarketRepository marketRepository;
     @Mock private MarketReviewRepository marketReviewRepository;
     @Mock private AdminLogRepository adminLogRepository;
+    @Mock private ResolutionService resolutionService;
 
     @Captor private ArgumentCaptor<Market> marketCaptor;
     @Captor private ArgumentCaptor<MarketReview> reviewCaptor;
@@ -44,7 +45,8 @@ class MarketServiceTest {
 
     @BeforeEach
     void setUp() {
-        marketService = new MarketService(marketRepository, marketReviewRepository, adminLogRepository);
+        marketService = new MarketService(marketRepository, marketReviewRepository, adminLogRepository,
+                resolutionService);
         adminId = UUID.randomUUID();
         marketId = UUID.randomUUID();
     }
@@ -115,8 +117,10 @@ class MarketServiceTest {
     @Test
     void resolveMarket_shouldResolveActiveMarket() {
         Market market = createMarket(MarketStatus.ACTIVE);
-        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
-        when(marketRepository.save(any())).thenReturn(market);
+        when(resolutionService.resolveMarket(marketId, MarketResult.YES, adminId)).thenAnswer(invocation -> {
+            market.resolve(MarketResult.YES, adminId);
+            return market;
+        });
 
         Market result = marketService.resolveMarket(marketId, adminId, MarketResult.YES);
 
@@ -131,8 +135,10 @@ class MarketServiceTest {
     @Test
     void resolveMarket_shouldResolveClosedMarket() {
         Market market = createMarket(MarketStatus.CLOSED);
-        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
-        when(marketRepository.save(any())).thenReturn(market);
+        when(resolutionService.resolveMarket(marketId, MarketResult.NO, adminId)).thenAnswer(invocation -> {
+            market.resolve(MarketResult.NO, adminId);
+            return market;
+        });
 
         Market result = marketService.resolveMarket(marketId, adminId, MarketResult.NO);
 
@@ -142,18 +148,17 @@ class MarketServiceTest {
 
     @Test
     void resolveMarket_shouldThrow_whenMarketIsDraft() {
-        Market market = createMarket(MarketStatus.DRAFT);
-        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(resolutionService.resolveMarket(marketId, MarketResult.YES, adminId))
+                .thenThrow(new IllegalStateException("Only CLOSED or ACTIVE markets can be resolved"));
 
         assertThrows(IllegalStateException.class,
                 () -> marketService.resolveMarket(marketId, adminId, MarketResult.YES));
-        verify(marketRepository, never()).save(any());
     }
 
     @Test
     void resolveMarket_shouldThrow_whenMarketAlreadyResolved() {
-        Market market = createMarket(MarketStatus.RESOLVED);
-        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(resolutionService.resolveMarket(marketId, MarketResult.YES, adminId))
+                .thenThrow(new IllegalStateException("Market is already resolved"));
 
         assertThrows(IllegalStateException.class,
                 () -> marketService.resolveMarket(marketId, adminId, MarketResult.YES));
@@ -162,6 +167,8 @@ class MarketServiceTest {
     @Test
     void anyOperation_shouldThrow_whenMarketNotFound() {
         when(marketRepository.findById(marketId)).thenReturn(Optional.empty());
+        when(resolutionService.resolveMarket(marketId, MarketResult.YES, adminId))
+                .thenThrow(new EntityNotFoundException());
 
         assertThrows(EntityNotFoundException.class,
                 () -> marketService.approveMarket(marketId, adminId));

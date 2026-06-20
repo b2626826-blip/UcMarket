@@ -36,6 +36,7 @@ import com.ucmarket.repository.WalletTransactionRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ResolutionServiceTest {
+	private static final UUID ADMIN_ID = UUID.randomUUID();
 
 	@Mock
 	private MarketRepository marketRepository;
@@ -87,10 +88,10 @@ class ResolutionServiceTest {
 				.thenReturn(List.of(position));
 		when(walletTransactionRepository.existsByIdempotencyKey("resolution:" + marketId + ":" + userId))
 				.thenReturn(false);
-		when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
+		when(walletRepository.findByUserIdForUpdate(userId)).thenReturn(Optional.of(wallet));
 		when(marketRepository.save(any(Market.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-		Market resolvedMarket = resolutionService.resolveMarket(marketId, MarketResult.YES);
+		Market resolvedMarket = resolutionService.resolveMarket(marketId, MarketResult.YES, ADMIN_ID);
 
 		assertThat(resolvedMarket.getStatus()).isEqualTo(MarketStatus.RESOLVED);
 		assertThat(resolvedMarket.getResult()).isEqualTo(MarketResult.YES);
@@ -147,10 +148,10 @@ class ResolutionServiceTest {
 				.thenReturn(List.of(position));
 		when(walletTransactionRepository.existsByIdempotencyKey("resolution:" + marketId + ":" + userId))
 				.thenReturn(false);
-		when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(wallet));
+		when(walletRepository.findByUserIdForUpdate(userId)).thenReturn(Optional.of(wallet));
 		when(marketRepository.save(any(Market.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-		Market resolvedMarket = resolutionService.resolveMarket(marketId, MarketResult.NO);
+		Market resolvedMarket = resolutionService.resolveMarket(marketId, MarketResult.NO, ADMIN_ID);
 
 		assertThat(resolvedMarket.getStatus()).isEqualTo(MarketStatus.RESOLVED);
 		assertThat(resolvedMarket.getResult()).isEqualTo(MarketResult.NO);
@@ -201,14 +202,14 @@ class ResolutionServiceTest {
 				.thenReturn(List.of(position));
 		when(marketRepository.save(any(Market.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
-		Market resolvedMarket = resolutionService.resolveMarket(marketId, MarketResult.YES);
+		Market resolvedMarket = resolutionService.resolveMarket(marketId, MarketResult.YES, ADMIN_ID);
 
 		assertThat(resolvedMarket.getStatus()).isEqualTo(MarketStatus.RESOLVED);
 		assertThat(resolvedMarket.getResult()).isEqualTo(MarketResult.YES);
 		assertThat(position.getStatus()).isEqualTo(PositionStatus.SETTLED);
 
 		verify(walletTransactionRepository, never()).save(any(WalletTransaction.class));
-		verify(walletRepository, never()).findByUserId(any(UUID.class));
+		verify(walletRepository, never()).findByUserIdForUpdate(any(UUID.class));
 		verify(marketRepository).save(market);
 	}
 	
@@ -229,12 +230,12 @@ class ResolutionServiceTest {
 
 		when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
 
-		assertThatThrownBy(() -> resolutionService.resolveMarket(marketId, MarketResult.YES))
+		assertThatThrownBy(() -> resolutionService.resolveMarket(marketId, MarketResult.YES, ADMIN_ID))
 				.isInstanceOf(ResponseStatusException.class)
 				.hasMessageContaining("Market is already resolved");
 
 		verify(positionRepository, never()).findByMarketIdAndStatus(any(UUID.class), any(PositionStatus.class));
-		verify(walletRepository, never()).findByUserId(any(UUID.class));
+		verify(walletRepository, never()).findByUserIdForUpdate(any(UUID.class));
 		verify(walletTransactionRepository, never()).save(any(WalletTransaction.class));
 		verify(marketRepository, never()).save(any(Market.class));
 	}
@@ -254,12 +255,12 @@ class ResolutionServiceTest {
 
 		when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
 
-		assertThatThrownBy(() -> resolutionService.resolveMarket(marketId, MarketResult.YES))
+		assertThatThrownBy(() -> resolutionService.resolveMarket(marketId, MarketResult.YES, ADMIN_ID))
 				.isInstanceOf(ResponseStatusException.class)
 				.hasMessageContaining("Market is not ready to resolve");
 
 		verify(positionRepository, never()).findByMarketIdAndStatus(any(UUID.class), any(PositionStatus.class));
-		verify(walletRepository, never()).findByUserId(any(UUID.class));
+		verify(walletRepository, never()).findByUserIdForUpdate(any(UUID.class));
 		verify(walletTransactionRepository, never()).save(any(WalletTransaction.class));
 		verify(marketRepository, never()).save(any(Market.class));
 	}
