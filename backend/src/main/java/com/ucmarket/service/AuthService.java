@@ -15,10 +15,9 @@ import com.ucmarket.dto.auth.LoginRequest;
 import com.ucmarket.dto.auth.RegisterRequest;
 import com.ucmarket.entity.User;
 import com.ucmarket.entity.UserSession;
-import com.ucmarket.entity.Wallet;
+import com.ucmarket.service.WalletService;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.repository.UserSessionRepository;
-import com.ucmarket.repository.WalletRepository;
 import com.ucmarket.security.JwtTokenProvider;
 
 @Service
@@ -27,15 +26,15 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final UserSessionRepository userSessionRepository;
-    private final WalletRepository walletRepository;
+    private final WalletService walletService;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
 
     public AuthService(UserRepository userRepository, UserSessionRepository userSessionRepository,
-            WalletRepository walletRepository, JwtTokenProvider jwtTokenProvider, PasswordEncoder passwordEncoder) {
+            WalletService walletService, JwtTokenProvider jwtTokenProvider, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.userSessionRepository = userSessionRepository;
-        this.walletRepository = walletRepository;
+        this.walletService = walletService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.passwordEncoder = passwordEncoder;
     }
@@ -51,8 +50,7 @@ public class AuthService {
         User user = new User(request.username(), request.email(), passwordEncoder.encode(request.password()));
         userRepository.save(user);
 
-        Wallet wallet = new Wallet(user.getId());
-        walletRepository.save(wallet);
+        walletService.createWalletForUser(user.getId());
 
         return buildAuthResponse(user);
     }

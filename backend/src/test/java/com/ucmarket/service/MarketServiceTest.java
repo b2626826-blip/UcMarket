@@ -9,6 +9,7 @@ import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.repository.AdminLogRepository;
 import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.MarketReviewRepository;
+import com.ucmarket.service.ResolutionService;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,11 +21,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -162,6 +165,23 @@ class MarketServiceTest {
 
         assertThrows(IllegalStateException.class,
                 () -> marketService.resolveMarket(marketId, adminId, MarketResult.YES));
+    }
+
+    @Test
+    void autoCloseExpiredMarkets_shouldCloseExpiredActiveMarkets() {
+        Market expired1 = createMarket(MarketStatus.ACTIVE);
+        ReflectionTestUtils.setField(expired1, "closeAt", LocalDateTime.now().minusDays(1));
+        Market expired2 = createMarket(MarketStatus.ACTIVE);
+        ReflectionTestUtils.setField(expired2, "closeAt", LocalDateTime.now().minusHours(2));
+
+        when(marketRepository.findByStatusAndCloseAtBefore(eq(MarketStatus.ACTIVE), any(LocalDateTime.class)))
+                .thenReturn(List.of(expired1, expired2));
+
+        marketService.autoCloseExpiredMarkets();
+
+        assertEquals(MarketStatus.CLOSED, expired1.getStatus());
+        assertEquals(MarketStatus.CLOSED, expired2.getStatus());
+        verify(marketRepository).saveAll(List.of(expired1, expired2));
     }
 
     @Test

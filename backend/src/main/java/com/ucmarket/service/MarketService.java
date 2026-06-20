@@ -1,7 +1,10 @@
 package com.ucmarket.service;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -91,6 +94,19 @@ public class MarketService {
                 "{\"result\":\"" + result.name() + "\"}"));
 
         return market;
+    }
+
+    @Scheduled(fixedDelay = 300_000)
+    @Transactional
+    public void autoCloseExpiredMarkets() {
+        List<Market> expired = marketRepository
+                .findByStatusAndCloseAtBefore(MarketStatus.ACTIVE, LocalDateTime.now());
+        for (Market m : expired) {
+            m.close();
+        }
+        if (!expired.isEmpty()) {
+            marketRepository.saveAll(expired);
+        }
     }
 
     private Market findMarket(UUID id) {
