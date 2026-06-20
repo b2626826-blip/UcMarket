@@ -99,7 +99,7 @@ public class MarketService {
         return market;
     }
 
-    @Scheduled(fixedDelay = 300_000)
+    @Scheduled(fixedDelay = 60_000)
     @Transactional
     public void autoCloseExpiredMarkets() {
         List<Market> expired = marketRepository
@@ -113,7 +113,14 @@ public class MarketService {
     }
 
     private Market findMarket(UUID id) {
-        return marketRepository.findById(id)
+        Market market = marketRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("Market not found: " + id));
+        if (market.getStatus() == MarketStatus.ACTIVE
+                && market.getCloseAt() != null
+                && market.getCloseAt().isBefore(LocalDateTime.now())) {
+            market.close();
+            marketRepository.save(market);
+        }
+        return market;
     }
 }
