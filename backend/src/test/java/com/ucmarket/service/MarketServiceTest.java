@@ -9,6 +9,7 @@ import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.repository.AdminLogRepository;
 import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.MarketReviewRepository;
+import com.ucmarket.service.ResolutionService;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -20,11 +21,13 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -33,6 +36,7 @@ class MarketServiceTest {
     @Mock private MarketRepository marketRepository;
     @Mock private MarketReviewRepository marketReviewRepository;
     @Mock private AdminLogRepository adminLogRepository;
+    @Mock private ResolutionService resolutionService;
 
     @Captor private ArgumentCaptor<Market> marketCaptor;
     @Captor private ArgumentCaptor<MarketReview> reviewCaptor;
@@ -44,7 +48,8 @@ class MarketServiceTest {
 
     @BeforeEach
     void setUp() {
-        marketService = new MarketService(marketRepository, marketReviewRepository, adminLogRepository);
+        marketService = new MarketService(marketRepository, marketReviewRepository, adminLogRepository,
+                resolutionService);
         adminId = UUID.randomUUID();
         marketId = UUID.randomUUID();
     }
@@ -115,7 +120,10 @@ class MarketServiceTest {
     @Test
     void resolveMarket_shouldResolveActiveMarket() {
         Market market = createMarket(MarketStatus.ACTIVE);
-        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(resolutionService.resolveMarket(marketId, MarketResult.YES)).thenAnswer(inv -> {
+            market.resolve(MarketResult.YES);
+            return market;
+        });
         when(marketRepository.save(any())).thenReturn(market);
 
         Market result = marketService.resolveMarket(marketId, adminId, MarketResult.YES);
@@ -131,7 +139,10 @@ class MarketServiceTest {
     @Test
     void resolveMarket_shouldResolveClosedMarket() {
         Market market = createMarket(MarketStatus.CLOSED);
-        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(resolutionService.resolveMarket(marketId, MarketResult.NO)).thenAnswer(inv -> {
+            market.resolve(MarketResult.NO);
+            return market;
+        });
         when(marketRepository.save(any())).thenReturn(market);
 
         Market result = marketService.resolveMarket(marketId, adminId, MarketResult.NO);
@@ -141,27 +152,46 @@ class MarketServiceTest {
     }
 
     @Test
-    void resolveMarket_shouldThrow_whenMarketIsDraft() {
-        Market market = createMarket(MarketStatus.DRAFT);
-        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+    void resolveMarket_shouldThrow_whenResolutionServiceFails() {
+        when(resolutionService.resolveMarket(marketId, MarketResult.YES))
+                .thenThrow(new RuntimeException("Market is not ready to resolve"));
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(RuntimeException.class,
                 () -> marketService.resolveMarket(marketId, adminId, MarketResult.YES));
         verify(marketRepository, never()).save(any());
     }
 
     @Test
     void resolveMarket_shouldThrow_whenMarketAlreadyResolved() {
-        Market market = createMarket(MarketStatus.RESOLVED);
-        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(resolutionService.resolveMarket(marketId, MarketResult.YES))
+                .thenThrow(new RuntimeException("Market is already resolved"));
 
-        assertThrows(IllegalStateException.class,
+        assertThrows(RuntimeException.class,
                 () -> marketService.resolveMarket(marketId, adminId, MarketResult.YES));
+    }
+
+    @Test
+    void autoCloseExpiredMarkets_shouldCloseExpiredActiveMarkets() {
+        Market expired1 = createMarket(MarketStatus.ACTIVE);
+        ReflectionTestUtils.setField(expired1, "closeAt", LocalDateTime.now().minusDays(1));
+        Market expired2 = createMarket(MarketStatus.ACTIVE);
+        ReflectionTestUtils.setField(expired2, "closeAt", LocalDateTime.now().minusHours(2));
+
+        when(marketRepository.findByStatusAndCloseAtBefore(eq(MarketStatus.ACTIVE), any(LocalDateTime.class)))
+                .thenReturn(List.of(expired1, expired2));
+
+        marketService.autoCloseExpiredMarkets();
+
+        assertEquals(MarketStatus.CLOSED, expired1.getStatus());
+        assertEquals(MarketStatus.CLOSED, expired2.getStatus());
+        verify(marketRepository).saveAll(List.of(expired1, expired2));
     }
 
     @Test
     void anyOperation_shouldThrow_whenMarketNotFound() {
         when(marketRepository.findById(marketId)).thenReturn(Optional.empty());
+        when(resolutionService.resolveMarket(any(), any()))
+                .thenThrow(new EntityNotFoundException("Market not found"));
 
         assertThrows(EntityNotFoundException.class,
                 () -> marketService.approveMarket(marketId, adminId));

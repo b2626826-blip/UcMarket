@@ -1,7 +1,10 @@
 package com.ucmarket.service;
 
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,12 +26,14 @@ public class MarketService {
     private final MarketRepository marketRepository;
     private final MarketReviewRepository marketReviewRepository;
     private final AdminLogRepository adminLogRepository;
+    private final ResolutionService resolutionService;
 
     public MarketService(MarketRepository marketRepository, MarketReviewRepository marketReviewRepository,
-            AdminLogRepository adminLogRepository) {
+            AdminLogRepository adminLogRepository, ResolutionService resolutionService) {
         this.marketRepository = marketRepository;
         this.marketReviewRepository = marketReviewRepository;
         this.adminLogRepository = adminLogRepository;
+        this.resolutionService = resolutionService;
     }
 
     public Market approveMarket(UUID marketId, UUID adminId) {
@@ -83,19 +88,28 @@ public class MarketService {
     }
 
     public Market resolveMarket(UUID marketId, UUID adminId, com.ucmarket.entity.MarketResult result) {
-        Market market = findMarket(marketId);
+        Market market = resolutionService.resolveMarket(marketId, result);
 
-        if (market.getStatus() != MarketStatus.CLOSED && market.getStatus() != MarketStatus.ACTIVE) {
-            throw new IllegalStateException("Only CLOSED or ACTIVE markets can be resolved");
-        }
-
-        market.resolve(result, adminId);
+        market.setResolvedBy(adminId);
         marketRepository.save(market);
 
         adminLogRepository.save(new AdminLog(adminId, "MARKET_RESOLVE", "MARKET", marketId,
                 "{\"result\":\"" + result.name() + "\"}"));
 
         return market;
+    }
+
+    @Scheduled(fixedDelay = 300_000)
+    @Transactional
+    public void autoCloseExpiredMarkets() {
+        List<Market> expired = marketRepository
+                .findByStatusAndCloseAtBefore(MarketStatus.ACTIVE, LocalDateTime.now());
+        for (Market m : expired) {
+            m.close();
+        }
+        if (!expired.isEmpty()) {
+            marketRepository.saveAll(expired);
+        }
     }
 
     private Market findMarket(UUID id) {

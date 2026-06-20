@@ -12,6 +12,7 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.ucmarket.entity.User;
+import com.ucmarket.entity.UserStatus;
 import com.ucmarket.repository.UserRepository;
 
 import jakarta.servlet.FilterChain;
@@ -38,7 +39,7 @@ public class JwtAuthFilter extends OncePerRequestFilter {
         if (StringUtils.hasText(token) && jwtTokenProvider.validateToken(token)) {
             UUID userId = jwtTokenProvider.getUserIdFromToken(token);
             User user = userRepository.findById(userId).orElse(null);
-            if (user != null) {
+            if (user != null && user.getStatus() == UserStatus.ACTIVE) {
                 var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + user.getRole().name()));
                 var auth = new UsernamePasswordAuthenticationToken(user, null, authorities);
                 SecurityContextHolder.getContext().setAuthentication(auth);
