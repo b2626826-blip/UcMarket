@@ -1,8 +1,12 @@
 package com.ucmarket.controller;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -10,6 +14,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -20,7 +25,12 @@ import com.ucmarket.dto.UpdateMarketRequest;
 import com.ucmarket.entity.User;
 import com.ucmarket.entity.Market;
 import com.ucmarket.entity.MarketStatus;
+import com.ucmarket.entity.Position;
+import com.ucmarket.entity.PositionStatus;
+import com.ucmarket.entity.UserRole;
 import com.ucmarket.repository.MarketRepository;
+import com.ucmarket.repository.PositionRepository;
+import com.ucmarket.service.WalletService;
 
 import jakarta.validation.Valid;
 
@@ -28,84 +38,116 @@ import jakarta.validation.Valid;
 @RequestMapping("/api/markets")
 public class MarketController {
 
-	private final MarketRepository marketRepository;
+    private final MarketRepository marketRepository;
+    private final PositionRepository positionRepository;
+    private final WalletService walletService;
 
-	public MarketController(MarketRepository marketRepository) {
-		this.marketRepository = marketRepository;
-	}
+    public MarketController(MarketRepository marketRepository,
+            PositionRepository positionRepository,
+            WalletService walletService) {
+        this.marketRepository = marketRepository;
+        this.positionRepository = positionRepository;
+        this.walletService = walletService;
+    }
 
-	@GetMapping
-	public List<Market> listMarkets() {
-		return marketRepository.findAll();
-	}
+    @GetMapping
+    public List<Market> listMarkets(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size) {
+        Pageable pageable = PageRequest.of(page, size, Sort.by("createdAt").descending());
+        return marketRepository.findAll(pageable).getContent();
+    }
 
-	@GetMapping("/{id}")
-	public Market getMarket(@PathVariable UUID id) {
-		return marketRepository.findById(id).orElseThrow();
-	}
+    @GetMapping("/code/{code}")
+    public Market getMarketByCode(@PathVariable String code) {
+        return marketRepository.findByCode(code)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Market not found: " + code));
+    }
 
-	@PostMapping
-	@ResponseStatus(HttpStatus.CREATED)
-	public Market createMarket(@AuthenticationPrincipal User user, @Valid @RequestBody CreateMarketRequest request) {
-		Market market = new Market(request.title(), request.description(), request.category(), request.marketType(),
-				request.sourceUrl(), request.resolutionRule(), request.closeAt());
-		market.setCreatorId(user.getId());
+    @GetMapping("/{id}")
+    public Market getMarket(@PathVariable UUID id) {
+        return marketRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Market not found"));
+    }
 
-		return marketRepository.save(market);
-	}
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public Market createMarket(@AuthenticationPrincipal User user, @Valid @RequestBody CreateMarketRequest request) {
+        Market market = new Market(request.title(), request.description(), request.category(), request.marketType(),
+                request.sourceUrl(), request.resolutionRule(), request.closeAt());
+        market.setCreatorId(user.getId());
 
-	@PostMapping("/{id}/submit")
-	public Market submitMarket(@PathVariable UUID id, @AuthenticationPrincipal User user) {
-		Market market = marketRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        return marketRepository.save(market);
+    }
 
-		if (!market.getCreatorId().equals(user.getId())) {
-			throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-		}
-		if (market.getStatus() != MarketStatus.DRAFT) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only DRAFT markets can be submitted");
-		}
+    @PostMapping("/{id}/submit")
+    public Market submitMarket(@PathVariable UUID id, @AuthenticationPrincipal User user) {
+        Market market = marketRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-		market.changeStatus(MarketStatus.PENDING);
-		return marketRepository.save(market);
-	}
+        if (!market.getCreatorId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+        if (market.getStatus() != MarketStatus.DRAFT) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only DRAFT markets can be submitted");
+        }
 
-	@PutMapping("/{id}")
-	public Market updateMarket(@PathVariable UUID id, @AuthenticationPrincipal User user,
-			@RequestBody UpdateMarketRequest request) {
-		Market market = marketRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        market.changeStatus(MarketStatus.PENDING);
+        return marketRepository.save(market);
+    }
 
-		if (!market.getCreatorId().equals(user.getId())) {
-			throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-		}
-		if (market.getStatus() != MarketStatus.DRAFT) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only DRAFT markets can be edited");
-		}
+    @PutMapping("/{id}")
+    public Market updateMarket(@PathVariable UUID id, @AuthenticationPrincipal User user,
+            @RequestBody UpdateMarketRequest request) {
+        Market market = marketRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-		if (request.title() != null) market.setTitle(request.title());
-		if (request.description() != null) market.setDescription(request.description());
-		if (request.category() != null) market.setCategory(request.category());
-		if (request.marketType() != null) market.setMarketType(request.marketType());
-		if (request.sourceUrl() != null) market.setSourceUrl(request.sourceUrl());
-		if (request.resolutionRule() != null) market.setResolutionRule(request.resolutionRule());
-		if (request.closeAt() != null) market.setCloseAt(request.closeAt());
+        if (!market.getCreatorId().equals(user.getId())) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+        if (market.getStatus() != MarketStatus.DRAFT) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only DRAFT markets can be edited");
+        }
 
-		return marketRepository.save(market);
-	}
+        if (request.title() != null) market.setTitle(request.title());
+        if (request.description() != null) market.setDescription(request.description());
+        if (request.category() != null) market.setCategory(request.category());
+        if (request.marketType() != null) market.setMarketType(request.marketType());
+        if (request.sourceUrl() != null) market.setSourceUrl(request.sourceUrl());
+        if (request.resolutionRule() != null) market.setResolutionRule(request.resolutionRule());
+        if (request.closeAt() != null) market.setCloseAt(request.closeAt());
 
-	@PostMapping("/{id}/cancel")
-	public Market cancelMarket(@PathVariable UUID id, @AuthenticationPrincipal User user) {
-		Market market = marketRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        return marketRepository.save(market);
+    }
 
-		if (!market.getCreatorId().equals(user.getId())
-				&& !user.getRole().name().equals("ADMIN")) {
-			throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-		}
+    @PostMapping("/{id}/cancel")
+    public Market cancelMarket(@PathVariable UUID id, @AuthenticationPrincipal User user) {
+        Market market = marketRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-		market.cancel();
-		return marketRepository.save(market);
-	}
+        if (!market.getCreatorId().equals(user.getId())
+                && user.getRole() != UserRole.ADMIN) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+
+        market.cancel();
+        marketRepository.save(market);
+
+        refundPositions(market);
+
+        return market;
+    }
+
+    private void refundPositions(Market market) {
+        List<Position> positions = positionRepository.findByMarketIdAndStatus(market.getId(), PositionStatus.OPEN);
+        for (Position pos : positions) {
+            BigDecimal refundAmount = pos.getYesCost().add(pos.getNoCost());
+            if (refundAmount.compareTo(BigDecimal.ZERO) > 0) {
+                String idemKey = "cancel:" + market.getId() + ":" + pos.getId();
+                walletService.credit(pos.getUserId(), refundAmount, "MARKET", market.getId(), idemKey);
+            }
+            pos.cancel();
+        }
+    }
 }
 

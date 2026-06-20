@@ -80,12 +80,15 @@ public class AuthService {
                 user.getStatus().name(), user.getReputation(), user.getAvatarUrl(), user.getBio());
     }
 
-    public void logout(String refreshToken) {
+    public void logout(UUID userId, String refreshToken) {
         String hash = sha256(refreshToken);
-        userSessionRepository.findByRefreshTokenHash(hash).ifPresent(session -> {
-            session.revoke();
-            userSessionRepository.save(session);
-        });
+        UserSession session = userSessionRepository.findByRefreshTokenHash(hash)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
+        if (!session.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("Token does not belong to current user");
+        }
+        session.revoke();
+        userSessionRepository.save(session);
     }
 
     public AuthResponse refresh(String rawRefreshToken) {

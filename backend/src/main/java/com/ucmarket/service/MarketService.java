@@ -2,12 +2,15 @@ package com.ucmarket.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ucmarket.entity.AdminLog;
 import com.ucmarket.entity.Market;
 import com.ucmarket.entity.MarketReview;
@@ -27,6 +30,7 @@ public class MarketService {
     private final MarketReviewRepository marketReviewRepository;
     private final AdminLogRepository adminLogRepository;
     private final ResolutionService resolutionService;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     public MarketService(MarketRepository marketRepository, MarketReviewRepository marketReviewRepository,
             AdminLogRepository adminLogRepository, ResolutionService resolutionService) {
@@ -48,7 +52,7 @@ public class MarketService {
 
         marketReviewRepository.save(new MarketReview(marketId, adminId, ReviewStatus.APPROVED, null));
         adminLogRepository.save(new AdminLog(adminId, "MARKET_APPROVE", "MARKET", marketId,
-                "{\"status\":\"ACTIVE\"}"));
+                toJson(Map.of("status", "ACTIVE"))));
 
         return market;
     }
@@ -65,7 +69,7 @@ public class MarketService {
 
         marketReviewRepository.save(new MarketReview(marketId, adminId, ReviewStatus.REJECTED, reason));
         adminLogRepository.save(new AdminLog(adminId, "MARKET_REJECT", "MARKET", marketId,
-                "{\"reason\":\"" + reason + "\"}"));
+                toJson(Map.of("reason", reason))));
 
         return market;
     }
@@ -82,7 +86,7 @@ public class MarketService {
 
         marketReviewRepository.save(new MarketReview(marketId, adminId, ReviewStatus.CHANGES_REQUESTED, comment));
         adminLogRepository.save(new AdminLog(adminId, "MARKET_REQUEST_CHANGES", "MARKET", marketId,
-                "{\"comment\":\"" + comment + "\"}"));
+                toJson(Map.of("comment", comment))));
 
         return market;
     }
@@ -94,7 +98,7 @@ public class MarketService {
         marketRepository.save(market);
 
         adminLogRepository.save(new AdminLog(adminId, "MARKET_RESOLVE", "MARKET", marketId,
-                "{\"result\":\"" + result.name() + "\"}"));
+                toJson(Map.of("result", result.name()))));
 
         return market;
     }
@@ -122,5 +126,13 @@ public class MarketService {
             marketRepository.save(market);
         }
         return market;
+    }
+
+    private String toJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException e) {
+            throw new RuntimeException("Failed to serialize JSON", e);
+        }
     }
 }

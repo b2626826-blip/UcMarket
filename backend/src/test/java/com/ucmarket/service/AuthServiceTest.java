@@ -165,22 +165,21 @@ class AuthServiceTest {
 
     @Test
     void logout_shouldRevokeSession() {
+        UUID userId = UUID.randomUUID();
         String refreshToken = "some-refresh-token";
-        UserSession session = new UserSession(UUID.randomUUID(), "hash", null, null);
+        UserSession session = new UserSession(userId, "hash", null, null);
         when(userSessionRepository.findByRefreshTokenHash(any())).thenReturn(Optional.of(session));
 
-        authService.logout(refreshToken);
+        authService.logout(userId, refreshToken);
 
         assertNotNull(session.getRevokedAt());
         verify(userSessionRepository).save(session);
     }
 
     @Test
-    void logout_shouldDoNothing_whenSessionNotFound() {
+    void logout_shouldThrow_whenSessionNotFound() {
         when(userSessionRepository.findByRefreshTokenHash(any())).thenReturn(Optional.empty());
 
-        authService.logout("some-token");
-
-        verify(userSessionRepository, never()).save(any());
+        assertThrows(IllegalArgumentException.class, () -> authService.logout(UUID.randomUUID(), "some-token"));
     }
 }
