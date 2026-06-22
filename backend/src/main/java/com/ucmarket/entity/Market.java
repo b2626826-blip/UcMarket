@@ -76,10 +76,10 @@ public class Market {
 	private UUID resolvedBy;
 
 	@Column( name = "yes_pool", nullable = false)
-	private BigDecimal yesPool = BigDecimal.valueOf(100);
+	private BigDecimal yesPool = BigDecimal.ZERO;
 	
 	@Column( name = "no_pool", nullable = false)
-	private BigDecimal noPool = BigDecimal.valueOf(100);
+	private BigDecimal noPool = BigDecimal.ZERO;
 	
 	@Column( name = "created_at", nullable = false)
 	private LocalDateTime createdAt;
