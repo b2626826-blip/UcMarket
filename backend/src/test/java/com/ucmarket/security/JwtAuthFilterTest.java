@@ -2,6 +2,7 @@ package com.ucmarket.security;
 
 import com.ucmarket.entity.User;
 import com.ucmarket.entity.UserRole;
+import com.ucmarket.entity.UserStatus;
 import com.ucmarket.repository.UserRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.http.HttpServletRequest;
@@ -126,6 +127,24 @@ class JwtAuthFilterTest {
         assertNull(SecurityContextHolder.getContext().getAuthentication());
         verify(filterChain).doFilter(request, response);
         verifyNoInteractions(jwtTokenProvider);
+    }
+
+    @Test
+    void doFilter_shouldNotSetAuthentication_whenUserIsBanned() throws Exception {
+        ReflectionTestUtils.setField(user, "status", UserStatus.BANNED);
+        String token = "valid-token-banned-user";
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " + token);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+
+        when(jwtTokenProvider.validateToken(token)).thenReturn(true);
+        when(jwtTokenProvider.getUserIdFromToken(token)).thenReturn(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
+        verify(filterChain).doFilter(request, response);
     }
 
     @Test

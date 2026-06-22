@@ -208,6 +208,14 @@ public class Market {
 	public void cancel() {
 		this.status = MarketStatus.CANCELED;
 	}
+
+	public void close() {
+		this.status = MarketStatus.CLOSED;
+	}
+
+	public void setResolvedBy(UUID resolvedBy) {
+		this.resolvedBy = resolvedBy;
+	}
 	
 	public MarketResult getResult() {
 		return result;

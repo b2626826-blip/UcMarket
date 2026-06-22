@@ -95,4 +95,9 @@ public class Position {
 		this.status = PositionStatus.SETTLED;
 		this.updatedAt = LocalDateTime.now();
 	}
+
+	public void cancel() {
+		this.status = PositionStatus.CANCELED;
+		this.updatedAt = LocalDateTime.now();
+	}
 }

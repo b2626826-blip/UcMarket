@@ -8,11 +8,10 @@ import com.ucmarket.entity.User;
 import com.ucmarket.entity.UserRole;
 import com.ucmarket.entity.UserSession;
 import com.ucmarket.entity.UserStatus;
-import com.ucmarket.entity.Wallet;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.repository.UserSessionRepository;
-import com.ucmarket.repository.WalletRepository;
 import com.ucmarket.security.JwtTokenProvider;
+import com.ucmarket.service.WalletService;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.junit.jupiter.api.Test;
@@ -35,19 +34,19 @@ class AuthServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private UserSessionRepository userSessionRepository;
-    @Mock private WalletRepository walletRepository;
+    @Mock private WalletService walletService;
     @Mock private JwtTokenProvider jwtTokenProvider;
     @Mock private PasswordEncoder passwordEncoder;
 
     @Captor private ArgumentCaptor<User> userCaptor;
-    @Captor private ArgumentCaptor<Wallet> walletCaptor;
+    @Captor private ArgumentCaptor<UUID> userIdCaptor;
     @Captor private ArgumentCaptor<UserSession> sessionCaptor;
 
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, userSessionRepository, walletRepository,
+        authService = new AuthService(userRepository, userSessionRepository, walletService,
                 jwtTokenProvider, passwordEncoder);
     }
 
@@ -63,7 +62,6 @@ class AuthServiceTest {
 
         User savedUser = new User("newuser", "new@test.com", "encodedPass");
         when(userRepository.save(any())).thenReturn(savedUser);
-        when(walletRepository.save(any())).thenReturn(new Wallet(UUID.randomUUID()));
 
         AuthResponse response = authService.register(request);
 
@@ -78,8 +76,7 @@ class AuthServiceTest {
         assertEquals("newuser", captured.getUsername());
         assertEquals("new@test.com", captured.getEmail());
 
-        verify(walletRepository).save(walletCaptor.capture());
-        assertNotNull(walletCaptor.getValue());
+        verify(walletService).createWalletForUser(any());
 
         verify(userSessionRepository).save(any());
     }
@@ -91,7 +88,7 @@ class AuthServiceTest {
 
         assertThrows(IllegalArgumentException.class, () -> authService.register(request));
         verify(userRepository, never()).save(any());
-        verify(walletRepository, never()).save(any());
+        verify(walletService, never()).createWalletForUser(any());
     }
 
     @Test
@@ -168,22 +165,21 @@ class AuthServiceTest {
 
     @Test
     void logout_shouldRevokeSession() {
+        UUID userId = UUID.randomUUID();
         String refreshToken = "some-refresh-token";
-        UserSession session = new UserSession(UUID.randomUUID(), "hash", null, null);
+        UserSession session = new UserSession(userId, "hash", null, null);
         when(userSessionRepository.findByRefreshTokenHash(any())).thenReturn(Optional.of(session));
 
-        authService.logout(refreshToken);
+        authService.logout(userId, refreshToken);
 
         assertNotNull(session.getRevokedAt());
         verify(userSessionRepository).save(session);
     }
 
     @Test
-    void logout_shouldDoNothing_whenSessionNotFound() {
+    void logout_shouldThrow_whenSessionNotFound() {
         when(userSessionRepository.findByRefreshTokenHash(any())).thenReturn(Optional.empty());
 
-        authService.logout("some-token");
-
-        verify(userSessionRepository, never()).save(any());
+        assertThrows(IllegalArgumentException.class, () -> authService.logout(UUID.randomUUID(), "some-token"));
     }
 }

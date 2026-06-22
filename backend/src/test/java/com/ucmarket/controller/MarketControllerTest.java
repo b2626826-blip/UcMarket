@@ -6,15 +6,18 @@ import com.ucmarket.entity.Market;
 import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.entity.User;
 import com.ucmarket.repository.MarketRepository;
-import com.ucmarket.repository.TradeRepository;
+import com.ucmarket.repository.PositionRepository;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.security.JwtTokenProvider;
+import com.ucmarket.service.WalletService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -40,9 +43,10 @@ class MarketControllerTest {
     @Autowired private ObjectMapper objectMapper;
 
     @MockitoBean private MarketRepository marketRepository;
-    @MockitoBean private TradeRepository tradeRepository;
     @MockitoBean private JwtTokenProvider jwtTokenProvider;
     @MockitoBean private UserRepository userRepository;
+    @MockitoBean private PositionRepository positionRepository;
+    @MockitoBean private WalletService walletService;
 
     private static final UUID AUTH_USER_ID = UUID.randomUUID();
 
@@ -62,7 +66,8 @@ class MarketControllerTest {
     @Test
     void listMarkets_shouldReturnAllMarkets() throws Exception {
         Market m = createMarket(MarketStatus.ACTIVE);
-        when(marketRepository.findAll()).thenReturn(List.of(m));
+        Page<Market> page = new PageImpl<>(List.of(m));
+        when(marketRepository.findAll(any(org.springframework.data.domain.Pageable.class))).thenReturn(page);
 
         mockMvc.perform(get("/api/markets"))
                 .andExpect(status().isOk())
