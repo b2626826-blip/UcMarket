@@ -1,3 +1,11 @@
+共有5個問題
+ID 的型別問題
+Entity 的資料表跟我們目前用的不一樣  我知道你有說要改 但我這邊目前還是沿用舊的 如果你有新增 可以方便你傳新的資料表給我嗎 我看看更新後能不能運行
+Service 的狀態沒有對齊 我看到你的是 Active closed  但目前wallet跟 market 都是 open settled canceled 
+你的持倉邏輯直接蓋掉我的結算 我會抓不到
+你的position 沒有鎖定使用者 這樣你的持倉會抓到其他人的
+
+
 查全部持倉
 GET /api/positions
 positionRepository.findAll()
