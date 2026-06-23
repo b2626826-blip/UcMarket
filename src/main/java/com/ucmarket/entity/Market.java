@@ -199,6 +199,9 @@ public class Market {
 		this.result = result;
 		this.resolvedAt = LocalDateTime.now();
 		this.resolvedBy = adminId;
+		
+		BigDecimal totalPool = yesPool.add(noPool);
+	    this.resultValue = totalPool;
 	}
 
 	public void resolve(MarketResult result) {

@@ -26,17 +26,17 @@ import jakarta.validation.Valid;
 //		this.tradeRepository = tradeRepository;
 //	}
 //
-//	@PostMapping("/{id}/trades/quote")
-//	public TradeQuoteResponse quoteTrade(@PathVariable UUID id, @Valid @RequestBody TradeQuoteRequest request) {
-//		Market market = marketRepository.findById(id)
-//				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-//
-//		if (market.getStatus() != MarketStatus.ACTIVE) {
-//			throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
-//		}
-//
-//		return buildQuote(market, request);
-//	}
+	//	@PostMapping("/{id}/trades/quote")
+	//	public TradeQuoteResponse quoteTrade(@PathVariable UUID id, @Valid @RequestBody TradeQuoteRequest request) {
+	//		Market market = marketRepository.findById(id)
+	//				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+	//
+	//		if (market.getStatus() != MarketStatus.ACTIVE) {
+	//			throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+	//		}
+	//
+	//		return buildQuote(market, request);
+	//	}
 //
 //	@PostMapping("/{id}/trades")
 //	@ResponseStatus(HttpStatus.CREATED)

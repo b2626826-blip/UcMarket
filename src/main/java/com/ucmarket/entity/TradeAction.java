@@ -1,5 +1,6 @@
 package com.ucmarket.entity;
 
 public enum TradeAction {
-	BUY
+	BUY,
+	PAY_FROM_MARKET_CLOSE
 }
