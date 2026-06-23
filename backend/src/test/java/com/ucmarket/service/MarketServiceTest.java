@@ -20,6 +20,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -85,6 +86,18 @@ class MarketServiceTest {
 
         assertThrows(IllegalStateException.class, () -> marketService.approveMarket(marketId, adminId));
         verify(marketRepository, never()).save(any());
+    }
+
+    @Test
+    void approveMarket_shouldAutoCloseExpiredActiveMarket_onAccess() {
+        Market market = createMarket(MarketStatus.ACTIVE);
+        ReflectionTestUtils.setField(market, "closeAt", LocalDateTime.now().minusMinutes(1));
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+
+        assertThrows(IllegalStateException.class, () -> marketService.approveMarket(marketId, adminId));
+
+        assertEquals(MarketStatus.CLOSED, market.getStatus());
+        verify(marketRepository).save(market);
     }
 
     @Test
@@ -178,5 +191,17 @@ class MarketServiceTest {
                 () -> marketService.requestChanges(marketId, adminId, "comment"));
         assertThrows(EntityNotFoundException.class,
                 () -> marketService.resolveMarket(marketId, adminId, MarketResult.YES));
+    }
+
+    @Test
+    void autoCloseExpiredMarkets_shouldCloseExpiredActiveMarkets() {
+        Market market = createMarket(MarketStatus.ACTIVE);
+        when(marketRepository.findByStatusAndCloseAtBefore(eq(MarketStatus.ACTIVE), any(LocalDateTime.class)))
+                .thenReturn(List.of(market));
+
+        marketService.autoCloseExpiredMarkets();
+
+        assertEquals(MarketStatus.CLOSED, market.getStatus());
+        verify(marketRepository).saveAll(List.of(market));
     }
 }

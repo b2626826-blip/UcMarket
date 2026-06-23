@@ -93,7 +93,9 @@ class AuthControllerTest {
 
     @Test
     void logout_shouldReturn204_whenNotAuthenticated() throws Exception {
-        mockMvc.perform(post("/api/auth/logout"))
-                .andExpect(status().isNoContent());
+        mockMvc.perform(post("/api/auth/logout")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"refreshToken\":\"refresh-token\"}"))
+                .andExpect(status().isUnauthorized());
     }
 }

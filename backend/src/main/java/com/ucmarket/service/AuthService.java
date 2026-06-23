@@ -15,10 +15,8 @@ import com.ucmarket.dto.auth.LoginRequest;
 import com.ucmarket.dto.auth.RegisterRequest;
 import com.ucmarket.entity.User;
 import com.ucmarket.entity.UserSession;
-import com.ucmarket.entity.Wallet;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.repository.UserSessionRepository;
-import com.ucmarket.repository.WalletRepository;
 import com.ucmarket.security.JwtTokenProvider;
 
 @Service
@@ -27,15 +25,15 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final UserSessionRepository userSessionRepository;
-    private final WalletRepository walletRepository;
+    private final WalletService walletService;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
 
     public AuthService(UserRepository userRepository, UserSessionRepository userSessionRepository,
-            WalletRepository walletRepository, JwtTokenProvider jwtTokenProvider, PasswordEncoder passwordEncoder) {
+            WalletService walletService, JwtTokenProvider jwtTokenProvider, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.userSessionRepository = userSessionRepository;
-        this.walletRepository = walletRepository;
+        this.walletService = walletService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.passwordEncoder = passwordEncoder;
     }
@@ -51,8 +49,7 @@ public class AuthService {
         User user = new User(request.username(), request.email(), passwordEncoder.encode(request.password()));
         userRepository.save(user);
 
-        Wallet wallet = new Wallet(user.getId());
-        walletRepository.save(wallet);
+        walletService.createWalletForUser(user.getId());
 
         return buildAuthResponse(user);
     }
@@ -82,12 +79,15 @@ public class AuthService {
                 user.getStatus().name(), user.getReputation(), user.getAvatarUrl(), user.getBio());
     }
 
-    public void logout(String refreshToken) {
+    public void logout(UUID userId, String refreshToken) {
         String hash = sha256(refreshToken);
-        userSessionRepository.findByRefreshTokenHash(hash).ifPresent(session -> {
-            session.revoke();
-            userSessionRepository.save(session);
-        });
+        UserSession session = userSessionRepository.findByRefreshTokenHash(hash)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
+        if (!session.getUserId().equals(userId)) {
+            throw new IllegalArgumentException("Token does not belong to current user");
+        }
+        session.revoke();
+        userSessionRepository.save(session);
     }
 
     public AuthResponse refresh(String rawRefreshToken) {

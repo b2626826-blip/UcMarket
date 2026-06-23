@@ -5,6 +5,8 @@ import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
@@ -24,11 +27,16 @@ import com.ucmarket.dto.UpdateMarketRequest;
 import com.ucmarket.entity.Market;
 import com.ucmarket.entity.MarketSide;
 import com.ucmarket.entity.MarketStatus;
+import com.ucmarket.entity.Position;
+import com.ucmarket.entity.PositionStatus;
 import com.ucmarket.entity.Trade;
 import com.ucmarket.entity.TradeAction;
 import com.ucmarket.entity.User;
+import com.ucmarket.entity.UserRole;
 import com.ucmarket.repository.MarketRepository;
+import com.ucmarket.repository.PositionRepository;
 import com.ucmarket.repository.TradeRepository;
+import com.ucmarket.service.WalletService;
 
 import jakarta.validation.Valid;
 
@@ -38,20 +46,33 @@ public class MarketController {
 
 	private final MarketRepository marketRepository;
 	private final TradeRepository tradeRepository;
+	private final PositionRepository positionRepository;
+	private final WalletService walletService;
 
-	public MarketController(MarketRepository marketRepository, TradeRepository tradeRepository) {
+	public MarketController(MarketRepository marketRepository, TradeRepository tradeRepository,
+			PositionRepository positionRepository, WalletService walletService) {
 		this.marketRepository = marketRepository;
 		this.tradeRepository = tradeRepository;
+		this.positionRepository = positionRepository;
+		this.walletService = walletService;
 	}
 
 	@GetMapping
-	public List<Market> listMarkets() {
-		return marketRepository.findAll();
+	public List<Market> listMarkets(@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int size) {
+		var pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1), Sort.by("createdAt").descending());
+		return marketRepository.findAll(pageable).getContent();
 	}
 
 	@GetMapping("/{id}")
 	public Market getMarket(@PathVariable UUID id) {
 		return marketRepository.findById(id)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+	}
+
+	@GetMapping("/code/{code}")
+	public Market getMarketByCode(@PathVariable String code) {
+		return marketRepository.findByCode(code)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 	}
 
@@ -111,12 +132,14 @@ public class MarketController {
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
 		if (!market.getCreatorId().equals(user.getId())
-				&& !user.getRole().name().equals("ADMIN")) {
+				&& user.getRole() != UserRole.ADMIN) {
 			throw new ResponseStatusException(HttpStatus.FORBIDDEN);
 		}
 
 		market.cancel();
-		return marketRepository.save(market);
+		Market saved = marketRepository.save(market);
+		refundPositions(saved);
+		return saved;
 	}
 
 	@PostMapping("/{id}/trades/quote")
@@ -164,5 +187,18 @@ public class MarketController {
 		BigDecimal estimatedCost = request.amount().multiply(price);
 
 		return new TradeQuoteResponse(request.side(), request.amount(), price, estimatedCost);
+	}
+
+	private void refundPositions(Market market) {
+		List<Position> positions = positionRepository.findByMarketIdAndStatus(market.getId(), PositionStatus.OPEN);
+		for (Position position : positions) {
+			BigDecimal refundAmount = position.getYesCost().add(position.getNoCost());
+			if (refundAmount.compareTo(BigDecimal.ZERO) > 0) {
+				walletService.credit(position.getUserId(), refundAmount, "MARKET", market.getId(),
+						"cancel:" + market.getId() + ":" + position.getId());
+			}
+			position.cancel();
+		}
+		positionRepository.saveAll(positions);
 	}
 }

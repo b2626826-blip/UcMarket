@@ -16,6 +16,7 @@ import com.ucmarket.dto.auth.AuthResponse;
 import com.ucmarket.dto.auth.AuthResponse.UserInfo;
 import com.ucmarket.dto.auth.ChangePasswordRequest;
 import com.ucmarket.dto.auth.LoginRequest;
+import com.ucmarket.dto.auth.LogoutRequest;
 import com.ucmarket.dto.auth.RefreshRequest;
 import com.ucmarket.dto.auth.RegisterRequest;
 import com.ucmarket.dto.auth.UpdateProfileRequest;
@@ -56,10 +57,11 @@ public class AuthController {
     }
 
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(@AuthenticationPrincipal User user) {
-        if (user != null) {
-            authService.logout(user.getId().toString());
+    public ResponseEntity<Void> logout(@AuthenticationPrincipal User user, @Valid @RequestBody LogoutRequest request) {
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         }
+        authService.logout(user.getId(), request.refreshToken());
         return ResponseEntity.noContent().build();
     }
 

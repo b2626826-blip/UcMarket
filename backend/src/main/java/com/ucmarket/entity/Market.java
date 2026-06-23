@@ -208,6 +208,10 @@ public class Market {
 	public void cancel() {
 		this.status = MarketStatus.CANCELED;
 	}
+
+	public void close() {
+		this.status = MarketStatus.CLOSED;
+	}
 	
 	public MarketResult getResult() {
 		return result;
