@@ -49,8 +49,8 @@
 
 - `公版/demo/` 是獨立靜態 prototype，不是正式 React 前端。
 - `公版/user/` 是另一組使用者端靜態頁，目前包含首頁與 wallet 子頁。
-- `frontend/` 是正式前端預留骨架，目前尚未正式開發頁面。
-- `backend/` 已有 Spring Boot API 雛形，文件整理時要分清楚「規格規劃」與「已實作現況」。
+- `frontend/` 與 `front/` 目前都先保留，前端後續會再大整理；現階段文件不要把前端過渡檔案視為最終結構。
+- `backend/` 已有 Spring Boot API 與測試；文件整理時以目前 controller、service、repository 與 `./mvnw test` 通過結果作為後端實作現況。
 - Ranking 排行榜目前以既有資料表查詢或 view 計算，不建立獨立排行榜資料表。
 - 結算與錢包異動以 `wallet_transactions` 追蹤，MVP 不另建 `resolution_payouts`。
 
@@ -58,4 +58,4 @@
 
 - 改 API 或資料表時，同步檢查 `project-spec.md`、`網站架構.md`、`ucmarket-er-diagram.md` 與 `ucmarket-ddl.sql`。
 - 新增圖檔時，確認 Markdown 裡引用的檔名真的存在。
-- 文件若描述「目前已完成」，要先對照 `backend/src/main/java/com/ucmarket` 與測試檔，不只看 DDL 或規格。
+- 文件若描述「目前已完成」，要先對照 `backend/src/main/java/com/ucmarket`、測試檔與 `./mvnw test`，不只看 DDL 或規格。
