@@ -100,6 +100,7 @@ public class TradeController {
     public ResponseEntity<Trade> placeTrade(
             @AuthenticationPrincipal User user, 
             @Valid @RequestBody TradeRequest request) { 
+    	
         
         Trade trade = tradeService.placeTrade(user.getId(), request);
         return ResponseEntity.ok(trade);

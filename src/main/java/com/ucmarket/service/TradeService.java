@@ -24,60 +24,59 @@ import jakarta.transaction.Transactional;
 
 @Service
 public class TradeService {
-    private final MarketRepository marketRepository;
-    private final TradeRepository tradeRepository;
-    private final WalletRepository walletRepository; // 記得補上
-    private final WalletTransactionRepository walletTransactionRepository; // 記得補上
+	private final MarketRepository marketRepository;
+	private final TradeRepository tradeRepository;
+	private final WalletRepository walletRepository;
+	private final WalletTransactionRepository walletTransactionRepository;
+	private final TradeQuoteService tradeQuoteService;
 
-    // 建構子注入必須包含所有需要的 Repository
-    public TradeService(MarketRepository marketRepository, TradeRepository tradeRepository,
-                        WalletRepository walletRepository, WalletTransactionRepository walletTransactionRepository) {
-        this.marketRepository = marketRepository;
-        this.tradeRepository = tradeRepository;
-        this.walletRepository = walletRepository;
-        this.walletTransactionRepository = walletTransactionRepository;
-    }
+	public TradeService(MarketRepository marketRepository, TradeRepository tradeRepository,
+			WalletRepository walletRepository, WalletTransactionRepository walletTransactionRepository,
+			TradeQuoteService tradeQuoteService) {
+		this.marketRepository = marketRepository;
+		this.tradeRepository = tradeRepository;
+		this.walletRepository = walletRepository;
+		this.walletTransactionRepository = walletTransactionRepository;
+		this.tradeQuoteService = tradeQuoteService;
+	}
 
-    @Transactional
-    public Trade placeTrade(UUID userId, TradeRequest request) {
-    	BigDecimal amount = request.amount();
-        // 1. 取得 Wallet 並扣款
-        Wallet wallet = walletRepository.findByUserId(userId)
-                .orElseThrow(() -> new RuntimeException("找不到錢包"));
-        
-        if (wallet.getBalance().compareTo(amount) < 0) {
-            throw new InsufficientFundsException(userId, amount, wallet.getBalance());
-        }
-        wallet.applyDebit(amount);
-        walletRepository.save(wallet);
+	@Transactional
+	public Trade placeTrade(UUID userId, TradeRequest request) {
 
-        // 2. 更新 Market
-        Market market = marketRepository.findById(request.marketId())
-                .orElseThrow(() -> new RuntimeException("市場不存在"));
-        
-        // 假設 Market 內有邏輯處理 Pool
-        if (MarketSide.YES.equals(request.side())) {
-            market.setYesPool(market.getYesPool().add(amount));
-        } else {
-            market.setNoPool(market.getNoPool().add(amount));
-        }
-        marketRepository.save(market);
+		BigDecimal amount = request.amount();
+		Wallet wallet = walletRepository.findByUserId(userId).orElseThrow(() -> new RuntimeException("找不到錢包"));
 
-        // 3. 建立並儲存 Trade
-        Trade trade = new Trade(userId, request.marketId(),request.side(), 
-                                TradeAction.BUY, amount, BigDecimal.ONE, amount);
-        Trade savedTrade = tradeRepository.save(trade);
+		Market market = marketRepository.findById(request.marketId()).orElseThrow(() -> new RuntimeException("市場不存在"));
+		
+		if (wallet.getBalance().compareTo(amount) < 0) {
+			throw new InsufficientFundsException(userId, amount, wallet.getBalance());
+		}
+		wallet.applyDebit(amount);
+		walletRepository.save(wallet);
 
-        // 4. 寫入 WalletTransaction (現在傳入 savedTrade.getId())
-        WalletTransaction transaction = new WalletTransaction(
-                wallet.getId(), userId, WalletTransactionType.TRADE_BUY,
-                amount.negate(), wallet.getBalance(), "TRADE",
-                savedTrade.getId(), UUID.randomUUID().toString()
-        );
-        walletTransactionRepository.save(transaction);
+		BigDecimal currentOdds = tradeQuoteService.getMarketOdds(market, request.side());
+		if (currentOdds.compareTo(new BigDecimal("1.5")) < 0 || currentOdds.compareTo(new BigDecimal("5.0")) > 0) {
+			throw new IllegalStateException("目前賠率超出允許範圍 (1.5 - 5.0)，無法下單");
+		}
 
-        return savedTrade;
-    }
+
+		if (MarketSide.YES.equals(request.side())) {
+			market.setYesPool(market.getYesPool().add(amount));
+		} else {
+			market.setNoPool(market.getNoPool().add(amount));
+		}
+		marketRepository.save(market);
+
+		Trade trade = new Trade(userId, request.marketId(), request.side(), TradeAction.BUY, amount, BigDecimal.ONE,
+				amount);
+		Trade savedTrade = tradeRepository.save(trade);
+
+		WalletTransaction transaction = new WalletTransaction(wallet.getId(), userId, WalletTransactionType.TRADE_BUY,
+				amount.negate(), wallet.getBalance(), "TRADE", savedTrade.getId(), UUID.randomUUID().toString());
+		walletTransactionRepository.save(transaction);
+
+		return savedTrade;
+	}
 }
 //	private final MarketRepository marketRepository;
 //    private final TradeRepository tradeRepository;
@@ -106,7 +105,5 @@ public class TradeService {
 //        Trade trade = new Trade(userId, marketId, side, TradeAction.BUY, amount, price, shares);
 //        return tradeRepository.save(trade);
 //    }
-    
-    //--------------------------------------------
-   
 
+// --------------------------------------------

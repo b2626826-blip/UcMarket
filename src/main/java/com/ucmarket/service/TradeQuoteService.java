@@ -38,16 +38,26 @@ public class TradeQuoteService {
 	}
 	
 	public BigDecimal getMarketOdds(Market market, MarketSide side) {
-        BigDecimal yesPool = market.getYesPool();
-        BigDecimal noPool = market.getNoPool();
-        BigDecimal totalPool = yesPool.add(noPool);
-        
-        // 賠率公式：總資金池 / 該選項資金池
-        // 避免除以零，雖然系統初始化通常會確保池子有 100
-        if (side == MarketSide.YES) {
-            return totalPool.divide(yesPool, 4, RoundingMode.HALF_UP);
-        } else {
-            return totalPool.divide(noPool, 4, RoundingMode.HALF_UP);
-        }
-    }
+	    BigDecimal yesPool = market.getYesPool();
+	    BigDecimal noPool = market.getNoPool();
+	    BigDecimal totalPool = yesPool.add(noPool);
+	    // 1. 計算原始賠率
+	    BigDecimal rawOdds;
+	    if (side == MarketSide.YES) {
+	        rawOdds = totalPool.divide(yesPool, 4, RoundingMode.HALF_UP);
+	    } else {
+	        rawOdds = totalPool.divide(noPool, 4, RoundingMode.HALF_UP);
+	    }
+	    // 2. 設定限制範圍
+	    BigDecimal minOdds = new BigDecimal("1.5");
+	    BigDecimal maxOdds = new BigDecimal("5.0");
+	    // 3. 執行截斷邏輯 (Clamping)
+	    if (rawOdds.compareTo(maxOdds) > 0) {
+	        return maxOdds;
+	    }
+	    if (rawOdds.compareTo(minOdds) < 0) {
+	        return minOdds;
+	    }
+	    return rawOdds;
+	}
 }
