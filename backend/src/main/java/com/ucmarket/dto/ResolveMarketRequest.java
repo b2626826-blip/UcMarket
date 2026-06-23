@@ -1,9 +1,25 @@
 package com.ucmarket.dto;
 
-import com.ucmarket.entity.MarketResult;
+import java.util.UUID;
 
-import jakarta.validation.constraints.NotNull;
+public class ResolveMarketRequest {
 
-public record ResolveMarketRequest(@NotNull MarketResult result) {
-	
+    private UUID marketId;
+    private String result;
+
+    public UUID getMarketId() {
+        return marketId;
+    }
+
+    public void setMarketId(UUID marketId) {
+        this.marketId = marketId;
+    }
+
+    public String getResult() {
+        return result;
+    }
+
+    public void setResult(String result) {
+        this.result = result;
+    }
 }

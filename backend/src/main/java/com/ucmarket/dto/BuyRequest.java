@@ -1,38 +1,39 @@
 package com.ucmarket.dto;
 
 import java.math.BigDecimal;
+import java.util.UUID;
 
 public class BuyRequest {
 
-    private String userId;
-    private Long marketId;
-    private Long optionId;
+    private UUID userId;
+    private UUID marketId;
+    private UUID optionId;
 
     private String side;
     private BigDecimal shares;
     private BigDecimal price;
 
-    public String getUserId() {
+    public UUID getUserId() {
         return userId;
     }
 
-    public void setUserId(String userId) {
+    public void setUserId(UUID userId) {
         this.userId = userId;
     }
 
-    public Long getMarketId() {
+    public UUID getMarketId() {
         return marketId;
     }
 
-    public void setMarketId(Long marketId) {
+    public void setMarketId(UUID marketId) {
         this.marketId = marketId;
     }
 
-    public Long getOptionId() {
+    public UUID getOptionId() {
         return optionId;
     }
 
-    public void setOptionId(Long optionId) {
+    public void setOptionId(UUID optionId) {
         this.optionId = optionId;
     }
 

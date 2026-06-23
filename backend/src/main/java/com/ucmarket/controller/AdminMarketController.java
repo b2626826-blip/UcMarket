@@ -56,13 +56,13 @@ public class AdminMarketController {
 		return marketRepository.save(market);
 	}
 	
-	@PostMapping("/{id}/resolve")
-	public Market resolveMarket(@PathVariable UUID id, @Valid @RequestBody ResolveMarketRequest request) {
-		Market market = marketRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+	// @PostMapping("/{id}/resolve")
+	// public Market resolveMarket(@PathVariable UUID id, @Valid @RequestBody ResolveMarketRequest request) {
+	// 	Market market = marketRepository.findById(id)
+	// 			.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-		market.resolve(request.result());
+	// 	market.resolve(request.result());
 
-		return marketRepository.save(market);
-	}
+	// 	return marketRepository.save(market);
+	// }
 }
