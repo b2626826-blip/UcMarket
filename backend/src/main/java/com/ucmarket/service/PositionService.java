@@ -1,20 +1,16 @@
 package com.ucmarket.service;
 
-import com.ucmarket.dto.BuyRequest;
-import com.ucmarket.dto.CloseRequest;
-import com.ucmarket.dto.PositionPnlRequest;
-import com.ucmarket.dto.PositionRequest;
-import com.ucmarket.dto.SellRequest;
-import com.ucmarket.dto.SettleRequest;
-import com.ucmarket.entity.Position;
-import com.ucmarket.repository.PositionRepository;
-import org.springframework.stereotype.Service;
-
 import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import com.ucmarket.entity.MarketSide;
+import com.ucmarket.entity.Position;
+import com.ucmarket.entity.PositionStatus;
+import com.ucmarket.repository.PositionRepository;
 
 @Service
 public class PositionService {
@@ -33,140 +29,102 @@ public class PositionService {
         return positionRepository.findByUserId(userId);
     }
 
-    public List<Position> getActivePositionsByUserId(UUID userId) {
-        return positionRepository.findByUserIdAndStatus(userId, "OPEN");
+    public List<Position> getOpenPositionsByUserId(UUID userId) {
+        return positionRepository.findByUserIdAndStatus(userId, PositionStatus.OPEN);
     }
 
-    public Position createPosition(PositionRequest request) {
-        Position position = new Position();
-
-        position.setUserId(request.getUserId());
-        position.setMarketId(request.getMarketId());
-        position.setOptionId(request.getOptionId());
-
-        position.setShares(request.getShares());
-        position.setAvgCost(request.getAvgCost());
-        position.setAmount(request.getAmount());
-
-        position.setUnrealizedPnl(BigDecimal.ZERO);
-        position.setStatus("OPEN");
-
-        return positionRepository.save(position);
+    public List<Position> getPositionsByMarketId(UUID marketId) {
+        return positionRepository.findByMarketId(marketId);
     }
 
-    public Position buy(BuyRequest request) {
+    public List<Position> getOpenPositionsByMarketId(UUID marketId) {
+        return positionRepository.findByMarketIdAndStatus(marketId, PositionStatus.OPEN);
+    }
+
+    @Transactional
+    public Position addBuyPosition(
+            UUID userId,
+            UUID marketId,
+            MarketSide side,
+            BigDecimal shares,
+            BigDecimal cost
+    ) {
         Position position = positionRepository
-                .findByUserIdAndMarketIdAndOptionIdAndStatus(
-                        request.getUserId(),
-                        request.getMarketId(),
-                        request.getOptionId(),
-                        "OPEN"
-                )
-                .orElse(null);
+                .findByUserIdAndMarketId(userId, marketId)
+                .orElseGet(() -> {
+                    Position newPosition = new Position();
+                    newPosition.setUserId(userId);
+                    newPosition.setMarketId(marketId);
+                    newPosition.setStatus(PositionStatus.OPEN);
+                    return newPosition;
+                });
 
-        BigDecimal buyShares = request.getShares();
-        BigDecimal buyPrice = request.getPrice();
-        BigDecimal buyAmount = buyShares.multiply(buyPrice);
-
-        if (position == null) {
-            Position newPosition = new Position();
-
-            newPosition.setUserId(request.getUserId());
-            newPosition.setMarketId(request.getMarketId());
-            newPosition.setOptionId(request.getOptionId());
-
-            newPosition.setShares(buyShares);
-            newPosition.setAvgCost(buyPrice);
-            newPosition.setAmount(buyAmount);
-
-            newPosition.setUnrealizedPnl(BigDecimal.ZERO);
-            newPosition.setStatus("OPEN");
-
-            return positionRepository.save(newPosition);
-        }
-
-        BigDecimal totalShares = position.getShares().add(buyShares);
-        BigDecimal totalAmount = position.getAmount().add(buyAmount);
-        BigDecimal newAvgCost = totalAmount.divide(totalShares, 6, RoundingMode.HALF_UP);
-
-        position.setShares(totalShares);
-        position.setAmount(totalAmount);
-        position.setAvgCost(newAvgCost);
-        position.setUnrealizedPnl(BigDecimal.ZERO);
-        position.setStatus("OPEN");
-
-        return positionRepository.save(position);
-    }
-
-    public Position sell(SellRequest request) {
-        Position position = positionRepository
-                .findByUserIdAndMarketIdAndOptionIdAndStatus(
-                        request.getUserId(),
-                        request.getMarketId(),
-                        request.getOptionId(),
-                        "OPEN"
-                )
-                .orElseThrow(() -> new RuntimeException("找不到你的持倉"));
-
-        BigDecimal sellShares = request.getShares();
-        BigDecimal remainShares = position.getShares().subtract(sellShares);
-
-        if (remainShares.compareTo(BigDecimal.ZERO) < 0) {
-            throw new RuntimeException("賣出股數超過持有股數");
-        }
-
-        position.setShares(remainShares);
-        position.setAmount(remainShares.multiply(position.getAvgCost()));
-        position.setUnrealizedPnl(BigDecimal.ZERO);
-
-        if (remainShares.compareTo(BigDecimal.ZERO) == 0) {
-            position.setStatus("CANCELED");
+        if (side == MarketSide.YES) {
+            position.setYesShares(position.getYesShares().add(shares));
+            position.setYesCost(position.getYesCost().add(cost));
+        } else if (side == MarketSide.NO) {
+            position.setNoShares(position.getNoShares().add(shares));
+            position.setNoCost(position.getNoCost().add(cost));
+        } else {
+            throw new IllegalArgumentException("side 只能是 YES 或 NO");
         }
 
         return positionRepository.save(position);
     }
 
-    public Position updatePnl(PositionPnlRequest request) {
+    @Transactional
+    public Position sellPosition(
+            UUID userId,
+            UUID marketId,
+            MarketSide side,
+            BigDecimal shares
+    ) {
         Position position = positionRepository
-                .findByIdAndUserId(
-                        request.getPositionId(),
-                        request.getUserId()
-                )
-                .orElseThrow(() -> new RuntimeException("找不到你的持倉"));
+                .findByUserIdAndMarketId(userId, marketId)
+                .orElseThrow(() -> new IllegalArgumentException("找不到持倉"));
 
-        BigDecimal pnl = request.getCurrentPrice()
-                .subtract(position.getAvgCost())
-                .multiply(position.getShares());
+        if (side == MarketSide.YES) {
+            if (position.getYesShares().compareTo(shares) < 0) {
+                throw new IllegalArgumentException("YES 持倉不足");
+            }
 
-        position.setUnrealizedPnl(pnl);
+            position.setYesShares(position.getYesShares().subtract(shares));
+
+        } else if (side == MarketSide.NO) {
+            if (position.getNoShares().compareTo(shares) < 0) {
+                throw new IllegalArgumentException("NO 持倉不足");
+            }
+
+            position.setNoShares(position.getNoShares().subtract(shares));
+
+        } else {
+            throw new IllegalArgumentException("side 只能是 YES 或 NO");
+        }
 
         return positionRepository.save(position);
     }
 
-    public Position closePosition(CloseRequest request) {
-        Position position = positionRepository
-                .findByIdAndUserId(
-                        request.getPositionId(),
-                        request.getUserId()
-                )
-                .orElseThrow(() -> new RuntimeException("找不到你的持倉"));
+    @Transactional
+    public void settleByMarketId(UUID marketId) {
+        List<Position> positions = positionRepository
+                .findByMarketIdAndStatus(marketId, PositionStatus.OPEN);
 
-        position.setStatus("CANCELED");
+        for (Position position : positions) {
+            position.setStatus(PositionStatus.SETTLED);
+        }
 
-        return positionRepository.save(position);
+        positionRepository.saveAll(positions);
     }
 
-    public Position settlePosition(SettleRequest request) {
-        Position position = positionRepository
-                .findByIdAndUserId(
-                        request.getPositionId(),
-                        request.getUserId()
-                )
-                .orElseThrow(() -> new RuntimeException("找不到你的持倉"));
+    @Transactional
+    public void cancelByMarketId(UUID marketId) {
+        List<Position> positions = positionRepository
+                .findByMarketIdAndStatus(marketId, PositionStatus.OPEN);
 
-        position.setStatus("SETTLED");
-        position.setSettledAt(LocalDateTime.now());
+        for (Position position : positions) {
+            position.setStatus(PositionStatus.CANCELED);
+        }
 
-        return positionRepository.save(position);
+        positionRepository.saveAll(positions);
     }
 }

@@ -1,17 +1,18 @@
 package com.ucmarket.entity;
 
-import jakarta.persistence.*;
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
+
+import jakarta.persistence.*;
 
 @Entity
 @Table(name = "positions")
 public class Position {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    @GeneratedValue(strategy = GenerationType.UUID)
+    private UUID id;
 
     @Column(name = "user_id", nullable = false)
     private UUID userId;
@@ -19,49 +20,44 @@ public class Position {
     @Column(name = "market_id", nullable = false)
     private UUID marketId;
 
-    @Column(name = "option_id", nullable = false)
-    private UUID optionId;
+    @Column(name = "yes_shares", nullable = false)
+    private BigDecimal yesShares = BigDecimal.ZERO;
 
-    @Column(nullable = false, precision = 18, scale = 6)
-    private BigDecimal shares = BigDecimal.ZERO;
+    @Column(name = "no_shares", nullable = false)
+    private BigDecimal noShares = BigDecimal.ZERO;
 
-    @Column(name = "avg_cost", nullable = false, precision = 18, scale = 6)
-    private BigDecimal avgCost = BigDecimal.ZERO;
+    @Column(name = "yes_cost", nullable = false)
+    private BigDecimal yesCost = BigDecimal.ZERO;
 
-    @Column(nullable = false, precision = 18, scale = 6)
-    private BigDecimal amount = BigDecimal.ZERO;
+    @Column(name = "no_cost", nullable = false)
+    private BigDecimal noCost = BigDecimal.ZERO;
 
-    @Column(name = "unrealized_pnl", precision = 18, scale = 6)
-    private BigDecimal unrealizedPnl = BigDecimal.ZERO;
-
-    @Column(nullable = false, length = 20)
-    private String status = "OPEN";
-
-    @Column(name = "created_at", nullable = false)
-    private LocalDateTime createdAt;
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private PositionStatus status = PositionStatus.OPEN;
 
     @Column(name = "updated_at", nullable = false)
-    private LocalDateTime updatedAt;
+    private LocalDateTime updatedAt = LocalDateTime.now();
 
-    @Column(name = "settled_at")
-    private LocalDateTime settledAt;
-
-    @PrePersist
-    public void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+    public Position() {
     }
 
     @PreUpdate
-    public void onUpdate() {
+    void onUpdate() {
         this.updatedAt = LocalDateTime.now();
     }
 
-    // =====================
-    // Getter / Setter
-    // =====================
+    public void settle() {
+        this.status = PositionStatus.SETTLED;
+        this.updatedAt = LocalDateTime.now();
+    }
 
-    public Long getId() {
+    public void cancel() {
+        this.status = PositionStatus.CANCELED;
+        this.updatedAt = LocalDateTime.now();
+    }
+
+    public UUID getId() {
         return id;
     }
 
@@ -81,67 +77,47 @@ public class Position {
         this.marketId = marketId;
     }
 
-    public UUID getOptionId() {
-        return optionId;
+    public BigDecimal getYesShares() {
+        return yesShares;
     }
 
-    public void setOptionId(UUID optionId) {
-        this.optionId = optionId;
+    public void setYesShares(BigDecimal yesShares) {
+        this.yesShares = yesShares;
     }
 
-    public BigDecimal getShares() {
-        return shares;
+    public BigDecimal getNoShares() {
+        return noShares;
     }
 
-    public void setShares(BigDecimal shares) {
-        this.shares = shares;
+    public void setNoShares(BigDecimal noShares) {
+        this.noShares = noShares;
     }
 
-    public BigDecimal getAvgCost() {
-        return avgCost;
+    public BigDecimal getYesCost() {
+        return yesCost;
     }
 
-    public void setAvgCost(BigDecimal avgCost) {
-        this.avgCost = avgCost;
+    public void setYesCost(BigDecimal yesCost) {
+        this.yesCost = yesCost;
     }
 
-    public BigDecimal getAmount() {
-        return amount;
+    public BigDecimal getNoCost() {
+        return noCost;
     }
 
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
+    public void setNoCost(BigDecimal noCost) {
+        this.noCost = noCost;
     }
 
-    public BigDecimal getUnrealizedPnl() {
-        return unrealizedPnl;
-    }
-
-    public void setUnrealizedPnl(BigDecimal unrealizedPnl) {
-        this.unrealizedPnl = unrealizedPnl;
-    }
-
-    public String getStatus() {
+    public PositionStatus getStatus() {
         return status;
     }
 
-    public void setStatus(String status) {
+    public void setStatus(PositionStatus status) {
         this.status = status;
-    }
-
-    public LocalDateTime getCreatedAt() {
-        return createdAt;
     }
 
     public LocalDateTime getUpdatedAt() {
         return updatedAt;
-    }
-
-    public LocalDateTime getSettledAt() {
-        return settledAt;
-    }
-
-    public void setSettledAt(LocalDateTime settledAt) {
-        this.settledAt = settledAt;
     }
 }

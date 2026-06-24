@@ -3,61 +3,19 @@ package com.ucmarket.dto;
 import java.math.BigDecimal;
 import java.util.UUID;
 
-public class PositionRequest {
+import com.ucmarket.entity.MarketSide;
 
-    private UUID userId;
-    private UUID marketId;
-    private UUID optionId;
+public record PositionRequest(
 
-    private BigDecimal shares;
-    private BigDecimal avgCost;
-    private BigDecimal amount;
+        UUID userId,
 
-    public UUID getUserId() {
-        return userId;
-    }
+        UUID marketId,
 
-    public void setUserId(UUID userId) {
-        this.userId = userId;
-    }
+        MarketSide side,
 
-    public UUID getMarketId() {
-        return marketId;
-    }
+        BigDecimal shares,
 
-    public void setMarketId(UUID marketId) {
-        this.marketId = marketId;
-    }
+        BigDecimal cost
 
-    public UUID getOptionId() {
-        return optionId;
-    }
-
-    public void setOptionId(UUID optionId) {
-        this.optionId = optionId;
-    }
-
-    public BigDecimal getShares() {
-        return shares;
-    }
-
-    public void setShares(BigDecimal shares) {
-        this.shares = shares;
-    }
-
-    public BigDecimal getAvgCost() {
-        return avgCost;
-    }
-
-    public void setAvgCost(BigDecimal avgCost) {
-        this.avgCost = avgCost;
-    }
-
-    public BigDecimal getAmount() {
-        return amount;
-    }
-
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
-    }
+) {
 }

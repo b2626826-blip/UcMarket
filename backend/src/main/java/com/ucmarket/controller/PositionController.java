@@ -1,18 +1,15 @@
 package com.ucmarket.controller;
 
-import com.ucmarket.dto.BuyRequest;
-import com.ucmarket.dto.CloseRequest;
-import com.ucmarket.dto.PositionPnlRequest;
-import com.ucmarket.dto.PositionRequest;
-import com.ucmarket.dto.SellRequest;
-import com.ucmarket.dto.SettleRequest;
-import com.ucmarket.entity.Position;
-import com.ucmarket.service.PositionService;
-
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.UUID;
+
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.ucmarket.entity.Position;
+import com.ucmarket.service.PositionService;
 
 @RestController
 @RequestMapping("/api/positions")
@@ -25,47 +22,35 @@ public class PositionController {
     }
 
     @GetMapping
-    public List<Position> findAll() {
+    public List<Position> getAllPositions() {
         return positionService.findAll();
     }
 
-    @PostMapping
-    public Position createPosition(@RequestBody PositionRequest request) {
-        return positionService.createPosition(request);
-    }
-
-    @PostMapping("/buy")
-    public Position buy(@RequestBody BuyRequest request) {
-        return positionService.buy(request);
-    }
-
-    @PostMapping("/sell")
-    public Position sell(@RequestBody SellRequest request) {
-        return positionService.sell(request);
-    }
-
-    @PostMapping("/pnl")
-    public Position updatePnl(@RequestBody PositionPnlRequest request) {
-        return positionService.updatePnl(request);
-    }
-
-    @PostMapping("/close")
-    public Position closePosition(@RequestBody CloseRequest request) {
-        return positionService.closePosition(request);
-    }
-
-    @PostMapping("/settle")
-    public Position settlePosition(@RequestBody SettleRequest request) {
-        return positionService.settlePosition(request);
-    }
-
     @GetMapping("/user/{userId}")
-    public List<Position> getPositionsByUserId(@PathVariable UUID userId) {
+    public List<Position> getUserPositions(
+            @PathVariable UUID userId) {
+
         return positionService.getPositionsByUserId(userId);
     }
 
-    @GetMapping("/user/{userId}/active")
-    public List<Position> getActivePositionsByUserId(@PathVariable UUID userId) {
-        return positionService.getActivePositionsByUserId(userId);
+    @GetMapping("/user/{userId}/open")
+    public List<Position> getOpenUserPositions(
+            @PathVariable UUID userId) {
+
+        return positionService.getOpenPositionsByUserId(userId);
+    }
+
+    @GetMapping("/market/{marketId}")
+    public List<Position> getMarketPositions(
+            @PathVariable UUID marketId) {
+
+        return positionService.getPositionsByMarketId(marketId);
+    }
+
+    @GetMapping("/market/{marketId}/open")
+    public List<Position> getOpenMarketPositions(
+            @PathVariable UUID marketId) {
+
+        return positionService.getOpenPositionsByMarketId(marketId);
     }
 }

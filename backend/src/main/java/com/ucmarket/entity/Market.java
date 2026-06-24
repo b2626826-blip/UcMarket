@@ -19,6 +19,7 @@ import jakarta.persistence.Table;
 
 public class Market {
 	
+	
 	@Id
 	@GeneratedValue( strategy = GenerationType.UUID)
 	private UUID id;
@@ -47,6 +48,8 @@ public class Market {
 	@Enumerated( EnumType.STRING)
 	private MarketResult result;
 	
+
+	
 	@Column( name = "yes_pool", nullable = false)
 	private BigDecimal yesPool = BigDecimal.valueOf(100);
 	
@@ -58,6 +61,11 @@ public class Market {
 	
 	protected Market() {
 	}
+
+	
+
+	
+
 
 	public Market(
 		String title,
@@ -140,14 +148,28 @@ public class Market {
 	}
 	
 	public void buy(MarketSide side, BigDecimal amount) {
-		if (side == MarketSide.YES) {
-			this.yesPool = this.yesPool.add(amount);
-		} else {
-			this.noPool = this.noPool.add(amount);
-		}
-	}
+    if (this.yesPool == null) {
+        this.yesPool = BigDecimal.ZERO;
+    }
+
+    if (this.noPool == null) {
+        this.noPool = BigDecimal.ZERO;
+    }
+
+    if (side == MarketSide.YES) {
+        this.yesPool = this.yesPool.add(amount);
+    } else if (side == MarketSide.NO) {
+        this.noPool = this.noPool.add(amount);
+    } else {
+        throw new IllegalArgumentException("side 只能是 YES 或 NO");
+    }
+}
 	
 	public LocalDateTime getCreatedAt() {
 		return createdAt;
 	}
+	public void setStatus(MarketStatus status) {
+    this.status = status;
+}
+
 }
