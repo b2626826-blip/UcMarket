@@ -1,6 +1,6 @@
 # Agent.md - UcMarket AI 接手指南
 
-這份文件給未來接手 UcMarket 的 AI agent 使用。請先讀完本檔，再讀 `README.md`、`docs/project-spec.md`、`docs/系統設計/技術架構.md`、`docs/資料庫設計/ucmarket-er-diagram.md` 與相關 DDL。
+這份文件給未來接手 UcMarket 的 AI agent 使用。請先讀完本檔，再讀 `README.md`、`docs/docsREADME.md`、`docs/project-spec.md`、`docs/系統設計/技術架構.md`、`docs/資料庫設計/ucmarket-er-diagram.md` 與相關 DDL。
 
 ## 1. 這個專案目標是什麼
 
@@ -67,14 +67,15 @@ no_price = yes_pool / (yes_pool + no_pool)
 目前專案已有的內容：
 
 - `README.md`：專題定位、技術架構、MVP 功能與開發階段。
+- `docs/docsREADME.md`：`docs/` 文件入口、閱讀順序與資料夾索引。
 - `docs/project-spec.md`：完整產品規格、市場規則、角色、流程、資料表草案。
+- `docs/工作計劃書/`：課程專題工作計劃書、Word 版本與網站架構圖。
 - `docs/系統設計/技術架構.md`：前後端分離、後端分層、核心模組與建議目錄。
-- `docs/資料庫設計/`：DDL、ERD、資料庫設計文件與圖檔。
-- `backend/`：Spring Boot 後端骨架，Java 21、Spring Boot 3.5.0、JPA、Validation、Web、PostgreSQL driver。
-- `frontend/`：前端目錄骨架，目前多數資料夾仍是 `.gitkeep`。
-- `公版/`：獨立靜態前端參照物，Apple-like 簡潔風格，可直接開 `公版/index.html` 檢視；包含市場列表、篩選搜尋、交易試算、資產、審核、排行榜等展示畫面。
+- `docs/資料庫設計/`：正式 DDL、ERD 文件、`erd/` 圖檔與原始檔、`seed/` mock data、`migrations/` 修補腳本、`notes/` 排錯筆記、`docs/資料庫設計/db-backups/` 本機 DB 備份。
+- `backend/`：Spring Boot 後端，已有 controller、service、repository、entity、dto、security、exception、config 分層與測試。
+- `frontend/`：正式前端目錄骨架，已依公開頁、會員頁、管理員頁建立 `src/pages` 子資料夾，目前仍以規劃與 `.gitkeep` 為主。
 
-重要理解：`公版/` 是給組員對齊畫面與產品感的參照原型，不等於正式 React 前端。除非使用者明確要求，先不要把它直接混進 `frontend/`。
+重要理解：目前根目錄沒有 `公版/` 或 `front/`。若未來重新加入靜態 prototype，應只作為畫面與產品感參考，不直接混進正式 `frontend/`。
 
 ## 3. 專案接下來要完成什麼任務
 
@@ -82,26 +83,25 @@ no_price = yes_pool / (yes_pool + no_pool)
 
 ### 3.1 後端基礎
 
-- 建立 `controller`、`service`、`repository`、`entity`、`dto`、`exception`、`config`、`security` 等分層目錄。
-- 設定 PostgreSQL 連線與環境變數範例。
-- 根據 DDL / ERD 建立 Entity 與 Repository。
-- 建立統一 API 回應格式、統一例外處理、表單驗證。
-- 補上最小可驗證測試，至少讓專案能 `mvn test`。
+- 保持 `controller`、`service`、`repository`、`entity`、`dto`、`exception`、`config`、`security` 分層。
+- PostgreSQL 連線與測試 H2 設定已存在；不要把團隊共用設定改成個人帳號。
+- 後端已有 API 與 120 個測試通過紀錄；修改後優先在 `backend/` 執行 `./mvnw test`。
+- 後續重點是補齊仍缺的我的資產、持倉、交易紀錄、價格歷史與通知等 API。
 
 ### 3.2 核心 API
 
-- 會員與登入：註冊、登入、登出、角色、session 或 token。
-- 市場：列表、詳情、建立市場、狀態管理、審核流程。
-- 交易：買入 Yes / No、試算、交易紀錄、價格更新。
-- 錢包：餘額查詢、扣款、退款、結算入帳、wallet_transactions。
+- 會員與登入：已有註冊、登入、登出、目前使用者、refresh、profile、change-password 基礎 API。
+- 市場：已有列表、詳情、建立、submit、update、cancel 與管理員審核/結算流程。
+- 交易：已有 quote 與 trade API 雛形。
+- 錢包：已有錢包建立、餘額查詢與異動紀錄。
 - 持倉：查詢個人持倉、更新份額、結算後標記。
 - 結算：管理員設定結果、防止重複結算、派發收益。
-- 排行榜：依資產、已實現盈虧與勝率排序。
+- 排行榜：已有 profit、win-rate、assets 查詢端點。
 
 ### 3.3 前端正式化
 
 - 決定正式前端建置方式，原規劃是 React + JavaScript，樣式可用 Bootstrap 或 Tailwind。
-- 以 `公版/` 的視覺與流程當參照，拆成正式 pages / components / api / router / store。
+- 目前沒有可直接引用的 `公版/`；正式前端先以 `docs/系統設計/網站架構.md` 與 `frontend/前端資料夾檔案內容.md` 作為頁面和資料夾依據。
 - 優先完成市場列表、市場詳情、交易面板、登入狀態、錢包與持倉頁。
 - 前端只透過 REST API 溝通，不直接操作資料庫。
 
@@ -159,8 +159,8 @@ no_price = yes_pool / (yes_pool + no_pool)
 ### 4.5 前端規格
 
 - 正式前端遵照 `frontend/src/pages`、`components`、`api`、`router`、`store`、`types`、`assets` 的結構。
-- `公版/` 保持為獨立參照原型，除非任務明確要求搬移或改寫成 React。
-- 視覺方向以乾淨、簡潔、有產品感為主；先參考 `公版/` 的 Apple-like 方向。
+- 目前根目錄沒有 `公版/`；若未來新增靜態 prototype，必須保持為獨立參照物，除非任務明確要求搬移或改寫成 React。
+- 視覺方向以乾淨、簡潔、有產品感為主；正式頁面結構先對齊 `docs/系統設計/網站架構.md`。
 - 頁面應優先支援市場瀏覽、交易試算、登入狀態、錢包、持倉、審核與排行榜。
 - 所有資料存取集中在 `api` 層，不要在元件中散落 fetch 邏輯。
 - 修改前端後要檢查桌機與手機版是否有文字溢出、水平捲動或互動失效。

@@ -172,19 +172,18 @@ cd backend
 
 ## 文件
 
-- 文件總覽：[docs/README.md](docs/README.md)
+- 文件總覽：[docs/docsREADME.md](docs/docsREADME.md)
 - 專題規格書：[docs/project-spec.md](docs/project-spec.md)
-- 技術架構：[docs/系統設計/技術架構.md](docs/系統設計/技術架構.md)
+- 工作計劃書：[docs/工作計劃書/UcMarket工作計劃.md](docs/工作計劃書/UcMarket工作計劃.md)
 - 技術架構：[docs/系統設計/技術架構.md](docs/系統設計/技術架構.md)
 - 網站架構：[docs/系統設計/網站架構.md](docs/系統設計/網站架構.md)
 - 資料庫設計：
   - ER 圖：[docs/資料庫設計/ucmarket-er-diagram.md](docs/資料庫設計/ucmarket-er-diagram.md)
   - DDL：[docs/資料庫設計/ucmarket-ddl.sql](docs/資料庫設計/ucmarket-ddl.sql)
+  - DB 備份：[docs/資料庫設計/db-backups/](docs/資料庫設計/db-backups/)
 
-## 前端參考頁
+## 前端規劃
 
-- 公版 demo：[公版/demo/index.html](公版/demo/index.html)
-- 公版 demo 交接文件：[公版/demo/AI_CONTEXT.md](公版/demo/AI_CONTEXT.md)
-- 使用者端靜態頁：[公版/user/index.html](公版/user/index.html)
-- 使用者錢包頁：[公版/user/wallet/view/index.html](公版/user/wallet/view/index.html)
-
+- 正式前端位置：[frontend/](frontend/)
+- 前端資料夾規劃：[frontend/前端資料夾檔案內容.md](frontend/前端資料夾檔案內容.md)
+- 頁面架構來源：[docs/系統設計/網站架構.md](docs/系統設計/網站架構.md)
