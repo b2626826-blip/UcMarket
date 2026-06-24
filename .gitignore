@@ -22,3 +22,7 @@ dist/
 
 # Environment
 .env
+
+# Local planning / notes
+eagle/
+frontend/排行榜設計語彙.md

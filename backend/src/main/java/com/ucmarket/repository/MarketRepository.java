@@ -16,7 +16,7 @@ public interface MarketRepository extends JpaRepository<Market, UUID> {
 
 	List<Market> findByStatusAndCloseAtBefore(MarketStatus status, LocalDateTime dateTime);
 
-	long countByStatus(MarketStatus status);
-
 	Optional<Market> findByCode(String code);
+
+	long countByStatus(MarketStatus status);
 }

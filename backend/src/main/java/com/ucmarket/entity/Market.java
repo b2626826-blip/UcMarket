@@ -76,10 +76,10 @@ public class Market {
 	private UUID resolvedBy;
 
 	@Column( name = "yes_pool", nullable = false)
-	private BigDecimal yesPool = BigDecimal.ZERO;
+	private BigDecimal yesPool = BigDecimal.valueOf(100);
 	
 	@Column( name = "no_pool", nullable = false)
-	private BigDecimal noPool = BigDecimal.ZERO;
+	private BigDecimal noPool = BigDecimal.valueOf(100);
 	
 	@Column( name = "created_at", nullable = false)
 	private LocalDateTime createdAt;
@@ -211,10 +211,6 @@ public class Market {
 
 	public void close() {
 		this.status = MarketStatus.CLOSED;
-	}
-
-	public void setResolvedBy(UUID resolvedBy) {
-		this.resolvedBy = resolvedBy;
 	}
 	
 	public MarketResult getResult() {

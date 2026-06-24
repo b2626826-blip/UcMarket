@@ -15,7 +15,6 @@ import com.ucmarket.dto.auth.LoginRequest;
 import com.ucmarket.dto.auth.RegisterRequest;
 import com.ucmarket.entity.User;
 import com.ucmarket.entity.UserSession;
-import com.ucmarket.service.WalletService;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.repository.UserSessionRepository;
 import com.ucmarket.security.JwtTokenProvider;

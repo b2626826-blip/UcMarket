@@ -1,6 +1,7 @@
 package com.ucmarket.service;
 
 import java.time.LocalDateTime;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -69,7 +70,7 @@ public class MarketService {
 
         marketReviewRepository.save(new MarketReview(marketId, adminId, ReviewStatus.REJECTED, reason));
         adminLogRepository.save(new AdminLog(adminId, "MARKET_REJECT", "MARKET", marketId,
-                toJson(Map.of("reason", reason))));
+                toJson(Collections.singletonMap("reason", reason))));
 
         return market;
     }
@@ -86,7 +87,7 @@ public class MarketService {
 
         marketReviewRepository.save(new MarketReview(marketId, adminId, ReviewStatus.CHANGES_REQUESTED, comment));
         adminLogRepository.save(new AdminLog(adminId, "MARKET_REQUEST_CHANGES", "MARKET", marketId,
-                toJson(Map.of("comment", comment))));
+                toJson(Collections.singletonMap("comment", comment))));
 
         return market;
     }
@@ -101,15 +102,14 @@ public class MarketService {
     }
 
     @Scheduled(fixedDelay = 60_000)
-    @Transactional
     public void autoCloseExpiredMarkets() {
-        List<Market> expired = marketRepository
-                .findByStatusAndCloseAtBefore(MarketStatus.ACTIVE, LocalDateTime.now());
-        for (Market m : expired) {
-            m.close();
+        List<Market> expiredMarkets = marketRepository.findByStatusAndCloseAtBefore(
+                MarketStatus.ACTIVE, LocalDateTime.now());
+        for (Market market : expiredMarkets) {
+            market.close();
         }
-        if (!expired.isEmpty()) {
-            marketRepository.saveAll(expired);
+        if (!expiredMarkets.isEmpty()) {
+            marketRepository.saveAll(expiredMarkets);
         }
     }
 
@@ -129,7 +129,7 @@ public class MarketService {
         try {
             return objectMapper.writeValueAsString(value);
         } catch (JsonProcessingException e) {
-            throw new RuntimeException("Failed to serialize JSON", e);
+            throw new RuntimeException("Failed to serialize admin log metadata", e);
         }
     }
 }

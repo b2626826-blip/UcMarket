@@ -14,11 +14,11 @@ import com.ucmarket.service.WalletService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.PageImpl;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -45,10 +45,10 @@ class MarketControllerTest {
 
     @MockitoBean private MarketRepository marketRepository;
     @MockitoBean private TradeRepository tradeRepository;
-    @MockitoBean private JwtTokenProvider jwtTokenProvider;
-    @MockitoBean private UserRepository userRepository;
     @MockitoBean private PositionRepository positionRepository;
     @MockitoBean private WalletService walletService;
+    @MockitoBean private JwtTokenProvider jwtTokenProvider;
+    @MockitoBean private UserRepository userRepository;
 
     private static final UUID AUTH_USER_ID = UUID.randomUUID();
 
@@ -68,8 +68,7 @@ class MarketControllerTest {
     @Test
     void listMarkets_shouldReturnAllMarkets() throws Exception {
         Market m = createMarket(MarketStatus.ACTIVE);
-        Page<Market> page = new PageImpl<>(List.of(m));
-        when(marketRepository.findAll(any(org.springframework.data.domain.Pageable.class))).thenReturn(page);
+        when(marketRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(m)));
 
         mockMvc.perform(get("/api/markets"))
                 .andExpect(status().isOk())
@@ -86,6 +85,17 @@ class MarketControllerTest {
         mockMvc.perform(get("/api/markets/{id}", id))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.title").value("Test Title"));
+    }
+
+    @Test
+    void getMarketByCode_shouldReturnMarket_whenFound() throws Exception {
+        Market m = createMarket(MarketStatus.ACTIVE);
+        ReflectionTestUtils.setField(m, "code", "MKT0001");
+        when(marketRepository.findByCode("MKT0001")).thenReturn(Optional.of(m));
+
+        mockMvc.perform(get("/api/markets/code/{code}", "MKT0001"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.code").value("MKT0001"));
     }
 
     @Test

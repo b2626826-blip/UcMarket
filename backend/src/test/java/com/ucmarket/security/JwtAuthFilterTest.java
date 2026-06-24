@@ -46,6 +46,7 @@ class JwtAuthFilterTest {
         user = new User("testuser", "test@test.com", "pwd");
         ReflectionTestUtils.setField(user, "id", userId);
         ReflectionTestUtils.setField(user, "role", UserRole.USER);
+        ReflectionTestUtils.setField(user, "status", UserStatus.ACTIVE);
         SecurityContextHolder.clearContext();
     }
 
@@ -68,6 +69,24 @@ class JwtAuthFilterTest {
         assertTrue(auth.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_USER")));
 
+        verify(filterChain).doFilter(request, response);
+    }
+
+    @Test
+    void doFilter_shouldNotSetAuthentication_whenUserBanned() throws Exception {
+        String token = "valid-token-banned-user";
+        MockHttpServletRequest request = new MockHttpServletRequest();
+        request.addHeader("Authorization", "Bearer " + token);
+        MockHttpServletResponse response = new MockHttpServletResponse();
+        ReflectionTestUtils.setField(user, "status", UserStatus.BANNED);
+
+        when(jwtTokenProvider.validateToken(token)).thenReturn(true);
+        when(jwtTokenProvider.getUserIdFromToken(token)).thenReturn(userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        filter.doFilterInternal(request, response, filterChain);
+
+        assertNull(SecurityContextHolder.getContext().getAuthentication());
         verify(filterChain).doFilter(request, response);
     }
 
@@ -127,24 +146,6 @@ class JwtAuthFilterTest {
         assertNull(SecurityContextHolder.getContext().getAuthentication());
         verify(filterChain).doFilter(request, response);
         verifyNoInteractions(jwtTokenProvider);
-    }
-
-    @Test
-    void doFilter_shouldNotSetAuthentication_whenUserIsBanned() throws Exception {
-        ReflectionTestUtils.setField(user, "status", UserStatus.BANNED);
-        String token = "valid-token-banned-user";
-        MockHttpServletRequest request = new MockHttpServletRequest();
-        request.addHeader("Authorization", "Bearer " + token);
-        MockHttpServletResponse response = new MockHttpServletResponse();
-
-        when(jwtTokenProvider.validateToken(token)).thenReturn(true);
-        when(jwtTokenProvider.getUserIdFromToken(token)).thenReturn(userId);
-        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
-
-        filter.doFilterInternal(request, response, filterChain);
-
-        assertNull(SecurityContextHolder.getContext().getAuthentication());
-        verify(filterChain).doFilter(request, response);
     }
 
     @Test

@@ -311,7 +311,7 @@ no_price = yes_pool / (yes_pool + no_pool)
 
 - `GET /api/rankings/profit`：盈虧排行榜
 - `GET /api/rankings/win-rate`：勝率排行榜
-- `GET /api/rankings/assets`：資產排行榜
+- `GET /api/rankings/assets`：資產排行榜，錢包餘額加上 OPEN 持倉依 `market_price_history` 最新價格估值
 
 ## 11. 前端頁面規劃
 

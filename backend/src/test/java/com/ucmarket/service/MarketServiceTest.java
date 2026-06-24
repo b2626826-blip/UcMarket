@@ -9,7 +9,6 @@ import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.repository.AdminLogRepository;
 import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.MarketReviewRepository;
-import com.ucmarket.service.ResolutionService;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -27,7 +26,6 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -88,6 +86,18 @@ class MarketServiceTest {
 
         assertThrows(IllegalStateException.class, () -> marketService.approveMarket(marketId, adminId));
         verify(marketRepository, never()).save(any());
+    }
+
+    @Test
+    void approveMarket_shouldAutoCloseExpiredActiveMarket_onAccess() {
+        Market market = createMarket(MarketStatus.ACTIVE);
+        ReflectionTestUtils.setField(market, "closeAt", LocalDateTime.now().minusMinutes(1));
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+
+        assertThrows(IllegalStateException.class, () -> marketService.approveMarket(marketId, adminId));
+
+        assertEquals(MarketStatus.CLOSED, market.getStatus());
+        verify(marketRepository).save(market);
     }
 
     @Test
@@ -168,36 +178,6 @@ class MarketServiceTest {
     }
 
     @Test
-    void autoCloseExpiredMarkets_shouldCloseExpiredActiveMarkets() {
-        Market expired1 = createMarket(MarketStatus.ACTIVE);
-        ReflectionTestUtils.setField(expired1, "closeAt", LocalDateTime.now().minusDays(1));
-        Market expired2 = createMarket(MarketStatus.ACTIVE);
-        ReflectionTestUtils.setField(expired2, "closeAt", LocalDateTime.now().minusHours(2));
-
-        when(marketRepository.findByStatusAndCloseAtBefore(eq(MarketStatus.ACTIVE), any(LocalDateTime.class)))
-                .thenReturn(List.of(expired1, expired2));
-
-        marketService.autoCloseExpiredMarkets();
-
-        assertEquals(MarketStatus.CLOSED, expired1.getStatus());
-        assertEquals(MarketStatus.CLOSED, expired2.getStatus());
-        verify(marketRepository).saveAll(List.of(expired1, expired2));
-    }
-
-    @Test
-    void findMarket_shouldAutoCloseExpiredActiveMarket_onAccess() {
-        Market market = createMarket(MarketStatus.ACTIVE);
-        ReflectionTestUtils.setField(market, "closeAt", LocalDateTime.now().minusDays(1));
-        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
-        when(marketRepository.save(any())).thenReturn(market);
-
-        assertThrows(IllegalStateException.class,
-                () -> marketService.approveMarket(marketId, adminId));
-
-        assertEquals(MarketStatus.CLOSED, market.getStatus());
-    }
-
-    @Test
     void anyOperation_shouldThrow_whenMarketNotFound() {
         when(marketRepository.findById(marketId)).thenReturn(Optional.empty());
         when(resolutionService.resolveMarket(marketId, MarketResult.YES, adminId))
@@ -211,5 +191,17 @@ class MarketServiceTest {
                 () -> marketService.requestChanges(marketId, adminId, "comment"));
         assertThrows(EntityNotFoundException.class,
                 () -> marketService.resolveMarket(marketId, adminId, MarketResult.YES));
+    }
+
+    @Test
+    void autoCloseExpiredMarkets_shouldCloseExpiredActiveMarkets() {
+        Market market = createMarket(MarketStatus.ACTIVE);
+        when(marketRepository.findByStatusAndCloseAtBefore(eq(MarketStatus.ACTIVE), any(LocalDateTime.class)))
+                .thenReturn(List.of(market));
+
+        marketService.autoCloseExpiredMarkets();
+
+        assertEquals(MarketStatus.CLOSED, market.getStatus());
+        verify(marketRepository).saveAll(List.of(market));
     }
 }

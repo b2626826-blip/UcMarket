@@ -392,7 +392,7 @@ class RankingRepositoryTest {
 
 		assertThat(ranking.getUsername()).isEqualTo("assets_" + suffix);
 		assertThat(ranking.getWalletBalance()).isEqualByComparingTo("100.00");
-		assertThat(ranking.getOpenPositionValue()).isEqualByComparingTo("7.50");
-		assertThat(ranking.getTotalAssetValue()).isEqualByComparingTo("107.50");
+		assertThat(ranking.getOpenPositionValue()).isEqualByComparingTo("8.50");
+		assertThat(ranking.getTotalAssetValue()).isEqualByComparingTo("108.50");
 	}
 }

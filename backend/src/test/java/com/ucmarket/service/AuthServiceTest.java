@@ -11,7 +11,6 @@ import com.ucmarket.entity.UserStatus;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.repository.UserSessionRepository;
 import com.ucmarket.security.JwtTokenProvider;
-import com.ucmarket.service.WalletService;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.junit.jupiter.api.Test;
@@ -39,7 +38,6 @@ class AuthServiceTest {
     @Mock private PasswordEncoder passwordEncoder;
 
     @Captor private ArgumentCaptor<User> userCaptor;
-    @Captor private ArgumentCaptor<UUID> userIdCaptor;
     @Captor private ArgumentCaptor<UserSession> sessionCaptor;
 
     private AuthService authService;
@@ -178,8 +176,22 @@ class AuthServiceTest {
 
     @Test
     void logout_shouldThrow_whenSessionNotFound() {
+        UUID userId = UUID.randomUUID();
         when(userSessionRepository.findByRefreshTokenHash(any())).thenReturn(Optional.empty());
 
-        assertThrows(IllegalArgumentException.class, () -> authService.logout(UUID.randomUUID(), "some-token"));
+        assertThrows(IllegalArgumentException.class, () -> authService.logout(userId, "some-token"));
+
+        verify(userSessionRepository, never()).save(any());
+    }
+
+    @Test
+    void logout_shouldThrow_whenSessionBelongsToOtherUser() {
+        UUID userId = UUID.randomUUID();
+        UserSession session = new UserSession(UUID.randomUUID(), "hash", null, null);
+        when(userSessionRepository.findByRefreshTokenHash(any())).thenReturn(Optional.of(session));
+
+        assertThrows(IllegalArgumentException.class, () -> authService.logout(userId, "some-token"));
+
+        verify(userSessionRepository, never()).save(any());
     }
 }
