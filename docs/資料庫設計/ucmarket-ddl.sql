@@ -251,8 +251,6 @@ CREATE TABLE market_price_history (
 CREATE TABLE wallet_transactions (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     wallet_id UUID NOT NULL,
-    user_id UUID NOT NULL,
-    market_id UUID,
     type VARCHAR(32) NOT NULL,
     amount NUMERIC(18, 2) NOT NULL,
     balance_after NUMERIC(18, 2) NOT NULL,
@@ -263,8 +261,6 @@ CREATE TABLE wallet_transactions (
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT fk_wallet_transactions_wallet FOREIGN KEY (wallet_id) REFERENCES wallets (id),
-    CONSTRAINT fk_wallet_transactions_user FOREIGN KEY (user_id) REFERENCES users (id),
-    CONSTRAINT fk_wallet_transactions_market FOREIGN KEY (market_id) REFERENCES markets (id),
     CONSTRAINT ck_wallet_transactions_type CHECK (
         type IN ('SIGNUP_BONUS', 'TRADE_BUY', 'TRADE_SELL', 'RESOLUTION_PAYOUT', 'REFUND', 'BONUS', 'ADJUSTMENT')
     ),
@@ -366,8 +362,6 @@ CREATE INDEX idx_market_price_history_option_id ON market_price_history (option_
 CREATE INDEX idx_market_price_history_recorded_at ON market_price_history (recorded_at);
 
 CREATE INDEX idx_wallet_transactions_wallet_id ON wallet_transactions (wallet_id);
-CREATE INDEX idx_wallet_transactions_user_id ON wallet_transactions (user_id);
-CREATE INDEX idx_wallet_transactions_market_id ON wallet_transactions (market_id);
 CREATE INDEX idx_wallet_transactions_created_at ON wallet_transactions (created_at);
 CREATE INDEX idx_wallet_transactions_reference ON wallet_transactions (reference_type, reference_id);
 
@@ -384,11 +378,12 @@ CREATE INDEX idx_admin_logs_target ON admin_logs (target_type, target_id);
 CREATE VIEW v_ranking_profit AS
 WITH payouts AS (
     SELECT
-        user_id,
-        SUM(amount) AS total_payout
-    FROM wallet_transactions
-    WHERE type = 'RESOLUTION_PAYOUT'
-    GROUP BY user_id
+        w.user_id,
+        SUM(wt.amount) AS total_payout
+    FROM wallet_transactions wt
+    JOIN wallets w ON w.id = wt.wallet_id
+    WHERE wt.type = 'RESOLUTION_PAYOUT'
+    GROUP BY w.user_id
 ),
 settled_costs AS (
     SELECT
@@ -516,4 +511,3 @@ COMMENT ON TABLE wallet_transactions IS '錢包異動流水帳，包含扣款、
 COMMENT ON TABLE user_portfolio_snapshots IS '個人資產歷史快照，用於個人績效折線圖。';
 COMMENT ON TABLE notifications IS '通知紀錄，用於交易成功、市場截止、結算等事件提醒。';
 COMMENT ON TABLE admin_logs IS '後台操作稽核紀錄。';
-

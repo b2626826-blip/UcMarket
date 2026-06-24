@@ -42,14 +42,13 @@ ALTER TABLE wallets ALTER COLUMN balance TYPE NUMERIC(18, 2);
 ALTER TABLE wallets ALTER COLUMN locked_balance TYPE NUMERIC(18, 2);
 ALTER TABLE wallets ALTER COLUMN version SET DEFAULT 0;
 
-ALTER TABLE wallet_transactions ADD COLUMN IF NOT EXISTS user_id UUID;
-UPDATE wallet_transactions wt
-SET user_id = w.user_id
-FROM wallets w
-WHERE wt.wallet_id = w.id
-  AND wt.user_id IS NULL;
-ALTER TABLE wallet_transactions ALTER COLUMN user_id SET NOT NULL;
-ALTER TABLE wallet_transactions ADD COLUMN IF NOT EXISTS market_id UUID;
+DROP VIEW IF EXISTS v_ranking_profit;
+ALTER TABLE wallet_transactions DROP CONSTRAINT IF EXISTS fk_wallet_transactions_user;
+ALTER TABLE wallet_transactions DROP CONSTRAINT IF EXISTS fk_wallet_transactions_market;
+DROP INDEX IF EXISTS idx_wallet_transactions_user_id;
+DROP INDEX IF EXISTS idx_wallet_transactions_market_id;
+ALTER TABLE wallet_transactions DROP COLUMN IF EXISTS user_id;
+ALTER TABLE wallet_transactions DROP COLUMN IF EXISTS market_id;
 ALTER TABLE wallet_transactions ADD COLUMN IF NOT EXISTS metadata JSONB;
 ALTER TABLE wallet_transactions ALTER COLUMN type TYPE VARCHAR(32);
 ALTER TABLE wallet_transactions ALTER COLUMN amount TYPE NUMERIC(18, 2);
@@ -158,11 +157,6 @@ ALTER TABLE user_sessions ADD CONSTRAINT ck_user_sessions_revoked_at_range CHECK
     OR (revoked_at >= created_at AND revoked_at <= expires_at)
 );
 
-ALTER TABLE wallet_transactions DROP CONSTRAINT IF EXISTS fk_wallet_transactions_user;
-ALTER TABLE wallet_transactions ADD CONSTRAINT fk_wallet_transactions_user FOREIGN KEY (user_id) REFERENCES users (id);
-ALTER TABLE wallet_transactions DROP CONSTRAINT IF EXISTS fk_wallet_transactions_market;
-ALTER TABLE wallet_transactions ADD CONSTRAINT fk_wallet_transactions_market FOREIGN KEY (market_id) REFERENCES markets (id);
-
 ALTER TABLE wallets DROP CONSTRAINT IF EXISTS ck_wallets_version;
 ALTER TABLE wallets ADD CONSTRAINT ck_wallets_version CHECK (version >= 0);
 
@@ -175,8 +169,6 @@ CREATE UNIQUE INDEX IF NOT EXISTS uk_positions_user_market_option
     ON positions (user_id, market_id, option_id)
     WHERE option_id IS NOT NULL;
 
-CREATE INDEX IF NOT EXISTS idx_wallet_transactions_user_id ON wallet_transactions (user_id);
-CREATE INDEX IF NOT EXISTS idx_wallet_transactions_market_id ON wallet_transactions (market_id);
 CREATE INDEX IF NOT EXISTS idx_wallet_transactions_reference ON wallet_transactions (reference_type, reference_id);
 CREATE INDEX IF NOT EXISTS idx_user_portfolio_snapshots_user_recorded
     ON user_portfolio_snapshots (user_id, recorded_at DESC);
@@ -188,11 +180,12 @@ CREATE INDEX IF NOT EXISTS idx_admin_logs_target ON admin_logs (target_type, tar
 CREATE OR REPLACE VIEW v_ranking_profit AS
 WITH payouts AS (
     SELECT
-        user_id,
-        SUM(amount) AS total_payout
-    FROM wallet_transactions
-    WHERE type = 'RESOLUTION_PAYOUT'
-    GROUP BY user_id
+        w.user_id,
+        SUM(wt.amount) AS total_payout
+    FROM wallet_transactions wt
+    JOIN wallets w ON w.id = wt.wallet_id
+    WHERE wt.type = 'RESOLUTION_PAYOUT'
+    GROUP BY w.user_id
 ),
 settled_costs AS (
     SELECT
