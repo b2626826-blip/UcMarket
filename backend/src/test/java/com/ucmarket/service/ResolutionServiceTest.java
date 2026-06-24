@@ -12,7 +12,6 @@ import java.util.UUID;
 import static org.mockito.Mockito.never;
 
 import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,13 +25,8 @@ import com.ucmarket.entity.MarketResult;
 import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.entity.Position;
 import com.ucmarket.entity.PositionStatus;
-import com.ucmarket.entity.Wallet;
-import com.ucmarket.entity.WalletTransaction;
-import com.ucmarket.entity.WalletTransactionType;
 import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.PositionRepository;
-import com.ucmarket.repository.WalletRepository;
-import com.ucmarket.repository.WalletTransactionRepository;
 
 @ExtendWith(MockitoExtension.class)
 class ResolutionServiceTest {
@@ -45,10 +39,7 @@ class ResolutionServiceTest {
 	private PositionRepository positionRepository;
 
 	@Mock
-	private WalletRepository walletRepository;
-
-	@Mock
-	private WalletTransactionRepository walletTransactionRepository;
+	private WalletService walletService;
 
 	@InjectMocks
 	private ResolutionService resolutionService;
@@ -57,7 +48,6 @@ class ResolutionServiceTest {
 	void resolveYesMarketPaysYesPositionAndSettlesPosition() {
 		UUID marketId = UUID.randomUUID();
 		UUID userId = UUID.randomUUID();
-		UUID walletId = UUID.randomUUID();
 
 		Market market = new Market(
 				"Will UC beat UCLA this year?",
@@ -78,17 +68,9 @@ class ResolutionServiceTest {
 		ReflectionTestUtils.setField(position, "noCost", BigDecimal.ZERO);
 		ReflectionTestUtils.setField(position, "status", PositionStatus.OPEN);
 
-		Wallet wallet = new Wallet();
-		ReflectionTestUtils.setField(wallet, "id", walletId);
-		ReflectionTestUtils.setField(wallet, "userId", userId);
-		ReflectionTestUtils.setField(wallet, "balance", new BigDecimal("100.00"));
-
 		when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
 		when(positionRepository.findByMarketIdAndStatus(marketId, PositionStatus.OPEN))
 				.thenReturn(List.of(position));
-		when(walletTransactionRepository.existsByIdempotencyKey("resolution:" + marketId + ":" + userId))
-				.thenReturn(false);
-		when(walletRepository.findByUserIdForUpdate(userId)).thenReturn(Optional.of(wallet));
 		when(marketRepository.save(any(Market.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		Market resolvedMarket = resolutionService.resolveMarket(marketId, MarketResult.YES, ADMIN_ID);
@@ -96,19 +78,12 @@ class ResolutionServiceTest {
 		assertThat(resolvedMarket.getStatus()).isEqualTo(MarketStatus.RESOLVED);
 		assertThat(resolvedMarket.getResult()).isEqualTo(MarketResult.YES);
 		assertThat(position.getStatus()).isEqualTo(PositionStatus.SETTLED);
-		assertThat(wallet.getBalance()).isEqualByComparingTo("110.0000");
-
-		ArgumentCaptor<WalletTransaction> transactionCaptor = ArgumentCaptor.forClass(WalletTransaction.class);
-		verify(walletTransactionRepository).save(transactionCaptor.capture());
-
-		WalletTransaction transaction = transactionCaptor.getValue();
-		assertThat(transaction.getWalletId()).isEqualTo(walletId);
-		assertThat(transaction.getType()).isEqualTo(WalletTransactionType.RESOLUTION_PAYOUT);
-		assertThat(transaction.getAmount()).isEqualByComparingTo("10.0000");
-		assertThat(transaction.getBalanceAfter()).isEqualByComparingTo("110.0000");
-		assertThat(transaction.getReferenceType()).isEqualTo("MARKET");
-		assertThat(transaction.getReferenceId()).isEqualTo(marketId);
-		assertThat(transaction.getIdempotencyKey()).isEqualTo("resolution:" + marketId + ":" + userId);
+		verify(walletService).credit(
+				userId,
+				new BigDecimal("10.0000"),
+				"MARKET",
+				marketId,
+				"resolution:" + marketId + ":" + userId);
 
 		verify(marketRepository).save(market);
 	}
@@ -117,7 +92,6 @@ class ResolutionServiceTest {
 	void resolveNoMarketPaysNoPositionAndSettlesPosition() {
 		UUID marketId = UUID.randomUUID();
 		UUID userId = UUID.randomUUID();
-		UUID walletId = UUID.randomUUID();
 
 		Market market = new Market(
 				"Will UC beat UCLA this year?",
@@ -138,17 +112,9 @@ class ResolutionServiceTest {
 		ReflectionTestUtils.setField(position, "noCost", new BigDecimal("4.00"));
 		ReflectionTestUtils.setField(position, "status", PositionStatus.OPEN);
 
-		Wallet wallet = new Wallet();
-		ReflectionTestUtils.setField(wallet, "id", walletId);
-		ReflectionTestUtils.setField(wallet, "userId", userId);
-		ReflectionTestUtils.setField(wallet, "balance", new BigDecimal("80.00"));
-
 		when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
 		when(positionRepository.findByMarketIdAndStatus(marketId, PositionStatus.OPEN))
 				.thenReturn(List.of(position));
-		when(walletTransactionRepository.existsByIdempotencyKey("resolution:" + marketId + ":" + userId))
-				.thenReturn(false);
-		when(walletRepository.findByUserIdForUpdate(userId)).thenReturn(Optional.of(wallet));
 		when(marketRepository.save(any(Market.class))).thenAnswer(invocation -> invocation.getArgument(0));
 
 		Market resolvedMarket = resolutionService.resolveMarket(marketId, MarketResult.NO, ADMIN_ID);
@@ -156,19 +122,12 @@ class ResolutionServiceTest {
 		assertThat(resolvedMarket.getStatus()).isEqualTo(MarketStatus.RESOLVED);
 		assertThat(resolvedMarket.getResult()).isEqualTo(MarketResult.NO);
 		assertThat(position.getStatus()).isEqualTo(PositionStatus.SETTLED);
-		assertThat(wallet.getBalance()).isEqualByComparingTo("87.0000");
-
-		ArgumentCaptor<WalletTransaction> transactionCaptor = ArgumentCaptor.forClass(WalletTransaction.class);
-		verify(walletTransactionRepository).save(transactionCaptor.capture());
-
-		WalletTransaction transaction = transactionCaptor.getValue();
-		assertThat(transaction.getWalletId()).isEqualTo(walletId);
-		assertThat(transaction.getType()).isEqualTo(WalletTransactionType.RESOLUTION_PAYOUT);
-		assertThat(transaction.getAmount()).isEqualByComparingTo("7.0000");
-		assertThat(transaction.getBalanceAfter()).isEqualByComparingTo("87.0000");
-		assertThat(transaction.getReferenceType()).isEqualTo("MARKET");
-		assertThat(transaction.getReferenceId()).isEqualTo(marketId);
-		assertThat(transaction.getIdempotencyKey()).isEqualTo("resolution:" + marketId + ":" + userId);
+		verify(walletService).credit(
+				userId,
+				new BigDecimal("7.0000"),
+				"MARKET",
+				marketId,
+				"resolution:" + marketId + ":" + userId);
 
 		verify(marketRepository).save(market);
 	}
@@ -208,8 +167,7 @@ class ResolutionServiceTest {
 		assertThat(resolvedMarket.getResult()).isEqualTo(MarketResult.YES);
 		assertThat(position.getStatus()).isEqualTo(PositionStatus.SETTLED);
 
-		verify(walletTransactionRepository, never()).save(any(WalletTransaction.class));
-		verify(walletRepository, never()).findByUserIdForUpdate(any(UUID.class));
+		verify(walletService, never()).credit(any(UUID.class), any(BigDecimal.class), any(), any(UUID.class), any());
 		verify(marketRepository).save(market);
 	}
 	
@@ -235,8 +193,7 @@ class ResolutionServiceTest {
 				.hasMessageContaining("Market is already resolved");
 
 		verify(positionRepository, never()).findByMarketIdAndStatus(any(UUID.class), any(PositionStatus.class));
-		verify(walletRepository, never()).findByUserIdForUpdate(any(UUID.class));
-		verify(walletTransactionRepository, never()).save(any(WalletTransaction.class));
+		verify(walletService, never()).credit(any(UUID.class), any(BigDecimal.class), any(), any(UUID.class), any());
 		verify(marketRepository, never()).save(any(Market.class));
 	}
 	
@@ -260,8 +217,7 @@ class ResolutionServiceTest {
 				.hasMessageContaining("Market is not ready to resolve");
 
 		verify(positionRepository, never()).findByMarketIdAndStatus(any(UUID.class), any(PositionStatus.class));
-		verify(walletRepository, never()).findByUserIdForUpdate(any(UUID.class));
-		verify(walletTransactionRepository, never()).save(any(WalletTransaction.class));
+		verify(walletService, never()).credit(any(UUID.class), any(BigDecimal.class), any(), any(UUID.class), any());
 		verify(marketRepository, never()).save(any(Market.class));
 	}
 }

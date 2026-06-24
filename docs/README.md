@@ -51,7 +51,7 @@
 - `公版/user/` 是另一組使用者端靜態頁，目前包含首頁與 wallet 子頁。
 - `frontend/` 與 `front/` 目前都先保留，前端後續會再大整理；現階段文件不要把前端過渡檔案視為最終結構。
 - `backend/` 已有 Spring Boot API 與測試；文件整理時以目前 controller、service、repository 與 `./mvnw test` 通過結果作為後端實作現況。
-- Ranking 排行榜目前以既有資料表查詢或 view 計算，不建立獨立排行榜資料表。
+- Ranking 排行榜目前以既有資料表查詢或 view 計算，不建立獨立排行榜資料表；資產榜使用 `market_price_history` 最新價格估算 OPEN 持倉價值。
 - 結算與錢包異動以 `wallet_transactions` 追蹤，MVP 不另建 `resolution_payouts`。
 
 ## 維護原則

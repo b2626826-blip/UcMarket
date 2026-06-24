@@ -17,6 +17,4 @@ public interface WalletTransactionRepository extends JpaRepository<WalletTransac
 	// Harry 全防重：這個 idemKey 寫過了沒（最多 0 或 1 筆）
 	Optional<WalletTransaction> findByIdempotencyKey(String idempotencyKey);
 
-	// eagle 派彩用（保留，共存）
-	boolean existsByIdempotencyKey(String idempotencyKey);
 }

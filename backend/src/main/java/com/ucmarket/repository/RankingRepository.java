@@ -74,13 +74,22 @@ public interface RankingRepository extends JpaRepository<User, UUID> {
 	List<RankingWinRateRow> findWinRateRankings();
 	
 	@Query(value = """
-			WITH latest_binary_price AS (
+			WITH ranked_binary_price AS (
 				SELECT
-					id AS market_id,
-					no_pool / (yes_pool + no_pool) AS yes_price,
-					yes_pool / (yes_pool + no_pool) AS no_price
-				FROM markets
-				WHERE yes_pool + no_pool > 0
+					market_id,
+					yes_price,
+					no_price,
+					ROW_NUMBER() OVER (PARTITION BY market_id ORDER BY recorded_at DESC, id DESC) AS rn
+				FROM market_price_history
+				WHERE option_id IS NULL
+			),
+			latest_binary_price AS (
+				SELECT
+					market_id,
+					yes_price,
+					no_price
+				FROM ranked_binary_price
+				WHERE rn = 1
 			),
 			open_position_values AS (
 				SELECT
