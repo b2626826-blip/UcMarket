@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.ucmarket.util.CodeGenerator;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -12,6 +14,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
+import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
 
 @Entity
@@ -22,13 +25,17 @@ public class Market {
 	@Id
 	@GeneratedValue( strategy = GenerationType.UUID)
 	private UUID id;
+
+	@Column(length = 32)
+	private String code;
 	
-	@Column( nullable = false)
+	@Column( nullable = false, length = 255)
 	private String title;
 	
 	@Column( columnDefinition = "text")
 	private String description;
 	
+	@Column( length = 64)
 	private String category;
 	
 	@Column( name = "source_url", columnDefinition = "text")
@@ -37,16 +44,37 @@ public class Market {
 	@Column( name = "resolution_rule", columnDefinition = "text")
 	private String resolutionRule;
 	
-	@Column( name = "close_at")
+	@Column( name = "market_type", nullable = false, length = 32)
+	private String marketType = "BINARY";
+
+	@Column( name = "creator_id", nullable = false)
+	private UUID creatorId;
+
+	@Column( name = "close_at", nullable = false)
 	private LocalDateTime closeAt;
-	
+
 	@Enumerated( EnumType.STRING)
 	@Column( nullable = false)
-	private MarketStatus status = MarketStatus.PENDING;
+	private MarketStatus status = MarketStatus.DRAFT;
 	
 	@Enumerated( EnumType.STRING)
 	private MarketResult result;
 	
+	@Column( name = "result_value", precision = 18, scale = 2)
+	private BigDecimal resultValue;
+
+	@Column( name = "approved_at")
+	private LocalDateTime approvedAt;
+
+	@Column( name = "approved_by")
+	private UUID approvedBy;
+
+	@Column( name = "resolved_at")
+	private LocalDateTime resolvedAt;
+
+	@Column( name = "resolved_by")
+	private UUID resolvedBy;
+
 	@Column( name = "yes_pool", nullable = false)
 	private BigDecimal yesPool = BigDecimal.valueOf(100);
 	
@@ -55,7 +83,10 @@ public class Market {
 	
 	@Column( name = "created_at", nullable = false)
 	private LocalDateTime createdAt;
-	
+
+	@Column( name = "updated_at", nullable = false)
+	private LocalDateTime updatedAt;
+
 	protected Market() {
 	}
 
@@ -67,9 +98,24 @@ public class Market {
 		String resolutionRule,
 		LocalDateTime closeAt
 	) {
+		this(title, description, category, null, sourceUrl, resolutionRule, closeAt);
+	}
+
+	public Market(
+		String title,
+		String description,
+		String category,
+		String marketType,
+		String sourceUrl,
+		String resolutionRule,
+		LocalDateTime closeAt
+	) {
 		this.title = title;
 		this.description = description;
 		this.category = category;
+		if (marketType != null) {
+			this.marketType = marketType;
+		}
 		this.sourceUrl = sourceUrl;
 		this.resolutionRule = resolutionRule;
 		this.closeAt = closeAt;
@@ -77,13 +123,29 @@ public class Market {
 	
 	@PrePersist
 	void onCreate() {
-		if (createdAt == null) {
-			createdAt = LocalDateTime.now();
+		if (code == null && CodeGenerator.isReady()) {
+			code = CodeGenerator.next("MKT", "seq_market_code");
 		}
+		LocalDateTime now = LocalDateTime.now();
+		if (createdAt == null) {
+			createdAt = now;
+		}
+		if (updatedAt == null) {
+			updatedAt = now;
+		}
+	}
+
+	@PreUpdate
+	void onUpdate() {
+		updatedAt = LocalDateTime.now();
 	}
 	
 	public UUID getId() {
 		return id;
+	}
+
+	public String getCode() {
+		return code;
 	}
 	
 	public String getTitle() {
@@ -113,24 +175,72 @@ public class Market {
 	public MarketStatus getStatus() {
 		return status;
 	}
-	
-	public void approve() {
-		this.status = MarketStatus.ACTIVE;
+
+	public void changeStatus(MarketStatus status) {
+		this.status = status;
 	}
-	
+
+	public void approve(UUID adminId) {
+		this.status = MarketStatus.ACTIVE;
+		this.approvedAt = LocalDateTime.now();
+		this.approvedBy = adminId;
+	}
+
+	public void approve() {
+		approve(null);
+	}
+
 	public void reject() {
 		this.status = MarketStatus.REJECTED;
 	}
-	
-	public void resolve(MarketResult result) {
+
+	public void resolve(MarketResult result, UUID adminId) {
 		this.status = MarketStatus.RESOLVED;
 		this.result = result;
+		this.resolvedAt = LocalDateTime.now();
+		this.resolvedBy = adminId;
+	}
+
+	public void resolve(MarketResult result) {
+		resolve(result, null);
+	}
+
+	public void cancel() {
+		this.status = MarketStatus.CANCELED;
+	}
+
+	public void close() {
+		this.status = MarketStatus.CLOSED;
 	}
 	
 	public MarketResult getResult() {
 		return result;
 	}
-	
+
+	public BigDecimal getResultValue() { return resultValue; }
+	public LocalDateTime getUpdatedAt() { return updatedAt; }
+
+	public LocalDateTime getApprovedAt() { return approvedAt; }
+	public UUID getApprovedBy() { return approvedBy; }
+	public LocalDateTime getResolvedAt() { return resolvedAt; }
+	public UUID getResolvedBy() { return resolvedBy; }
+	public UUID getCreatorId() { return creatorId; }
+	public void setCreatorId(UUID creatorId) { this.creatorId = creatorId; }
+	public String getMarketType() { return marketType; }
+	public void setMarketType(String marketType) { this.marketType = marketType; }
+	public void setTitle(String title) { this.title = title; }
+	public void setDescription(String description) { this.description = description; }
+	public void setCategory(String category) { this.category = category; }
+	public void setSourceUrl(String sourceUrl) { this.sourceUrl = sourceUrl; }
+	public void setResolutionRule(String resolutionRule) { this.resolutionRule = resolutionRule; }
+	public void setCloseAt(LocalDateTime closeAt) { this.closeAt = closeAt; }
+
+	@jakarta.persistence.Transient
+	private String creatorCode;
+
+	public String getCreatorCode() { return creatorCode; }
+	public void setCreatorCode(String creatorCode) { this.creatorCode = creatorCode; }
+
 	public BigDecimal getYesPool() {
 		return yesPool;
 	}

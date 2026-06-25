@@ -1,186 +1,159 @@
 package com.ucmarket.controller;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
-
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ucmarket.dto.admin.MarketSummaryItem;
+import com.ucmarket.dto.admin.ReviewMarketRequest;
+import com.ucmarket.dto.ResolveMarketRequest;
+import com.ucmarket.entity.Market;
+import com.ucmarket.entity.MarketResult;
+import com.ucmarket.entity.MarketStatus;
+import com.ucmarket.entity.User;
+import com.ucmarket.repository.MarketRepository;
+import com.ucmarket.repository.MarketReviewRepository;
+import com.ucmarket.repository.UserRepository;
+import com.ucmarket.security.JwtTokenProvider;
+import com.ucmarket.service.AdminDashboardService;
+import com.ucmarket.service.MarketService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import com.ucmarket.entity.Market;
-import com.ucmarket.entity.MarketStatus;
-import com.ucmarket.repository.MarketRepository;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.UUID;
+
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AdminMarketController.class)
+@AutoConfigureMockMvc(addFilters = false)
 class AdminMarketControllerTest {
 
-	@Autowired
-	private MockMvc mockMvc;
+    @Autowired private MockMvc mockMvc;
+    @Autowired private ObjectMapper objectMapper;
 
-	@MockitoBean
-	private MarketRepository marketRepository;
+    @MockitoBean private MarketService marketService;
+    @MockitoBean private AdminDashboardService adminDashboardService;
+    @MockitoBean private MarketRepository marketRepository;
+    @MockitoBean private MarketReviewRepository marketReviewRepository;
+    @MockitoBean private JwtTokenProvider jwtTokenProvider;
+    @MockitoBean private UserRepository userRepository;
 
-	@Test
-	void listPendingMarketsReturnsOnlyPendingMarkets() throws Exception {
-		Market pendingMarket = new Market("Will UC beat UCLA this year?", "A test prediction market", "sports",
-				"https://example.com/result", "Resolve YES if UC wins the game.", null);
+    private User adminUser;
 
-		when(marketRepository.findByStatus(MarketStatus.PENDING)).thenReturn(List.of(pendingMarket));
+    @BeforeEach
+    void setUp() {
+        adminUser = new User("admin", "admin@test.com", "encoded");
+        ReflectionTestUtils.setField(adminUser, "id", UUID.randomUUID());
 
-		mockMvc.perform(get("/api/admin/markets/pending")).andExpect(status().isOk())
-				.andExpect(jsonPath("$[0].title").value("Will UC beat UCLA this year?"))
-				.andExpect(jsonPath("$[0].status").value("PENDING"));
-	}
-	
-	@Test
-	void approvePendingMarketChangesStatusToActive() throws Exception {
-		UUID marketId = UUID.randomUUID();
+        var auth = new UsernamePasswordAuthenticationToken(
+                adminUser, null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN"))
+        );
+        SecurityContextHolder.getContext().setAuthentication(auth);
+    }
 
-		Market pendingMarket = new Market(
-				"Will UC beat UCLA this year?",
-				"A test prediction market",
-				"sports",
-				"https://example.com/result",
-				"Resolve YES if UC wins the game.",
-				null
-		);
+    private Market createMarket() {
+        Market m = new Market("Title", "Desc", "Cat", null, null, null, LocalDateTime.now().plusDays(7));
+        ReflectionTestUtils.setField(m, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(m, "status", MarketStatus.PENDING);
+        ReflectionTestUtils.setField(m, "creatorId", UUID.randomUUID());
+        return m;
+    }
 
-		when(marketRepository.findById(marketId)).thenReturn(Optional.of(pendingMarket));
-		when(marketRepository.save(any(Market.class))).thenAnswer(invocation -> invocation.getArgument(0));
+    @Test
+    void listMarkets_shouldReturnSummaryAndMarkets() throws Exception {
+        List<MarketSummaryItem> summary = List.of(
+                new MarketSummaryItem("全部事件", 1L, "primary")
+        );
+        List<Market> markets = List.of(createMarket());
 
-		mockMvc.perform(post("/api/admin/markets/{id}/approve", marketId))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.status").value("ACTIVE"));
+        when(adminDashboardService.getMarketSummary()).thenReturn(summary);
+        when(marketRepository.findAll()).thenReturn(markets);
 
-		verify(marketRepository).save(pendingMarket);
-	}
-	
-	@Test
-	void approveMissingMarketReturnsNotFound() throws Exception {
-		UUID marketId = UUID.randomUUID();
+        mockMvc.perform(get("/api/admin/markets"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.summary").isArray())
+                .andExpect(jsonPath("$.markets").isArray())
+                .andExpect(jsonPath("$.summary[0].label").value("全部事件"));
+    }
 
-		when(marketRepository.findById(marketId)).thenReturn(Optional.empty());
+    @Test
+    void approveMarket_shouldReturn200() throws Exception {
+        Market market = createMarket();
+        when(marketService.approveMarket(any(UUID.class), any(UUID.class))).thenReturn(market);
 
-		mockMvc.perform(post("/api/admin/markets/{id}/approve", marketId))
-				.andExpect(status().isNotFound());
-	}
-	
-	@Test
-	void rejectMissingMarketReturnsNotFound() throws Exception {
-		UUID marketId = UUID.randomUUID();
+        mockMvc.perform(post("/api/admin/markets/{id}/approve", market.getId()))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.id").value(market.getId().toString()));
+    }
 
-		when(marketRepository.findById(marketId)).thenReturn(Optional.empty());
+    @Test
+    void rejectMarket_shouldReturn200() throws Exception {
+        Market market = createMarket();
+        ReviewMarketRequest request = new ReviewMarketRequest("Invalid source");
+        when(marketService.rejectMarket(any(UUID.class), any(UUID.class), anyString())).thenReturn(market);
 
-		mockMvc.perform(post("/api/admin/markets/{id}/reject", marketId))
-				.andExpect(status().isNotFound());
-	}
-	
-	@Test
-	void resolveMarketWithYesResultChangesStatusToResolved() throws Exception {
-		UUID marketId = UUID.randomUUID();
+        mockMvc.perform(post("/api/admin/markets/{id}/reject", market.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+    }
 
-		Market activeMarket = new Market(
-				"Will UC beat UCLA this year?",
-				"A test prediction market",
-				"sports",
-				"https://example.com/result",
-				"Resolve YES if UC wins the game.",
-				null
-		);
+    @Test
+    void rejectMarket_shouldReturn400_whenNoComment() throws Exception {
+        Market market = createMarket();
+        String body = "{}";
 
-		when(marketRepository.findById(marketId)).thenReturn(Optional.of(activeMarket));
-		when(marketRepository.save(any(Market.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        mockMvc.perform(post("/api/admin/markets/{id}/reject", market.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+                .andExpect(status().isBadRequest());
+    }
 
-		mockMvc.perform(post("/api/admin/markets/{id}/resolve", marketId)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("""
-						{
-							"result": "YES"
-						}
-						"""))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.status").value("RESOLVED"))
-				.andExpect(jsonPath("$.result").value("YES"));
+    @Test
+    void requestChanges_shouldReturn200() throws Exception {
+        Market market = createMarket();
+        ReviewMarketRequest request = new ReviewMarketRequest("Please add sources");
+        when(marketService.requestChanges(any(UUID.class), any(UUID.class), anyString())).thenReturn(market);
 
-		verify(marketRepository).save(activeMarket);
-	}
-	
-	@Test
-	void resolveMissingMarketReturnsNotFound() throws Exception {
-		UUID marketId = UUID.randomUUID();
+        mockMvc.perform(post("/api/admin/markets/{id}/request-changes", market.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+    }
 
-		when(marketRepository.findById(marketId)).thenReturn(Optional.empty());
+    @Test
+    void resolveMarket_shouldReturn200() throws Exception {
+        Market market = createMarket();
+        ReflectionTestUtils.setField(market, "status", MarketStatus.ACTIVE);
+        ResolveMarketRequest request = new ResolveMarketRequest(MarketResult.YES);
+        when(marketService.resolveMarket(any(UUID.class), any(UUID.class), any())).thenReturn(market);
 
-		mockMvc.perform(post("/api/admin/markets/{id}/resolve", marketId)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("""
-						{
-							"result": "YES"
-						}
-						"""))
-				.andExpect(status().isNotFound());
-	}
-	
-	@Test
-	void resolveMarketRejectsMissingResult() throws Exception {
-		UUID marketId = UUID.randomUUID();
+        mockMvc.perform(post("/api/admin/markets/{id}/resolve", market.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk());
+    }
 
-		Market activeMarket = new Market(
-				"Will UC beat UCLA this year?",
-				"A test prediction market",
-				"sports",
-				"https://example.com/result",
-				"Resolve YES if UC wins the game.",
-				null
-		);
+    @Test
+    void resolveMarket_shouldReturn400_whenNoResult() throws Exception {
+        Market market = createMarket();
+        String body = "{}";
 
-		when(marketRepository.findById(marketId)).thenReturn(Optional.of(activeMarket));
-
-		mockMvc.perform(post("/api/admin/markets/{id}/resolve", marketId)
-				.contentType(MediaType.APPLICATION_JSON)
-				.content("""
-						{
-						}
-						"""))
-				.andExpect(status().isBadRequest());
-
-		verify(marketRepository, never()).save(any(Market.class));
-	}
-	
-	@Test
-	void rejectPendingMarketChangesStatusToRejected() throws Exception {
-		UUID marketId = UUID.randomUUID();
-
-		Market pendingMarket = new Market(
-				"Will UC beat UCLA this year?",
-				"A test prediction market",
-				"sports",
-				"https://example.com/result",
-				"Resolve YES if UC wins the game.",
-				null
-		);
-
-		when(marketRepository.findById(marketId)).thenReturn(Optional.of(pendingMarket));
-		when(marketRepository.save(any(Market.class))).thenAnswer(invocation -> invocation.getArgument(0));
-
-		mockMvc.perform(post("/api/admin/markets/{id}/reject", marketId))
-				.andExpect(status().isOk())
-				.andExpect(jsonPath("$.status").value("REJECTED"));
-
-		verify(marketRepository).save(pendingMarket);
-	}
-	
+        mockMvc.perform(post("/api/admin/markets/{id}/resolve", market.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+                .andExpect(status().isBadRequest());
+    }
 }

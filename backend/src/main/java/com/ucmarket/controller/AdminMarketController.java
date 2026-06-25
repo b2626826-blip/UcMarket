@@ -1,68 +1,123 @@
 package com.ucmarket.controller;
 
-import org.springframework.web.bind.annotation.RequestBody;
-
-import com.ucmarket.dto.ResolveMarketRequest;
-
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
-import jakarta.validation.Valid;
-
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.server.ResponseStatusException;
-import org.springframework.http.HttpStatus;
 
+import com.ucmarket.dto.MarketResponse;
+import com.ucmarket.dto.ResolveMarketRequest;
+import com.ucmarket.dto.admin.AdminMarketListResponse;
+import com.ucmarket.dto.admin.MarketSummaryItem;
+import com.ucmarket.dto.admin.ReviewMarketRequest;
 import com.ucmarket.entity.Market;
-import com.ucmarket.entity.MarketStatus;
+import com.ucmarket.entity.MarketReview;
+import com.ucmarket.entity.User;
 import com.ucmarket.repository.MarketRepository;
+import com.ucmarket.repository.MarketReviewRepository;
+import com.ucmarket.repository.UserRepository;
+import com.ucmarket.service.AdminDashboardService;
+import com.ucmarket.service.MarketService;
+
+import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/admin/markets")
 public class AdminMarketController {
 
-	private final MarketRepository marketRepository;
+    private final MarketService marketService;
+    private final AdminDashboardService adminDashboardService;
+    private final MarketRepository marketRepository;
+    private final MarketReviewRepository marketReviewRepository;
+    private final UserRepository userRepository;
 
-	public AdminMarketController(MarketRepository marketRepository) {
-		this.marketRepository = marketRepository;
-	}
+    public AdminMarketController(MarketService marketService, AdminDashboardService adminDashboardService,
+            MarketRepository marketRepository, MarketReviewRepository marketReviewRepository,
+            UserRepository userRepository) {
+        this.marketService = marketService;
+        this.adminDashboardService = adminDashboardService;
+        this.marketRepository = marketRepository;
+        this.marketReviewRepository = marketReviewRepository;
+        this.userRepository = userRepository;
+    }
 
-	@GetMapping("/pending")
-	public List<Market> listPendingMarkets() {
-		return marketRepository.findByStatus(MarketStatus.PENDING);
-	}
-	
-	@PostMapping("/{id}/approve")
-	public Market approveMarket(@PathVariable UUID id) {
-		Market market = marketRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+    @GetMapping
+    public AdminMarketListResponse listMarkets(
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String category,
+            @RequestParam(required = false) String keyword) {
 
-		market.approve();
+        List<MarketSummaryItem> summary = adminDashboardService.getMarketSummary();
 
-		return marketRepository.save(market);
-	}
-	
-	@PostMapping("/{id}/reject")
-	public Market rejectMarket(@PathVariable UUID id) {
-		Market market = marketRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        List<Market> markets;
+        if (status != null || category != null || keyword != null) {
+            markets = marketRepository.findAll();
+        } else {
+            markets = marketRepository.findAll();
+        }
 
-		market.reject();
+        Map<UUID, String> creatorCodeCache = buildCreatorCodeCache(markets);
+        List<MarketResponse> responses = markets.stream()
+                .map(m -> MarketResponse.from(m, creatorCodeCache.get(m.getCreatorId())))
+                .toList();
 
-		return marketRepository.save(market);
-	}
-	
-	@PostMapping("/{id}/resolve")
-	public Market resolveMarket(@PathVariable UUID id, @Valid @RequestBody ResolveMarketRequest request) {
-		Market market = marketRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+        return new AdminMarketListResponse(summary, responses);
+    }
 
-		market.resolve(request.result());
+    private Map<UUID, String> buildCreatorCodeCache(List<Market> markets) {
+        Map<UUID, String> cache = new HashMap<>();
+        for (Market m : markets) {
+            if (m.getCreatorId() != null && !cache.containsKey(m.getCreatorId())) {
+                String code = userRepository.findById(m.getCreatorId())
+                        .map(User::getCode).orElse(null);
+                cache.put(m.getCreatorId(), code);
+            }
+        }
+        return cache;
+    }
 
-		return marketRepository.save(market);
-	}
+    @PostMapping("/{id}/approve")
+    public ResponseEntity<MarketResponse> approveMarket(@PathVariable UUID id, @AuthenticationPrincipal User admin) {
+        Market market = marketService.approveMarket(id, admin.getId());
+        return ResponseEntity.ok(MarketResponse.from(market));
+    }
+
+    @PostMapping("/{id}/reject")
+    public ResponseEntity<MarketResponse> rejectMarket(@PathVariable UUID id,
+            @AuthenticationPrincipal User admin,
+            @Valid @RequestBody ReviewMarketRequest request) {
+        Market market = marketService.rejectMarket(id, admin.getId(), request.comment());
+        return ResponseEntity.ok(MarketResponse.from(market));
+    }
+
+    @PostMapping("/{id}/request-changes")
+    public ResponseEntity<MarketResponse> requestChanges(@PathVariable UUID id,
+            @AuthenticationPrincipal User admin,
+            @Valid @RequestBody ReviewMarketRequest request) {
+        Market market = marketService.requestChanges(id, admin.getId(), request.comment());
+        return ResponseEntity.ok(MarketResponse.from(market));
+    }
+
+    @PostMapping("/{id}/resolve")
+    public ResponseEntity<MarketResponse> resolveMarket(@PathVariable UUID id,
+            @AuthenticationPrincipal User admin,
+            @Valid @RequestBody ResolveMarketRequest request) {
+        Market market = marketService.resolveMarket(id, admin.getId(), request.result());
+        return ResponseEntity.ok(MarketResponse.from(market));
+    }
+
+    @GetMapping("/{id}/reviews")
+    public List<MarketReview> listReviews(@PathVariable UUID id) {
+        return marketReviewRepository.findByMarketIdOrderByCreatedAtDesc(id);
+    }
 }

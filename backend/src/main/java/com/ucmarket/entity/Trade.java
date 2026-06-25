@@ -4,6 +4,8 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import com.ucmarket.util.CodeGenerator;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
@@ -21,6 +23,12 @@ public class Trade {
 	@Id
 	@GeneratedValue(strategy = GenerationType.UUID)
 	private UUID id;
+
+	@Column(length = 32)
+	private String code;
+
+	@Column(name = "user_id", nullable = false)
+	private UUID userId;
 
 	@Column(name = "market_id", nullable = false)
 	private UUID marketId;
@@ -48,7 +56,8 @@ public class Trade {
 	protected Trade() {
 	}
 
-	public Trade(UUID marketId, MarketSide side, TradeAction action, BigDecimal amount, BigDecimal price, BigDecimal shares) {
+	public Trade(UUID userId, UUID marketId, MarketSide side, TradeAction action, BigDecimal amount, BigDecimal price, BigDecimal shares) {
+		this.userId = userId;
 		this.marketId = marketId;
 		this.side = side;
 		this.action = action;
@@ -59,6 +68,9 @@ public class Trade {
 
 	@PrePersist
 	void onCreate() {
+		if (code == null && CodeGenerator.isReady()) {
+			code = CodeGenerator.next("TRX", "seq_trade_code");
+		}
 		if (createdAt == null) {
 			createdAt = LocalDateTime.now();
 		}
@@ -66,6 +78,14 @@ public class Trade {
 
 	public UUID getId() {
 		return id;
+	}
+
+	public String getCode() {
+		return code;
+	}
+
+	public UUID getUserId() {
+		return userId;
 	}
 
 	public UUID getMarketId() {
@@ -95,4 +115,15 @@ public class Trade {
 	public LocalDateTime getCreatedAt() {
 		return createdAt;
 	}
+
+	@jakarta.persistence.Transient
+	private String userCode;
+
+	@jakarta.persistence.Transient
+	private String marketCode;
+
+	public String getUserCode() { return userCode; }
+	public void setUserCode(String userCode) { this.userCode = userCode; }
+	public String getMarketCode() { return marketCode; }
+	public void setMarketCode(String marketCode) { this.marketCode = marketCode; }
 }

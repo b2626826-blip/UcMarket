@@ -1,0 +1,68 @@
+:root {
+  --color-bg: #040404;
+  --color-surface: #131313;
+  --color-surface-low: #1c1b1b;
+  --color-border-glass: rgba(255, 255, 255, 0.06);
+
+  --color-primary: #f7c55b;
+  --color-primary-container: #d9aa43;
+  --color-text-primary: #ffffff;
+  --color-text-secondary: #8f8f8f;
+  --color-text-soft: #d2c5b0;
+
+  --color-green: #33e97f;
+  --color-red: #ff476d;
+
+  --radius-card: 22px;
+  --max-width: 1500px;
+
+  
+  --gold: #d9aa43;
+  --border: rgba(255,255,255,.06);
+
+}
+
+body {
+  margin: 0;
+  background: var(--color-bg);
+  color: var(--color-text-primary);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.glass-card {
+  background: rgba(9, 9, 9, 0.6);
+  backdrop-filter: blur(20px);
+  border: 1px solid var(--color-border-glass);
+  border-radius: var(--radius-card);
+}
+
+.gold-button {
+  background: var(--color-primary-container);
+  color: #402d00;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.gold-button:hover {
+  box-shadow: 0 0 25px rgba(217, 170, 67, 0.4);
+  transform: translateY(-1px);
+}
+
+.material-symbols-outlined {
+  font-family: "Material Symbols Outlined";
+  font-weight: normal;
+  font-style: normal;
+  font-size: 22px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  font-feature-settings: "liga";
+  -webkit-font-feature-settings: "liga";
+  -webkit-font-smoothing: antialiased;
+}

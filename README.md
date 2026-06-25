@@ -129,63 +129,61 @@ MVP 階段先支援二元市場，也就是每個市場只有 Yes / No 兩個交
 - 撰寫 README 與架構圖
 - 準備 Demo 帳號與展示流程
 
+## 後端資料庫設定
+
+後端預設連線到本機 PostgreSQL：
+
+```properties
+spring.datasource.url=${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ucmarket}
+spring.datasource.username=${SPRING_DATASOURCE_USERNAME:postgres}
+spring.datasource.password=${SPRING_DATASOURCE_PASSWORD:post}
+```
+
+團隊共用的 `application.properties` 不要改成個人帳號。每個人如果本機 PostgreSQL 帳號、密碼或 port 不同，請用環境變數覆蓋。
+
+例如本機帳號是 `eagleaby` 且密碼為空，可以在 STS Run Configuration 或 Terminal 設定：
+
+```bash
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/ucmarket
+SPRING_DATASOURCE_USERNAME=eagleaby
+SPRING_DATASOURCE_PASSWORD=
+```
+
+在 `backend` 目錄啟動後端服務時，也可以直接帶環境變數：
+
+```bash
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/ucmarket SPRING_DATASOURCE_USERNAME=eagleaby SPRING_DATASOURCE_PASSWORD= ./mvnw spring-boot:run
+```
+
+如果使用 Docker PostgreSQL，請確認 `SPRING_DATASOURCE_URL`、帳號、密碼與 Docker container 對外開放的 port 一致。
+
+## 後端測試執行
+
+後端測試請在 `backend` 目錄執行：
+
+```bash
+cd backend
+./mvnw test
+```
+
+測試環境會讀取 `backend/src/test/resources/application.properties`，使用 H2 記憶體資料庫，不需要先啟動本機 PostgreSQL，也不要為了跑測試另外帶 `SPRING_DATASOURCE_URL`、`SPRING_DATASOURCE_USERNAME`、`SPRING_DATASOURCE_PASSWORD`。
+
+如果在專案根目錄直接執行 `./mvnw test`，會因為根目錄沒有 `mvnw` 而失敗。
+
 ## 文件
 
+- 文件總覽：[docs/docsREADME.md](docs/docsREADME.md)
 - 專題規格書：[docs/project-spec.md](docs/project-spec.md)
-- 技術架構：[docs/專案架構/技術架構.md](docs/專案架構/技術架構.md)
+- 工作計劃書：[docs/工作計劃書/UcMarket工作計劃.md](docs/工作計劃書/UcMarket工作計劃.md)
+- 技術架構：[docs/系統設計/技術架構.md](docs/系統設計/技術架構.md)
+- 網站架構：[docs/系統設計/網站架構.md](docs/系統設計/網站架構.md)
+- 資料庫設計：
+  - ER 圖：[docs/資料庫設計/ucmarket-er-diagram.md](docs/資料庫設計/ucmarket-er-diagram.md)
+  - DDL：[docs/資料庫設計/ucmarket-ddl.sql](docs/資料庫設計/ucmarket-ddl.sql)
+  - DB 備份：[docs/資料庫設計/db-backups/](docs/資料庫設計/db-backups/)
 
-## 1. Think Before Coding
+## 前端規劃
 
-**Don't assume. Don't hide confusion. Surface tradeoffs.**
-
-Before implementing:
-- State your assumptions explicitly. If uncertain, ask.
-- If multiple interpretations exist, present them - don't pick silently.
-- If a simpler approach exists, say so. Push back when warranted.
-- If something is unclear, stop. Name what's confusing. Ask.
-
-## 2. Simplicity First
-
-**Minimum code that solves the problem. Nothing speculative.**
-
-- No features beyond what was asked.
-- No abstractions for single-use code.
-- No "flexibility" or "configurability" that wasn't requested.
-- No error handling for impossible scenarios.
-- If you write 200 lines and it could be 50, rewrite it.
-
-Ask yourself: "Would a senior engineer say this is overcomplicated?" If yes, simplify.
-
-## 3. Surgical Changes
-
-**Touch only what you must. Clean up only your own mess.**
-
-When editing existing code:
-- Don't "improve" adjacent code, comments, or formatting.
-- Don't refactor things that aren't broken.
-- Match existing style, even if you'd do it differently.
-- If you notice unrelated dead code, mention it - don't delete it.
-
-When your changes create orphans:
-- Remove imports/variables/functions that YOUR changes made unused.
-- Don't remove pre-existing dead code unless asked.
-
-The test: Every changed line should trace directly to the user's request.
-
-## 4. Goal-Driven Execution
-
-**Define success criteria. Loop until verified.**
-
-Transform tasks into verifiable goals:
-- "Add validation" → "Write tests for invalid inputs, then make them pass"
-- "Fix the bug" → "Write a test that reproduces it, then make it pass"
-- "Refactor X" → "Ensure tests pass before and after"
-
-For multi-step tasks, state a brief plan:
-```
-1. [Step] → verify: [check]
-2. [Step] → verify: [check]
-3. [Step] → verify: [check]
-```
-
-Strong success criteria let you loop independently. Weak criteria ("make it work") require constant clarification.
+- 正式前端位置：[frontend/](frontend/)
+- 前端資料夾規劃：[frontend/前端資料夾檔案內容.md](frontend/前端資料夾檔案內容.md)
+- 頁面架構來源：[docs/系統設計/網站架構.md](docs/系統設計/網站架構.md)
