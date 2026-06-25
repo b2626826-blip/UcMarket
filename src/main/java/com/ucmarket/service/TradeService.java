@@ -85,7 +85,7 @@ public class TradeService {
 		return savedTrade;
 	}
 	
-	
+	// 單純負責前端使用者試算價格
 	public TradeQuoteResponse getQuote(TradeRequest request) {
 
 	    Market market = marketRepository.findById(request.marketId())
