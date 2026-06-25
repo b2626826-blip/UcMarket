@@ -37,7 +37,7 @@ public class ResolutionService {
 
 	@Transactional
 	public Market resolveMarket(UUID marketId, MarketResult result, UUID adminId) {
-		Market market = marketRepository.findById(marketId)
+		Market market = marketRepository.findByIdForUpdate(marketId)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
 		if (market.getStatus() == MarketStatus.RESOLVED) {
@@ -82,7 +82,7 @@ public class ResolutionService {
 	}
 
 	private void payWinner(Position position, UUID marketId, BigDecimal payout) {
-		String idempotencyKey = "resolution:" + marketId + ":" + position.getUserId();
+		String idempotencyKey = "resolution:" + position.getId();
 		walletService.credit(position.getUserId(), payout, "MARKET", marketId, idempotencyKey);
 	}
 }

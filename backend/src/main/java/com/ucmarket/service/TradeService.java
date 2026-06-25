@@ -22,13 +22,15 @@ public class TradeService {
 	private final TradeRepository tradeRepository;
 	private final TradeQuoteService tradeQuoteService;
 	private final WalletService walletService;
+	private final PositionService positionService;
 
 	public TradeService(MarketRepository marketRepository, TradeRepository tradeRepository,
-			TradeQuoteService tradeQuoteService, WalletService walletService) {
+			TradeQuoteService tradeQuoteService, WalletService walletService, PositionService positionService) {
 		this.marketRepository = marketRepository;
 		this.tradeRepository = tradeRepository;
 		this.tradeQuoteService = tradeQuoteService;
 		this.walletService = walletService;
+		this.positionService = positionService;
 	}
 
 	@Transactional
@@ -58,6 +60,7 @@ public class TradeService {
 		Trade savedTrade = tradeRepository.save(trade);
 		String idemKey = "TRADE_BUY_" + savedTrade.getId();
 		walletService.debit(userId, amount, "TRADE", savedTrade.getId(), idemKey);
+		positionService.addBuyPosition(userId, request.marketId(), request.side(), shares, amount);
 
 		market.buy(request.side(), amount);
 		marketRepository.save(market);
