@@ -1,17 +1,9 @@
-import { getApi, postApi } from './client';
+import { getApi } from './client';
 
 export function getWallet() {
-  return getApi('/api/wallet');
+  return getApi('/api/wallets/me/balance');
 }
 
-export function getWalletTransactions() {
-  return getApi('/api/wallet/transactions');
-}
-
-export function deposit(amount) {
-  return postApi('/api/wallet/deposit', { amount });
-}
-
-export function withdraw(amount) {
-  return postApi('/api/wallet/withdraw', { amount });
+export function getWalletTransactions(page = 0) {
+  return getApi(`/api/wallets/me/transactions?page=${page}`);
 }
