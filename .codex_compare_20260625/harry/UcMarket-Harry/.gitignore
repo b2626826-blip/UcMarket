@@ -1,0 +1,23 @@
+.DS_Store
+__MACOSX/
+._*
+
+# Java / Maven
+target/
+
+# Node / React
+node_modules/
+dist/
+
+# IDE
+.idea/
+.vscode/
+
+# Eclipse / STS
+.classpath
+.project
+.settings/
+.metadata/
+
+# Environment
+.env

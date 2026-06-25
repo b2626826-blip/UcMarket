@@ -30,45 +30,43 @@ public class ResolutionService {
 
     @Transactional
     public Market resolveMarket(UUID marketId, MarketResult result) {
-
         Market market = marketRepository.findById(marketId)
-                .orElseThrow(() -> new IllegalArgumentException("找不到市場"));
+                .orElseThrow(() -> new IllegalArgumentException("Market not found"));
 
         if (market.getStatus() == MarketStatus.RESOLVED) {
-            throw new IllegalArgumentException("市場已經結算過了");
+            throw new IllegalArgumentException("Market is already resolved");
         }
 
-        market.setStatus(MarketStatus.RESOLVED);
-        market.setResult(result);
+        if (market.getStatus() != MarketStatus.ACTIVE && market.getStatus() != MarketStatus.CLOSED) {
+            throw new IllegalArgumentException("Market is not ready to resolve");
+        }
 
-        List<Position> positions =
-                positionRepository.findByMarketIdAndStatus(
-                        marketId,
-                        PositionStatus.OPEN
-                );
+        List<Position> positions = positionRepository.findByMarketIdAndStatus(
+                marketId,
+                PositionStatus.OPEN
+        );
 
         for (Position position : positions) {
             position.setStatus(PositionStatus.SETTLED);
         }
 
         positionRepository.saveAll(positions);
+        market.resolve(result);
 
         return marketRepository.save(market);
     }
 
     @Transactional
     public Market cancelMarket(UUID marketId) {
-
         Market market = marketRepository.findById(marketId)
-                .orElseThrow(() -> new IllegalArgumentException("找不到市場"));
+                .orElseThrow(() -> new IllegalArgumentException("Market not found"));
 
-        market.setStatus(MarketStatus.CANCELED);
+        market.cancel();
 
-        List<Position> positions =
-                positionRepository.findByMarketIdAndStatus(
-                        marketId,
-                        PositionStatus.OPEN
-                );
+        List<Position> positions = positionRepository.findByMarketIdAndStatus(
+                marketId,
+                PositionStatus.OPEN
+        );
 
         for (Position position : positions) {
             position.setStatus(PositionStatus.CANCELED);

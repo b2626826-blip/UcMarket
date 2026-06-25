@@ -1,0 +1,28 @@
+.DS_Store
+__MACOSX/
+._*
+*.log
+
+# Java / Maven
+target/
+
+# Node / React
+node_modules/
+dist/
+
+# IDE
+.idea/
+.vscode/
+
+# Eclipse / STS
+.classpath
+.project
+.settings/
+.metadata/
+
+# Environment
+.env
+
+# Local planning / notes
+eagle/
+frontend/排行榜設計語彙.md

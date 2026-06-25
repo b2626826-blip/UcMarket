@@ -2,7 +2,7 @@ package com.ucmarket.controller;
 
 import java.util.List;
 import java.util.UUID;
-import com.ucmarket.entity.MarketStatus;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -40,7 +40,7 @@ public class MarketController {
         return marketRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND,
-                        "找不到市場"
+                        "Market not found"
                 ));
     }
 
@@ -60,17 +60,18 @@ public class MarketController {
 
         return marketRepository.save(market);
     }
+
     @PostMapping("/{id}/activate")
-public Market activateMarket(
-        @PathVariable UUID id
-) {
-    Market market = marketRepository.findById(id)
-            .orElseThrow(() -> new ResponseStatusException(
-                    HttpStatus.NOT_FOUND
-            ));
+    public Market activateMarket(
+            @PathVariable UUID id
+    ) {
+        Market market = marketRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND,
+                        "Market not found"
+                ));
 
-    market.setStatus(MarketStatus.ACTIVE);
-
-    return marketRepository.save(market);
-}
+        market.setStatus(MarketStatus.ACTIVE);
+        return marketRepository.save(market);
+    }
 }

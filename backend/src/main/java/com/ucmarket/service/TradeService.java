@@ -1,5 +1,14 @@
 package com.ucmarket.service;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.UUID;
+
+import org.springframework.http.HttpStatus;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
+
 import com.ucmarket.dto.TradeQuoteRequest;
 import com.ucmarket.dto.TradeQuoteResponse;
 import com.ucmarket.entity.Market;
@@ -9,15 +18,6 @@ import com.ucmarket.entity.Trade;
 import com.ucmarket.entity.TradeAction;
 import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.TradeRepository;
-
-import org.springframework.http.HttpStatus;
-import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.server.ResponseStatusException;
-
-import java.math.BigDecimal;
-import java.math.RoundingMode;
-import java.util.UUID;
 
 @Service
 public class TradeService {
@@ -66,11 +66,6 @@ public class TradeService {
         BigDecimal shares = request.amount()
                 .divide(price, 4, RoundingMode.HALF_UP);
 
-        // 1. 更新市場池子
-        market.buy(request.side(), request.amount());
-        marketRepository.save(market);
-
-        // 2. 建立交易紀錄
         Trade trade = new Trade(
                 userId,
                 marketId,
@@ -81,10 +76,8 @@ public class TradeService {
                 price,
                 shares
         );
-
         tradeRepository.save(trade);
 
-        // 3. 更新持倉
         positionService.addBuyPosition(
                 userId,
                 marketId,
@@ -92,6 +85,9 @@ public class TradeService {
                 shares,
                 request.amount()
         );
+
+        market.buy(request.side(), request.amount());
+        marketRepository.save(market);
 
         return new TradeQuoteResponse(
                 request.side(),
@@ -102,30 +98,25 @@ public class TradeService {
     }
 
     private Market findActiveMarket(UUID marketId) {
-        Market market = marketRepository.findById(marketId)
+        return marketRepository.findById(marketId)
+                .filter(market -> market.getStatus() == MarketStatus.ACTIVE)
                 .orElseThrow(() -> new ResponseStatusException(
-                        HttpStatus.NOT_FOUND,
-                        "找不到市場"
+                        HttpStatus.BAD_REQUEST,
+                        "Market is not active"
                 ));
-
-        // 如果你的 MarketStatus 是 OPEN，就用 OPEN
-        if (market.getStatus() != MarketStatus.ACTIVE) {
-            throw new ResponseStatusException(
-                    HttpStatus.BAD_REQUEST,
-                    "市場目前不是開放交易狀態"
-            );
-        }
-
-        return market;
     }
 
     private BigDecimal calculateBinaryPrice(Market market, MarketSide side) {
+        if (side == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Side is required");
+        }
+
         BigDecimal totalPool = market.getYesPool().add(market.getNoPool());
 
         if (totalPool.compareTo(BigDecimal.ZERO) == 0) {
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
-                    "市場資金池不能為 0"
+                    "Market pool must be greater than zero"
             );
         }
 

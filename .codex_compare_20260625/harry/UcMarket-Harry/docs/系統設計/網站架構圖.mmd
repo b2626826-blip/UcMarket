@@ -1,0 +1,82 @@
+%%{init: {"flowchart": {"curve": "basis", "nodeSpacing": 36, "rankSpacing": 42}}}%%
+flowchart TB
+    subgraph actors["使用者角色"]
+        direction LR
+        user["一般使用者"]
+        admin["管理員"]
+    end
+
+    subgraph prototype["公版參考 prototype"]
+        direction LR
+        p1["首頁 / 市場列表"]
+        p2["市場詳情 / 交易"]
+        p3["資產 / 排行榜 / 後台"]
+    end
+
+    subgraph frontend["Frontend 正式前端"]
+        direction TB
+        browser["瀏覽器"]
+        pages["pages\n首頁 / 詳情 / 建立市場 / 資產 / 後台"]
+        ui["components\n導覽列 / 市場卡片 / 交易面板 / 表格"]
+        state["router + store\n路由 / 權限 / 登入狀態 / 錢包摘要"]
+        apiClient["api client\nmarketApi / tradeApi / adminApi / authApi"]
+    end
+
+    subgraph backend["Backend Spring Boot REST API"]
+        direction TB
+        controller["Controller\n/api/markets\n/api/admin/markets\n/api/health"]
+        service["Service\n市場 / 交易 / 錢包 / 持倉 / 結算"]
+        repository["Repository\nJPA 資料存取"]
+        support["Entity / DTO / Security / Exception / Config"]
+    end
+
+    subgraph data["PostgreSQL Database"]
+        direction LR
+        authTables["users\nuser_sessions"]
+        marketTables["markets\nmarket_options\nmarket_reviews"]
+        tradeTables["trades\npositions\nprice_history"]
+        walletTables["wallets\nwallet_transactions"]
+        reportTables["portfolio_snapshots\nnotifications\nadmin_logs"]
+    end
+
+    subgraph automation["n8n 自動化"]
+        direction LR
+        webhook["Webhook"]
+        notify["交易 / 結算通知"]
+        report["熱門市場報表"]
+        reminder["市場截止提醒"]
+    end
+
+    actors --> browser
+    prototype -. "畫面與流程參考" .-> pages
+    browser --> pages
+    pages --> ui
+    pages --> state
+    ui --> apiClient
+    state --> apiClient
+
+    apiClient -->|"HTTP JSON"| controller
+    controller --> service
+    controller --> support
+    service --> support
+    service --> repository
+    repository --> data
+
+    service -->|"事件 / Webhook"| webhook
+    webhook --> notify
+    webhook --> report
+    webhook --> reminder
+
+    classDef actor fill:#f8fafc,stroke:#475569,stroke-width:1px,color:#0f172a
+    classDef front fill:#e0f2fe,stroke:#0284c7,stroke-width:1px,color:#082f49
+    classDef back fill:#dcfce7,stroke:#16a34a,stroke-width:1px,color:#052e16
+    classDef dataClass fill:#fef3c7,stroke:#d97706,stroke-width:1px,color:#451a03
+    classDef auto fill:#fce7f3,stroke:#db2777,stroke-width:1px,color:#500724
+    classDef ref fill:#f1f5f9,stroke:#64748b,stroke-width:1px,color:#0f172a
+
+    class user,admin,browser actor
+    class pages,ui,state,apiClient front
+    class controller,service,repository,support back
+    class authTables,marketTables,tradeTables,walletTables,reportTables dataClass
+    class webhook,notify,report,reminder auto
+    class p1,p2,p3 ref
