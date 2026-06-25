@@ -76,7 +76,7 @@ class WalletServiceTest {
 		when(walletRepository.findByUserIdForUpdate(userId)).thenReturn(Optional.of(wallet));
 		when(walletTransactionRepository.findByIdempotencyKey("signup-test"))
 				.thenReturn(Optional.empty());                     // query-first 查不到 → 往下加錢
-		when(walletTransactionRepository.save(any(WalletTransaction.class)))
+		when(walletTransactionRepository.saveAndFlush(any(WalletTransaction.class)))
 				.thenAnswer(inv -> inv.getArgument(0));            // 原樣吐回，才能驗 tx 內容
 
 		WalletTransaction tx = walletService.credit(
@@ -86,7 +86,7 @@ class WalletServiceTest {
 		assertThat(tx.getType()).isEqualTo(WalletTransactionType.SIGNUP_BONUS);  // BONUS→SIGNUP_BONUS
 		assertThat(tx.getAmount()).isEqualByComparingTo("1000");
 		assertThat(tx.getBalanceAfter()).isEqualByComparingTo("1000");
-		verify(walletTransactionRepository).save(any(WalletTransaction.class));
+		verify(walletTransactionRepository).saveAndFlush(any(WalletTransaction.class));
 	}
 
 	@Test
@@ -126,7 +126,7 @@ class WalletServiceTest {
 
 		assertThat(tx).isSameAs(existing);                        // 回的就是原筆
 		assertThat(wallet.getBalance()).isEqualByComparingTo("0"); // 沒重加（還是 0）
-		verify(walletTransactionRepository, never()).save(any());  // 沒再寫一筆
+		verify(walletTransactionRepository, never()).saveAndFlush(any());  // 沒再寫一筆
 	}
 
 	// ========== verify-on-hit / idempotency conflict（GY-1 防呆）==========
@@ -164,7 +164,7 @@ class WalletServiceTest {
 				walletService.credit(userId, new BigDecimal("100"), "MARKET", UUID.randomUUID(), "k"))
 				.isInstanceOf(IdempotencyConflictException.class);
 		assertThat(wallet.getBalance()).isEqualByComparingTo("0");   // 沒重複加錢
-		verify(walletTransactionRepository, never()).save(any());     // 沒寫 tx
+		verify(walletTransactionRepository, never()).saveAndFlush(any());     // 沒寫 tx
 	}
 
 	@Test
@@ -190,7 +190,7 @@ class WalletServiceTest {
 		Wallet wallet = new Wallet(userId);
 		when(walletRepository.findByUserIdForUpdate(userId)).thenReturn(Optional.of(wallet));
 		when(walletTransactionRepository.findByIdempotencyKey("k")).thenReturn(Optional.empty());
-		when(walletTransactionRepository.save(any(WalletTransaction.class)))
+		when(walletTransactionRepository.saveAndFlush(any(WalletTransaction.class)))
 				.thenThrow(new org.springframework.dao.DataIntegrityViolationException("dup"));
 
 		assertThatThrownBy(() ->
@@ -262,7 +262,7 @@ class WalletServiceTest {
 		wallet.applyCredit(new BigDecimal("1000"));                          // 先有 1000
 		when(walletRepository.findByUserIdForUpdate(userId)).thenReturn(Optional.of(wallet));
 		when(walletTransactionRepository.findByIdempotencyKey(any())).thenReturn(Optional.empty());
-		when(walletTransactionRepository.save(any(WalletTransaction.class)))
+		when(walletTransactionRepository.saveAndFlush(any(WalletTransaction.class)))
 				.thenAnswer(inv -> inv.getArgument(0));
 
 		WalletTransaction tx = walletService.debit(
@@ -272,7 +272,7 @@ class WalletServiceTest {
 		assertThat(tx.getType()).isEqualTo(WalletTransactionType.TRADE_BUY);
 		assertThat(tx.getAmount()).isEqualByComparingTo("-300");            // ★ 負號
 		assertThat(tx.getBalanceAfter()).isEqualByComparingTo("700");
-		verify(walletTransactionRepository).save(any(WalletTransaction.class));
+		verify(walletTransactionRepository).saveAndFlush(any(WalletTransaction.class));
 	}
 
 	@Test
@@ -289,7 +289,7 @@ class WalletServiceTest {
 				.isInstanceOf(InsufficientFundsException.class);
 
 		assertThat(wallet.getBalance()).isEqualByComparingTo("100");        // ★ 沒被扣
-		verify(walletTransactionRepository, never()).save(any());           // ★ 沒寫 tx
+		verify(walletTransactionRepository, never()).saveAndFlush(any());           // ★ 沒寫 tx
 	}
 
 	@Test
@@ -311,7 +311,7 @@ class WalletServiceTest {
 
 		assertThat(tx).isSameAs(existing);
 		assertThat(wallet.getBalance()).isEqualByComparingTo("1000");       // 沒重扣
-		verify(walletTransactionRepository, never()).save(any());
+		verify(walletTransactionRepository, never()).saveAndFlush(any());
 	}
 
 	@Test
@@ -340,6 +340,6 @@ class WalletServiceTest {
 				.isInstanceOf(IllegalArgumentException.class);
 
 		assertThat(wallet.getBalance()).isEqualByComparingTo("0");  // 沒加錢（deriveType 在 applyCredit 前就擋）
-		verify(walletTransactionRepository, never()).save(any());   // 沒寫 tx
+		verify(walletTransactionRepository, never()).saveAndFlush(any());   // 沒寫 tx
 	}
 }

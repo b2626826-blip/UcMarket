@@ -65,7 +65,7 @@ public class WalletService {
 		WalletTransaction tx = new WalletTransaction(
 				wallet.getId(), type, amount, balanceAfter, refType, refId, idemKey);
 		try {
-			return walletTransactionRepository.save(tx);
+			return walletTransactionRepository.saveAndFlush(tx);
 		} catch (DataIntegrityViolationException e) {
 			// 並發：另一筆同 idemKey 剛 commit（同 wallet 已被悲觀鎖序列化 → 必為跨 wallet）→ 視為衝突
 			throw new IdempotencyConflictException(idemKey);
@@ -94,7 +94,7 @@ public class WalletService {
 		WalletTransaction tx = new WalletTransaction(
 				wallet.getId(), type, amount.negate(), balanceAfter, refType, refId, idemKey);
 		try {
-			return walletTransactionRepository.save(tx);
+			return walletTransactionRepository.saveAndFlush(tx);
 		} catch (DataIntegrityViolationException e) {
 			throw new IdempotencyConflictException(idemKey);
 		}
