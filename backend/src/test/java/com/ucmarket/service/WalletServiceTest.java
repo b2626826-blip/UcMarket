@@ -342,4 +342,145 @@ class WalletServiceTest {
 		assertThat(wallet.getBalance()).isEqualByComparingTo("0");  // 沒加錢（deriveType 在 applyCredit 前就擋）
 		verify(walletTransactionRepository, never()).saveAndFlush(any());   // 沒寫 tx
 	}
+
+	// ========== 全補：toCents 小數柵欄 / 正數防呆 / deriveType 分支 ==========
+
+	private Wallet stubbedWallet(UUID userId, String key) {
+		Wallet wallet = new Wallet(userId);
+		when(walletRepository.findByUserIdForUpdate(userId)).thenReturn(Optional.of(wallet));
+		when(walletTransactionRepository.findByIdempotencyKey(key)).thenReturn(Optional.empty());
+		return wallet;
+	}
+
+	@Test
+	@DisplayName("credit toCents：10.999 → 無條件捨去到 10.99（不四捨五入）")
+	void credit_toCents_truncatesDown() {
+		UUID userId = UUID.randomUUID();
+		Wallet wallet = stubbedWallet(userId, "c-trunc");
+		when(walletTransactionRepository.saveAndFlush(any(WalletTransaction.class)))
+				.thenAnswer(inv -> inv.getArgument(0));
+
+		WalletTransaction tx = walletService.credit(userId, new BigDecimal("10.999"), "BONUS", null, "c-trunc");
+
+		assertThat(tx.getAmount()).isEqualByComparingTo("10.99");        // 捨去，不是 11.00
+		assertThat(wallet.getBalance()).isEqualByComparingTo("10.99");
+	}
+
+	@Test
+	@DisplayName("debit toCents：5.999 → 捨成 5.99（餘額按 5.99 扣、tx 記 -5.99）")
+	void debit_toCents_truncatesDown() {
+		UUID userId = UUID.randomUUID();
+		Wallet wallet = stubbedWallet(userId, "d-trunc");
+		wallet.applyCredit(new BigDecimal("100"));
+		when(walletTransactionRepository.saveAndFlush(any(WalletTransaction.class)))
+				.thenAnswer(inv -> inv.getArgument(0));
+
+		WalletTransaction tx = walletService.debit(userId, new BigDecimal("5.999"), "TRADE", UUID.randomUUID(), "d-trunc");
+
+		assertThat(tx.getAmount()).isEqualByComparingTo("-5.99");
+		assertThat(wallet.getBalance()).isEqualByComparingTo("94.01");
+	}
+
+	@Test
+	@DisplayName("credit toCents：0.001 → 捨成 0 → 被正數防呆擋下（不留殭屍流水）")
+	void credit_toCents_subCentRoundsToZero_rejected() {
+		UUID userId = UUID.randomUUID();
+		Wallet wallet = stubbedWallet(userId, "c-dust");
+
+		assertThatThrownBy(() -> walletService.credit(userId, new BigDecimal("0.001"), "BONUS", null, "c-dust"))
+				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("正數");
+
+		assertThat(wallet.getBalance()).isEqualByComparingTo("0");
+		verify(walletTransactionRepository, never()).saveAndFlush(any());
+	}
+
+	@Test
+	@DisplayName("credit 正數防呆：負數金額 → IllegalArgument、不寫 tx")
+	void credit_negativeAmount_rejected() {
+		UUID userId = UUID.randomUUID();
+		stubbedWallet(userId, "c-neg");
+
+		assertThatThrownBy(() -> walletService.credit(userId, new BigDecimal("-5"), "BONUS", null, "c-neg"))
+				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("正數");
+		verify(walletTransactionRepository, never()).saveAndFlush(any());
+	}
+
+	@Test
+	@DisplayName("debit 正數防呆：0 金額 → IllegalArgument、餘額不變、不寫 tx")
+	void debit_zeroAmount_rejected() {
+		UUID userId = UUID.randomUUID();
+		Wallet wallet = stubbedWallet(userId, "d-zero");
+		wallet.applyCredit(new BigDecimal("100"));
+
+		assertThatThrownBy(() -> walletService.debit(userId, new BigDecimal("0"), "TRADE", UUID.randomUUID(), "d-zero"))
+				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("正數");
+		assertThat(wallet.getBalance()).isEqualByComparingTo("100");
+		verify(walletTransactionRepository, never()).saveAndFlush(any());
+	}
+
+	@Test
+	@DisplayName("deriveType：credit 未知 refType → IllegalArgument（不支援）")
+	void credit_unsupportedRefType_rejected() {
+		UUID userId = UUID.randomUUID();
+		stubbedWallet(userId, "c-foo");
+
+		assertThatThrownBy(() -> walletService.credit(userId, new BigDecimal("100"), "FOO", null, "c-foo"))
+				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("refType");
+		verify(walletTransactionRepository, never()).saveAndFlush(any());
+	}
+
+	@Test
+	@DisplayName("deriveType：debit 只接 TRADE，給 BONUS → IllegalArgument")
+	void debit_unsupportedRefType_rejected() {
+		UUID userId = UUID.randomUUID();
+		Wallet wallet = stubbedWallet(userId, "d-bonus");
+		wallet.applyCredit(new BigDecimal("100"));
+
+		assertThatThrownBy(() -> walletService.debit(userId, new BigDecimal("10"), "BONUS", null, "d-bonus"))
+				.isInstanceOf(IllegalArgumentException.class).hasMessageContaining("refType");
+		verify(walletTransactionRepository, never()).saveAndFlush(any());
+	}
+
+	@Test
+	@DisplayName("deriveType：refType=null → IllegalArgument（不可為 null）")
+	void credit_nullRefType_rejected() {
+		UUID userId = UUID.randomUUID();
+		stubbedWallet(userId, "c-null");
+
+		assertThatThrownBy(() -> walletService.credit(userId, new BigDecimal("100"), null, null, "c-null"))
+				.isInstanceOf(IllegalArgumentException.class);
+		verify(walletTransactionRepository, never()).saveAndFlush(any());
+	}
+
+	@Test
+	@DisplayName("deriveType：credit MARKET → RESOLUTION_PAYOUT（派彩入帳）")
+	void credit_marketRefType_resolutionPayout() {
+		UUID userId = UUID.randomUUID();
+		stubbedWallet(userId, "m-1");
+		when(walletTransactionRepository.saveAndFlush(any(WalletTransaction.class)))
+				.thenAnswer(inv -> inv.getArgument(0));
+
+		WalletTransaction tx = walletService.credit(userId, new BigDecimal("100"), "MARKET", UUID.randomUUID(), "m-1");
+
+		assertThat(tx.getType()).isEqualTo(WalletTransactionType.RESOLUTION_PAYOUT);
+	}
+
+	@Test
+	@DisplayName("debit verify-on-hit：同 key 但金額不同 → IdempotencyConflict（鏡像 credit）")
+	void debit_conflictWhenSameKeyDifferentAmount() {
+		UUID userId = UUID.randomUUID();
+		Wallet wallet = new Wallet(userId);
+		UUID refId = UUID.randomUUID();
+		// 既有：debit 30（流水記 -30、同 refId）
+		WalletTransaction prev = new WalletTransaction(
+				wallet.getId(), WalletTransactionType.TRADE_BUY, new BigDecimal("-30"),
+				new BigDecimal("970"), "TRADE", refId, "dk");
+		when(walletRepository.findByUserIdForUpdate(userId)).thenReturn(Optional.of(wallet));
+		when(walletTransactionRepository.findByIdempotencyKey("dk")).thenReturn(Optional.of(prev));
+
+		// 同 key、同 refType/refId，但金額 50 ≠ 30 → 指紋對不上 → 409
+		assertThatThrownBy(() -> walletService.debit(userId, new BigDecimal("50"), "TRADE", refId, "dk"))
+				.isInstanceOf(IdempotencyConflictException.class);
+		verify(walletTransactionRepository, never()).saveAndFlush(any());
+	}
 }
