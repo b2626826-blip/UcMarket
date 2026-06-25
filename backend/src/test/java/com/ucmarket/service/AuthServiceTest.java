@@ -21,11 +21,12 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import java.math.BigDecimal;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -75,6 +76,9 @@ class AuthServiceTest {
         assertEquals("new@test.com", captured.getEmail());
 
         verify(walletService).createWalletForUser(any());
+
+        // 流程1：註冊要送 10000 點（refType BONUS → SIGNUP_BONUS、refId 為 null）
+        verify(walletService).credit(any(), eq(new BigDecimal("10000")), eq("BONUS"), isNull(), anyString());
 
         verify(userSessionRepository).save(any());
     }

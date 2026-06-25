@@ -29,10 +29,10 @@ public class WalletTransaction {
 	@Column(nullable = false)
 	private WalletTransactionType type;
 
-	@Column(nullable = false)
+	@Column(nullable = false, precision = 18, scale = 2)
 	private BigDecimal amount;
 
-	@Column(name = "balance_after", nullable = false)
+	@Column(name = "balance_after", nullable = false, precision = 18, scale = 2)
 	private BigDecimal balanceAfter;
 
 	@Column(name = "reference_type")

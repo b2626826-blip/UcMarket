@@ -1,5 +1,6 @@
 package com.ucmarket.service;
 
+import java.math.BigDecimal;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.time.LocalDateTime;
@@ -22,6 +23,9 @@ import com.ucmarket.security.JwtTokenProvider;
 @Service
 @Transactional
 public class AuthService {
+
+    // 流程1：註冊送點金額（負責人已同意 10000）
+    private static final BigDecimal SIGNUP_BONUS_POINTS = new BigDecimal("10000");
 
     private final UserRepository userRepository;
     private final UserSessionRepository userSessionRepository;
@@ -50,6 +54,10 @@ public class AuthService {
         userRepository.save(user);
 
         walletService.createWalletForUser(user.getId());
+
+        // 流程1：註冊送點。與建 user / 建錢包同屬 register 的 @Transactional → 一起成功 / 一起回滾。
+        // idemKey = signup-{userId}（可推導、每人一次）→ 萬一 register 重送也不會重複送點。
+        walletService.credit(user.getId(), SIGNUP_BONUS_POINTS, "BONUS", null, "signup-" + user.getId());
 
         return buildAuthResponse(user);
     }

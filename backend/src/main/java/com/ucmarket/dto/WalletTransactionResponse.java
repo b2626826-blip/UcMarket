@@ -12,5 +12,6 @@ public record WalletTransactionResponse(
 		BigDecimal amount,
 		BigDecimal balanceAfter,
 		String referenceType,
+		UUID referenceId,
 		LocalDateTime createdAt) {
 }
