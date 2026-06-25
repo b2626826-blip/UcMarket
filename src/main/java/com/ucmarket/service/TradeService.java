@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.springframework.stereotype.Service;
 
+import com.ucmarket.dto.TradeQuoteResponse;
 import com.ucmarket.dto.TradeRequest;
 import com.ucmarket.entity.Market;
 import com.ucmarket.entity.MarketSide;
@@ -82,6 +83,19 @@ public class TradeService {
 
 
 		return savedTrade;
+	}
+	
+	
+	public TradeQuoteResponse getQuote(TradeRequest request) {
+
+	    Market market = marketRepository.findById(request.marketId())
+	            .orElseThrow(() -> new RuntimeException("市場不存在"));
+
+	    return tradeQuoteService.getQuote(
+	            market,
+	            request.side(),
+	            request.amount()
+	    );
 	}
 }
 
