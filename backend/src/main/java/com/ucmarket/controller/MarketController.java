@@ -1,7 +1,6 @@
 package com.ucmarket.controller;
 
 import java.math.BigDecimal;
-import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 
@@ -21,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.ucmarket.dto.CreateMarketRequest;
+import com.ucmarket.dto.MarketOddsResponse;
 import com.ucmarket.dto.TradeQuoteRequest;
 import com.ucmarket.dto.TradeQuoteResponse;
 import com.ucmarket.dto.UpdateMarketRequest;
@@ -29,13 +29,11 @@ import com.ucmarket.entity.MarketSide;
 import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.entity.Position;
 import com.ucmarket.entity.PositionStatus;
-import com.ucmarket.entity.Trade;
-import com.ucmarket.entity.TradeAction;
 import com.ucmarket.entity.User;
 import com.ucmarket.entity.UserRole;
 import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.PositionRepository;
-import com.ucmarket.repository.TradeRepository;
+import com.ucmarket.service.TradeQuoteService;
 import com.ucmarket.service.WalletService;
 
 import jakarta.validation.Valid;
@@ -45,16 +43,16 @@ import jakarta.validation.Valid;
 public class MarketController {
 
 	private final MarketRepository marketRepository;
-	private final TradeRepository tradeRepository;
 	private final PositionRepository positionRepository;
 	private final WalletService walletService;
+	private final TradeQuoteService tradeQuoteService;
 
-	public MarketController(MarketRepository marketRepository, TradeRepository tradeRepository,
-			PositionRepository positionRepository, WalletService walletService) {
+	public MarketController(MarketRepository marketRepository, PositionRepository positionRepository,
+			WalletService walletService, TradeQuoteService tradeQuoteService) {
 		this.marketRepository = marketRepository;
-		this.tradeRepository = tradeRepository;
 		this.positionRepository = positionRepository;
 		this.walletService = walletService;
+		this.tradeQuoteService = tradeQuoteService;
 	}
 
 	@GetMapping
@@ -142,51 +140,29 @@ public class MarketController {
 		return saved;
 	}
 
-	@PostMapping("/{id}/trades/quote")
+	@PostMapping("/{id}/trades/getquote")
 	public TradeQuoteResponse quoteTrade(@PathVariable UUID id, @Valid @RequestBody TradeQuoteRequest request) {
 		Market market = marketRepository.findById(id)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
 		if (market.getStatus() != MarketStatus.ACTIVE) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "市場未啟用");
 		}
 
-		return buildQuote(market, request);
+		return tradeQuoteService.getQuote(market, request.side(), request.amount());
 	}
 
-	@PostMapping("/{id}/trades")
-	@ResponseStatus(HttpStatus.CREATED)
-	public TradeQuoteResponse createTrade(@PathVariable UUID id, @AuthenticationPrincipal User user,
-			@Valid @RequestBody TradeQuoteRequest request) {
+	@GetMapping("/{id}/odds")
+	public MarketOddsResponse getOdds(@PathVariable UUID id) {
 		Market market = marketRepository.findById(id)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
-		if (market.getStatus() != MarketStatus.ACTIVE) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST);
-		}
-
-		TradeQuoteResponse quote = buildQuote(market, request);
-		BigDecimal shares = request.amount().divide(quote.price(), 4, RoundingMode.HALF_UP);
-
-		market.buy(request.side(), request.amount());
-		marketRepository.save(market);
-
-		Trade trade = new Trade(user.getId(), id, request.side(), TradeAction.BUY,
-				request.amount(), quote.price(), shares);
-		tradeRepository.save(trade);
-
-		return quote;
-	}
-
-	private TradeQuoteResponse buildQuote(Market market, TradeQuoteRequest request) {
-		BigDecimal totalPool = market.getYesPool().add(market.getNoPool());
-		BigDecimal sidePool = request.side() == MarketSide.YES
-				? market.getNoPool()
-				: market.getYesPool();
-		BigDecimal price = sidePool.divide(totalPool, 4, RoundingMode.HALF_UP);
-		BigDecimal estimatedCost = request.amount().multiply(price);
-
-		return new TradeQuoteResponse(request.side(), request.amount(), price, estimatedCost);
+		return new MarketOddsResponse(
+				tradeQuoteService.getMarketOdds(market, MarketSide.YES),
+				tradeQuoteService.getMarketOdds(market, MarketSide.NO),
+				market.getYesPool(),
+				market.getNoPool()
+		);
 	}
 
 	private void refundPositions(Market market) {

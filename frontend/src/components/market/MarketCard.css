@@ -1,0 +1,28 @@
+.market-card {
+  padding: 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.market-card__category {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}
+
+.market-card__title {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.market-card__prices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.market-card__footer {
+  color: var(--color-text-secondary);
+  font-size: 13px;
+}

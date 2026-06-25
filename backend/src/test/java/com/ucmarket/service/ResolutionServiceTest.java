@@ -80,7 +80,7 @@ class ResolutionServiceTest {
 		assertThat(position.getStatus()).isEqualTo(PositionStatus.SETTLED);
 		verify(walletService).credit(
 				userId,
-				new BigDecimal("10.0000"),
+				new BigDecimal("12.00000000"),
 				"MARKET",
 				marketId,
 				"resolution:" + marketId + ":" + userId);
@@ -124,7 +124,7 @@ class ResolutionServiceTest {
 		assertThat(position.getStatus()).isEqualTo(PositionStatus.SETTLED);
 		verify(walletService).credit(
 				userId,
-				new BigDecimal("7.0000"),
+				new BigDecimal("8.00000000"),
 				"MARKET",
 				marketId,
 				"resolution:" + marketId + ":" + userId);

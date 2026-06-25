@@ -1,6 +1,7 @@
 package com.ucmarket.service;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.List;
 import java.util.UUID;
 
@@ -49,8 +50,9 @@ public class ResolutionService {
 
 		List<Position> positions = positionRepository.findByMarketIdAndStatus(marketId, PositionStatus.OPEN);
 
+		BigDecimal totalPool = market.getYesPool().add(market.getNoPool());
 		for (Position position : positions) {
-			BigDecimal payout = calculatePayout(position, result);
+			BigDecimal payout = calculatePayout(position, result, totalPool, market);
 
 			if (payout.compareTo(BigDecimal.ZERO) > 0) {
 				payWinner(position, marketId, payout);
@@ -64,12 +66,19 @@ public class ResolutionService {
 		return marketRepository.save(market);
 	}
 
-	private BigDecimal calculatePayout(Position position, MarketResult result) {
-		if (result == MarketResult.YES) {
-			return position.getYesShares();
+	private BigDecimal calculatePayout(Position position, MarketResult result,
+			BigDecimal totalPool, Market market) {
+		if (result == MarketResult.YES && market.getYesPool().compareTo(BigDecimal.ZERO) > 0) {
+			return position.getYesCost()
+					.multiply(totalPool)
+					.divide(market.getYesPool(), 8, RoundingMode.HALF_UP);
 		}
-
-		return position.getNoShares();
+		if (result == MarketResult.NO && market.getNoPool().compareTo(BigDecimal.ZERO) > 0) {
+			return position.getNoCost()
+					.multiply(totalPool)
+					.divide(market.getNoPool(), 8, RoundingMode.HALF_UP);
+		}
+		return BigDecimal.ZERO;
 	}
 
 	private void payWinner(Position position, UUID marketId, BigDecimal payout) {
