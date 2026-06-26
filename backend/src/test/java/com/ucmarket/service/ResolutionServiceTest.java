@@ -48,6 +48,7 @@ class ResolutionServiceTest {
 	void resolveYesMarketPaysYesPositionAndSettlesPosition() {
 		UUID marketId = UUID.randomUUID();
 		UUID userId = UUID.randomUUID();
+		UUID positionId = UUID.randomUUID();
 
 		Market market = new Market(
 				"Will UC beat UCLA this year?",
@@ -60,6 +61,7 @@ class ResolutionServiceTest {
 		market.approve();
 
 		Position position = new Position();
+		ReflectionTestUtils.setField(position, "id", positionId);
 		ReflectionTestUtils.setField(position, "userId", userId);
 		ReflectionTestUtils.setField(position, "marketId", marketId);
 		ReflectionTestUtils.setField(position, "yesShares", new BigDecimal("10.0000"));
@@ -68,7 +70,7 @@ class ResolutionServiceTest {
 		ReflectionTestUtils.setField(position, "noCost", BigDecimal.ZERO);
 		ReflectionTestUtils.setField(position, "status", PositionStatus.OPEN);
 
-		when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+		when(marketRepository.findByIdForUpdate(marketId)).thenReturn(Optional.of(market));
 		when(positionRepository.findByMarketIdAndStatus(marketId, PositionStatus.OPEN))
 				.thenReturn(List.of(position));
 		when(marketRepository.save(any(Market.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -80,10 +82,10 @@ class ResolutionServiceTest {
 		assertThat(position.getStatus()).isEqualTo(PositionStatus.SETTLED);
 		verify(walletService).credit(
 				userId,
-				new BigDecimal("10.0000"),
+				new BigDecimal("12.00000000"),
 				"MARKET",
 				marketId,
-				"resolution:" + marketId + ":" + userId);
+				"resolution:" + positionId);
 
 		verify(marketRepository).save(market);
 	}
@@ -92,6 +94,7 @@ class ResolutionServiceTest {
 	void resolveNoMarketPaysNoPositionAndSettlesPosition() {
 		UUID marketId = UUID.randomUUID();
 		UUID userId = UUID.randomUUID();
+		UUID positionId = UUID.randomUUID();
 
 		Market market = new Market(
 				"Will UC beat UCLA this year?",
@@ -104,6 +107,7 @@ class ResolutionServiceTest {
 		market.approve();
 
 		Position position = new Position();
+		ReflectionTestUtils.setField(position, "id", positionId);
 		ReflectionTestUtils.setField(position, "userId", userId);
 		ReflectionTestUtils.setField(position, "marketId", marketId);
 		ReflectionTestUtils.setField(position, "yesShares", BigDecimal.ZERO);
@@ -112,7 +116,7 @@ class ResolutionServiceTest {
 		ReflectionTestUtils.setField(position, "noCost", new BigDecimal("4.00"));
 		ReflectionTestUtils.setField(position, "status", PositionStatus.OPEN);
 
-		when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+		when(marketRepository.findByIdForUpdate(marketId)).thenReturn(Optional.of(market));
 		when(positionRepository.findByMarketIdAndStatus(marketId, PositionStatus.OPEN))
 				.thenReturn(List.of(position));
 		when(marketRepository.save(any(Market.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -124,10 +128,10 @@ class ResolutionServiceTest {
 		assertThat(position.getStatus()).isEqualTo(PositionStatus.SETTLED);
 		verify(walletService).credit(
 				userId,
-				new BigDecimal("7.0000"),
+				new BigDecimal("8.00000000"),
 				"MARKET",
 				marketId,
-				"resolution:" + marketId + ":" + userId);
+				"resolution:" + positionId);
 
 		verify(marketRepository).save(market);
 	}
@@ -156,7 +160,7 @@ class ResolutionServiceTest {
 		ReflectionTestUtils.setField(position, "noCost", new BigDecimal("4.00"));
 		ReflectionTestUtils.setField(position, "status", PositionStatus.OPEN);
 
-		when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+		when(marketRepository.findByIdForUpdate(marketId)).thenReturn(Optional.of(market));
 		when(positionRepository.findByMarketIdAndStatus(marketId, PositionStatus.OPEN))
 				.thenReturn(List.of(position));
 		when(marketRepository.save(any(Market.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -186,7 +190,7 @@ class ResolutionServiceTest {
 		market.approve();
 		market.resolve(MarketResult.YES);
 
-		when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+		when(marketRepository.findByIdForUpdate(marketId)).thenReturn(Optional.of(market));
 
 		assertThatThrownBy(() -> resolutionService.resolveMarket(marketId, MarketResult.YES, ADMIN_ID))
 				.isInstanceOf(ResponseStatusException.class)
@@ -210,7 +214,7 @@ class ResolutionServiceTest {
 				null
 		);
 
-		when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+		when(marketRepository.findByIdForUpdate(marketId)).thenReturn(Optional.of(market));
 
 		assertThatThrownBy(() -> resolutionService.resolveMarket(marketId, MarketResult.YES, ADMIN_ID))
 				.isInstanceOf(ResponseStatusException.class)

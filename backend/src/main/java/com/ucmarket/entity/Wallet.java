@@ -72,10 +72,16 @@ public class Wallet {
     public LocalDateTime getUpdatedAt() { return updatedAt; }
 
     public void applyCredit(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("credit 金額必須為正數: " + amount);
+        }
         balance = balance.add(amount);
     }
 
     public void applyDebit(BigDecimal amount) {
+        if (amount == null || amount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new IllegalArgumentException("debit 金額必須為正數: " + amount);
+        }
         if (balance.compareTo(amount) < 0) {
             throw new InsufficientFundsException(userId, amount, balance);
         }

@@ -1,3 +1,4 @@
+// Mock data / constants
 const rankingData = {
     profit: [
         { rank: 1, name: "MarketWolf", account: "@wolf88", market: "政治", profit: 128430, winRate: 92.8, assets: 320000 },
@@ -19,35 +20,74 @@ const rankingData = {
     ]
 };
 
-const topRankGrid = document.querySelector(".top-rank-grid");
-const rankingTable = document.querySelector(".ranking-table");
-const rankingSearch = document.querySelector("#rankingSearch")
-const myRankingCard = document.querySelector(".my-ranking-card");
+function getRankingData(type) {
+    const endpoint = rankingApiEndpoints[type];
+
+    console.log("未來 API endpoint:", endpoint);
+
+    return rankingData[type] || [];
+}
+
 const mockCurrentUserAccount = "@nova777";
 
+// DOM elements
+const topRankGrid = document.querySelector(".top-rank-grid");
+const rankingTable = document.querySelector(".ranking-table");
+const rankingSearch = document.querySelector("#rankingSearch");
+const myRankingCard = document.querySelector(".my-ranking-card");
+
+// state
 let currentRankingType = "profit";
 
+// format/helper function
 function formatMoney(value) {
     return value.toLocaleString("en-US");
 }
 
+// data function
+function getFilteredRankingData(type) {
+
+    const keyword = rankingSearch.value.trim().toLowerCase();
+    const data = getRankingData(type);
+
+    return data.filter((user) => {
+        return (
+            user.name.toLowerCase().includes(keyword) ||
+            user.account.toLowerCase().includes(keyword) ||
+            user.market.toLowerCase().includes(keyword)
+        );
+    });
+}
+
+// render function
 function renderTopRanks(data) {
+
+    if (!data.length) {
+        topRankGrid.innerHTML = `
+      <section class="empty-state">
+        <h2>目前尚無排行榜資料</h2>
+        <p>請稍後再回來查看，或換一個搜尋條件。</p>
+      </section>
+    `;
+        return;
+    }
+
     const topThree = data.slice(0, 3);
 
     topRankGrid.innerHTML = topThree.map((user) => {
         return `
-      <article class="top-card top-${user.rank}">
-        <div class="rank-medal">#${user.rank}</div>
-        <h2>${user.name}</h2>
-        <p>${user.account}</p>
-        <strong>+$${formatMoney(user.profit)}</strong>
-        <span>勝率 ${user.winRate}%</span>
-      </article>
-    `;
+    <article class="top-card top-${user.rank}">
+      <div class="rank-medal">#${user.rank}</div>
+      <h2>${user.name}</h2>
+      <p>${user.account}</p>
+      <strong>+$${formatMoney(user.profit)}</strong>
+      <span>勝率 ${user.winRate}%</span>
+    </article>
+  `;
     }).join("");
 }
 
-function renderTable(data) {
+function renderRankingTable(data) {
     const restUsers = data.slice(3);
 
     rankingTable.innerHTML = `
@@ -60,6 +100,20 @@ function renderTable(data) {
           <span>資產</span>
         </div>
     `;
+
+    if (!restUsers.length) {
+        rankingTable.insertAdjacentHTML("beforeend", `
+      <div class="ranking-row empty-row">
+        <span></span>
+        <span>沒有更多排名資料</span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </div>
+    `);
+        return;
+    }
 
     restUsers.forEach((user) => {
         const row = document.createElement("div");
@@ -81,6 +135,7 @@ function renderTable(data) {
         rankingTable.appendChild(row);
     });
 }
+
 function renderMyRanking(data) {
     if (!mockCurrentUserAccount) {
         myRankingCard.innerHTML = `
@@ -112,45 +167,45 @@ function renderMyRanking(data) {
     `;
 }
 
-function getFilteredData(type) {
-    const keyword = rankingSearch.value.trim().toLowerCase();
-
-    return rankingData[type].filter((user) => {
-        return (
-            user.name.toLowerCase().includes(keyword) ||
-            user.account.toLowerCase().includes(keyword) ||
-            user.market.toLowerCase().includes(keyword)
-        );
-    });
-}
-
-rankingSearch.addEventListener("input", () => {
-    renderRanking(currentRankingType);
-});
-
 function renderRanking(type) {
     currentRankingType = type;
 
-    const data = getFilteredData(type);
+    const data = getFilteredRankingData(type);
 
     console.log("目前排行榜類型:", type);
     console.table(data);
 
-    renderMyRanking(rankingData[type]);
+    renderMyRanking(getRankingData(type));
     renderTopRanks(data);
-    renderTable(data);
+    renderRankingTable(data);
 }
 
-document.querySelectorAll(".ranking-tabs button").forEach((button) => {
-    button.addEventListener("click", () => {
-        document.querySelectorAll(".ranking-tabs button").forEach((item) => {
-            item.classList.remove("active");
-        });
-
-        button.classList.add("active");
-
-        renderRanking(button.dataset.rankingType);
+// event binding functions
+function bindRankingSearchEvent() {
+    rankingSearch.addEventListener("input", () => {
+        renderRanking(currentRankingType);
     });
-});
+}
 
-renderRanking(currentRankingType);
+function bindRankingTabEvents() {
+    document.querySelectorAll(".ranking-tabs button").forEach((button) => {
+        button.addEventListener("click", () => {
+            document.querySelectorAll(".ranking-tabs button").forEach((item) => {
+                item.classList.remove("active");
+            });
+
+            button.classList.add("active");
+
+            renderRanking(button.dataset.rankingType);
+        });
+    });
+}
+
+// init
+function initRankingPage() {
+    bindRankingTabEvents();
+    bindRankingSearchEvent();
+    renderRanking(currentRankingType);
+}
+
+initRankingPage();

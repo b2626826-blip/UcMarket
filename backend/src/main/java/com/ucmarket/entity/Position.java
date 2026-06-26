@@ -63,28 +63,56 @@ public class Position {
 		return userId;
 	}
 
+	public void setUserId(UUID userId) {
+		this.userId = userId;
+	}
+
 	public UUID getMarketId() {
 		return marketId;
+	}
+
+	public void setMarketId(UUID marketId) {
+		this.marketId = marketId;
 	}
 
 	public BigDecimal getYesShares() {
 		return yesShares;
 	}
 
+	public void setYesShares(BigDecimal yesShares) {
+		this.yesShares = yesShares;
+	}
+
 	public BigDecimal getNoShares() {
 		return noShares;
+	}
+
+	public void setNoShares(BigDecimal noShares) {
+		this.noShares = noShares;
 	}
 
 	public BigDecimal getYesCost() {
 		return yesCost;
 	}
 
+	public void setYesCost(BigDecimal yesCost) {
+		this.yesCost = yesCost;
+	}
+
 	public BigDecimal getNoCost() {
 		return noCost;
 	}
 
+	public void setNoCost(BigDecimal noCost) {
+		this.noCost = noCost;
+	}
+
 	public PositionStatus getStatus() {
 		return status;
+	}
+
+	public void setStatus(PositionStatus status) {
+		this.status = status;
 	}
 
 	public LocalDateTime getUpdatedAt() {

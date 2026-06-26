@@ -7,9 +7,9 @@ import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.entity.User;
 import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.PositionRepository;
-import com.ucmarket.repository.TradeRepository;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.security.JwtTokenProvider;
+import com.ucmarket.service.TradeQuoteService;
 import com.ucmarket.service.WalletService;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -44,9 +44,9 @@ class MarketControllerTest {
     @Autowired private ObjectMapper objectMapper;
 
     @MockitoBean private MarketRepository marketRepository;
-    @MockitoBean private TradeRepository tradeRepository;
     @MockitoBean private PositionRepository positionRepository;
     @MockitoBean private WalletService walletService;
+    @MockitoBean private TradeQuoteService tradeQuoteService;
     @MockitoBean private JwtTokenProvider jwtTokenProvider;
     @MockitoBean private UserRepository userRepository;
 
