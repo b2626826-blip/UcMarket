@@ -6,9 +6,12 @@ import com.ucmarket.entity.MarketResult;
 import com.ucmarket.entity.MarketReview;
 import com.ucmarket.entity.MarketReview.ReviewStatus;
 import com.ucmarket.entity.MarketStatus;
+import com.ucmarket.entity.Position;
+import com.ucmarket.entity.PositionStatus;
 import com.ucmarket.repository.AdminLogRepository;
 import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.MarketReviewRepository;
+import com.ucmarket.repository.PositionRepository;
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -19,6 +22,7 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -26,6 +30,9 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.contains;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,6 +42,8 @@ class MarketServiceTest {
     @Mock private MarketReviewRepository marketReviewRepository;
     @Mock private AdminLogRepository adminLogRepository;
     @Mock private ResolutionService resolutionService;
+    @Mock private PositionRepository positionRepository;
+    @Mock private WalletService walletService;
 
     @Captor private ArgumentCaptor<Market> marketCaptor;
     @Captor private ArgumentCaptor<MarketReview> reviewCaptor;
@@ -47,7 +56,7 @@ class MarketServiceTest {
     @BeforeEach
     void setUp() {
         marketService = new MarketService(marketRepository, marketReviewRepository, adminLogRepository,
-                resolutionService);
+                resolutionService, positionRepository, walletService);
         adminId = UUID.randomUUID();
         marketId = UUID.randomUUID();
     }
@@ -191,6 +200,187 @@ class MarketServiceTest {
                 () -> marketService.requestChanges(marketId, adminId, "comment"));
         assertThrows(EntityNotFoundException.class,
                 () -> marketService.resolveMarket(marketId, adminId, MarketResult.YES));
+    }
+
+    private Market createMarket(MarketStatus status, UUID creatorId) {
+        Market m = new Market("Title", "Desc", "Cat", null, null, null, LocalDateTime.now().plusDays(7));
+        ReflectionTestUtils.setField(m, "id", marketId);
+        ReflectionTestUtils.setField(m, "status", status);
+        ReflectionTestUtils.setField(m, "creatorId", creatorId);
+        return m;
+    }
+
+    @Test
+    void cancelMarket_draftByCreator_shouldSucceed() {
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.DRAFT, creatorId);
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(marketRepository.save(any())).thenReturn(market);
+        when(positionRepository.findByMarketIdAndStatus(marketId, PositionStatus.OPEN))
+                .thenReturn(List.of());
+
+        Market result = marketService.cancelMarket(marketId, creatorId, false);
+
+        assertEquals(MarketStatus.CANCELED, result.getStatus());
+        verify(marketRepository).save(market);
+        verify(positionRepository).findByMarketIdAndStatus(marketId, PositionStatus.OPEN);
+    }
+
+    @Test
+    void cancelMarket_pendingByCreator_shouldSucceed() {
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.PENDING, creatorId);
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(marketRepository.save(any())).thenReturn(market);
+        when(positionRepository.findByMarketIdAndStatus(marketId, PositionStatus.OPEN))
+                .thenReturn(List.of());
+
+        Market result = marketService.cancelMarket(marketId, creatorId, false);
+
+        assertEquals(MarketStatus.CANCELED, result.getStatus());
+    }
+
+    @Test
+    void cancelMarket_activeByAdmin_shouldSucceed() {
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.ACTIVE, creatorId);
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(marketRepository.save(any())).thenReturn(market);
+        when(positionRepository.findByMarketIdAndStatus(marketId, PositionStatus.OPEN))
+                .thenReturn(List.of());
+
+        Market result = marketService.cancelMarket(marketId, adminId, true);
+
+        assertEquals(MarketStatus.CANCELED, result.getStatus());
+        verify(marketRepository).save(market);
+    }
+
+    @Test
+    void cancelMarket_closedByAdmin_shouldSucceed() {
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.CLOSED, creatorId);
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(marketRepository.save(any())).thenReturn(market);
+        when(positionRepository.findByMarketIdAndStatus(marketId, PositionStatus.OPEN))
+                .thenReturn(List.of());
+
+        Market result = marketService.cancelMarket(marketId, adminId, true);
+
+        assertEquals(MarketStatus.CANCELED, result.getStatus());
+    }
+
+    @Test
+    void cancelMarket_shouldThrow_whenNonOwnerNonAdmin() {
+        UUID creatorId = UUID.randomUUID();
+        UUID otherUserId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.DRAFT, creatorId);
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> marketService.cancelMarket(marketId, otherUserId, false));
+        verify(marketRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelMarket_activeByCreator_shouldThrow() {
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.ACTIVE, creatorId);
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+
+        assertThrows(IllegalStateException.class,
+                () -> marketService.cancelMarket(marketId, creatorId, false));
+        verify(marketRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelMarket_closedByCreator_shouldThrow() {
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.CLOSED, creatorId);
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+
+        assertThrows(IllegalStateException.class,
+                () -> marketService.cancelMarket(marketId, creatorId, false));
+        verify(marketRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelMarket_resolved_shouldThrow() {
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.RESOLVED, creatorId);
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+
+        assertThrows(IllegalStateException.class,
+                () -> marketService.cancelMarket(marketId, creatorId, false));
+        assertThrows(IllegalStateException.class,
+                () -> marketService.cancelMarket(marketId, adminId, true));
+        verify(marketRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelMarket_rejected_shouldThrow() {
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.REJECTED, creatorId);
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+
+        assertThrows(IllegalStateException.class,
+                () -> marketService.cancelMarket(marketId, creatorId, false));
+        verify(marketRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelMarket_canceled_shouldThrow() {
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.CANCELED, creatorId);
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+
+        assertThrows(IllegalStateException.class,
+                () -> marketService.cancelMarket(marketId, creatorId, false));
+        verify(marketRepository, never()).save(any());
+    }
+
+    @Test
+    void cancelMarket_shouldRefundOpenPositions() {
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.ACTIVE, creatorId);
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(marketRepository.save(any())).thenReturn(market);
+
+        Position position = new Position();
+        ReflectionTestUtils.setField(position, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(position, "marketId", marketId);
+        ReflectionTestUtils.setField(position, "userId", UUID.randomUUID());
+        ReflectionTestUtils.setField(position, "yesCost", new BigDecimal("100.00"));
+        ReflectionTestUtils.setField(position, "noCost", BigDecimal.ZERO);
+        ReflectionTestUtils.setField(position, "status", PositionStatus.OPEN);
+
+        when(positionRepository.findByMarketIdAndStatus(marketId, PositionStatus.OPEN))
+                .thenReturn(List.of(position));
+
+        Market result = marketService.cancelMarket(marketId, adminId, true);
+
+        assertEquals(MarketStatus.CANCELED, result.getStatus());
+        verify(walletService).credit(eq(position.getUserId()), eq(new BigDecimal("100.00")),
+                eq("MARKET"), eq(marketId), contains("cancel:" + marketId));
+        verify(positionRepository).saveAll(argThat(saved -> {
+            int count = 0;
+            Position first = null;
+            for (Position p : saved) {
+                count++;
+                if (first == null) first = p;
+            }
+            return count == 1 && first != null && first.getStatus() == PositionStatus.CANCELED;
+        }));
+    }
+
+    @Test
+    void cancelMarket_shouldThrow_whenMarketNotFound() {
+        UUID userId = UUID.randomUUID();
+        when(marketRepository.findById(marketId)).thenReturn(Optional.empty());
+
+        assertThrows(EntityNotFoundException.class,
+                () -> marketService.cancelMarket(marketId, userId, false));
+        assertThrows(EntityNotFoundException.class,
+                () -> marketService.cancelMarket(marketId, adminId, true));
     }
 
     @Test
