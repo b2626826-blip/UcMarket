@@ -144,6 +144,11 @@ public class MarketController {
 		return tradeQuoteService.getQuote(market, request.side(), request.amount());
 	}
 
+	@PostMapping("/{id}/trades/quote")
+	public TradeQuoteResponse quoteTradeAlias(@PathVariable UUID id, @Valid @RequestBody TradeQuoteRequest request) {
+		return quoteTrade(id, request);
+	}
+
 	@GetMapping("/{id}/odds")
 	public MarketOddsResponse getOdds(@PathVariable UUID id) {
 		Market market = marketRepository.findById(id)

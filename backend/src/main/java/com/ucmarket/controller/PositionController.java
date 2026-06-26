@@ -30,4 +30,14 @@ public class PositionController {
 	public List<PositionResponse> getOpenUserPositions(@PathVariable UUID userId) {
 		return positionService.getOpenPositionsByUserId(userId);
 	}
+
+	@GetMapping("/market/{marketId}")
+	public List<PositionResponse> getMarketPositions(@PathVariable UUID marketId) {
+		return positionService.getPositionsByMarketId(marketId);
+	}
+
+	@GetMapping("/market/{marketId}/open")
+	public List<PositionResponse> getOpenMarketPositions(@PathVariable UUID marketId) {
+		return positionService.getOpenPositionsByMarketId(marketId);
+	}
 }
