@@ -7,7 +7,15 @@ import java.util.UUID;
 import jakarta.persistence.*;
 
 @Entity
-@Table(name = "positions")
+@Table(
+        name = "positions",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_positions_user_market",
+                        columnNames = {"user_id", "market_id"}
+                )
+        }
+)
 public class Position {
 
     @Id
