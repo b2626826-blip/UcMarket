@@ -86,31 +86,21 @@ public class PositionService {
 	) {
 		validateBuyInput(userId, marketId, side, shares, cost);
 
-		Position position = positionRepository
-				.findByUserIdAndMarketId(userId, marketId)
-				.orElseGet(() -> {
-					Position p = new Position();
-					p.setUserId(userId);
-					p.setMarketId(marketId);
-					p.setStatus(PositionStatus.OPEN);
-					return p;
-				});
-
-		if (position.getStatus() != PositionStatus.OPEN) {
-			throw new IllegalStateException("Position is not open");
-		}
-
+		int updatedRows;
 		if (side == MarketSide.YES) {
-			position.setYesShares(position.getYesShares().add(shares));
-			position.setYesCost(position.getYesCost().add(cost));
+			updatedRows = positionRepository.upsertYesBuy(UUID.randomUUID(), userId, marketId, shares, cost);
 		} else if (side == MarketSide.NO) {
-			position.setNoShares(position.getNoShares().add(shares));
-			position.setNoCost(position.getNoCost().add(cost));
+			updatedRows = positionRepository.upsertNoBuy(UUID.randomUUID(), userId, marketId, shares, cost);
 		} else {
 			throw new IllegalArgumentException("Side must be YES or NO");
 		}
 
-		return positionRepository.save(position);
+		if (updatedRows == 0) {
+			throw new IllegalStateException("Position is not open");
+		}
+
+		return positionRepository.findByUserIdAndMarketId(userId, marketId)
+				.orElseThrow(() -> new IllegalStateException("Position was not saved"));
 	}
 
 	@Transactional
@@ -123,7 +113,7 @@ public class PositionService {
 		validateSellInput(userId, marketId, side, shares);
 
 		Position position = positionRepository
-				.findByUserIdAndMarketId(userId, marketId)
+				.findWithLockByUserIdAndMarketId(userId, marketId)
 				.orElseThrow(() -> new IllegalArgumentException("Position not found"));
 
 		if (position.getStatus() != PositionStatus.OPEN) {
