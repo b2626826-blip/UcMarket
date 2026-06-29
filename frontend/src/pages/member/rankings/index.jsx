@@ -1,12 +1,39 @@
 import { useEffect, useMemo, useState } from "react";
 import "./style.css";
-import { mockRankingData } from "./mockRankingData";
+import { fetchRankings } from "../../../api/rankingApi";
+import useAuthStore from "../../../store/authStore";
 
 
-const mockCurrentUserAccount = "@nova777";
+function formatCurrency(value) {
+  if (value == null) return "—";
 
-function formatMoney(value) {
-  return value.toLocaleString("en-US");
+  return `$${Number(value).toLocaleString("en-US")}`;
+}
+
+function formatProfit(value) {
+  if (value == null) return "—";
+
+  const amount = Number(value);
+  const sign = amount > 0 ? "+" : amount < 0 ? "-" : "";
+
+  return `${sign}$${Math.abs(amount).toLocaleString("en-US")}`;
+}
+
+function formatPercent(value) {
+  if (value == null) return "—";
+
+  const percent = Number(value);
+  if (!Number.isFinite(percent)) return "—";
+
+  return `${percent.toLocaleString("en-US", {
+    maximumFractionDigits: 2
+  })}%`;
+}
+
+function formatText(value) {
+  if (value == null || value === "") return "—";
+
+  return value;
 }
 
 const TABS = [
@@ -15,13 +42,14 @@ const TABS = [
   { type: "assets", label: "資產榜" },
 ];
 
-function MyRankingCard({ data }) {
-  const currentUser = data.find((u) => u.account === mockCurrentUserAccount);
+function MyRankingCard({ data, currentUserId }) {
+  const currentUser = currentUserId ?
+  data.find((u) => u.userId === currentUserId) : null;
 
   return (
     <section className="my-ranking-card" aria-label="我的排名">
       <h2>我的排名</h2>
-      {!mockCurrentUserAccount ? (
+      {!currentUserId ? (
         <p>登入後可查看你的排行榜名次。</p>
       ) : !currentUser ? (
         <p>目前沒有你的排行榜資料。</p>
@@ -29,9 +57,9 @@ function MyRankingCard({ data }) {
         <div className="my-ranking-content">
           <strong>#{currentUser.rank}</strong>
           <span>{currentUser.name}</span>
-          <span className="green">+${formatMoney(currentUser.profit)}</span>
-          <span>勝率 {currentUser.winRate}%</span>
-          <span>資產 ${formatMoney(currentUser.assets)}</span>
+          <span className="green">{formatProfit(currentUser.profit)}</span>
+          <span>勝率 {formatPercent(currentUser.winRate)}</span>
+          <span>資產 {formatCurrency(currentUser.assets)}</span>
         </div>
       )}
     </section>
@@ -58,9 +86,9 @@ function TopRankGrid({ data }) {
         <article key={user.rank} className={`top-card top-${user.rank}`}>
           <div className="rank-medal">#{user.rank}</div>
           <h2>{user.name}</h2>
-          <p>{user.account}</p>
-          <strong>+${formatMoney(user.profit)}</strong>
-          <span>勝率 {user.winRate}%</span>
+          <p>{formatText(user.account)}</p>
+          <strong>{formatProfit(user.profit)}</strong>
+          <span>勝率 {formatPercent(user.winRate)}</span>
         </article>
       ))}
     </section>
@@ -97,12 +125,12 @@ function RankingTable({ data }) {
               <span>
                 <strong>{user.name}</strong>
                 <br />
-                <small>{user.account}</small>
+                <small>{formatText(user.account)}</small>
               </span>
-              <span>{user.market}</span>
-              <span className="green">+${formatMoney(user.profit)}</span>
-              <span>{user.winRate}%</span>
-              <span>${formatMoney(user.assets)}</span>
+              <span>{formatText(user.market)}</span>
+              <span className="green">{formatProfit(user.profit)}</span>
+              <span>{formatPercent(user.winRate)}</span>
+              <span>{formatCurrency(user.assets)}</span>
             </div>
           ))
         )}
@@ -115,22 +143,48 @@ export default function RankingsPage() {
   const [activeTab, setActiveTab] = useState("profit");
   const [search, setSearch] = useState("");
 
-  const [allData, setAllData] = useState(mockRankingData.profit || []);
+  const [allData, setAllData] = useState([]);
 
   useEffect(() => {
-    setAllData(mockRankingData[activeTab] || []);
+    let ignore = false;
+    setLoading(true);
+    setError(null);
+
+    fetchRankings(activeTab)
+      .then((data) => {
+        if (!ignore) {
+          setAllData(data);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!ignore) {
+          console.error("排行榜載入失敗:", err);
+          setError("排行榜載入失敗，請稍後再試。");
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      ignore = true;
+    };
   }, [activeTab]);
 
   const filtered = useMemo(() => {
     const kw = search.trim().toLowerCase();
     if (!kw) return allData;
+
     return allData.filter(
       (u) =>
         u.name.toLowerCase().includes(kw) ||
-        u.account.toLowerCase().includes(kw) ||
-        u.market.toLowerCase().includes(kw)
+        (u.account ?? "").toLowerCase().includes(kw) ||
+        (u.market ?? "").toLowerCase().includes(kw)
     );
   }, [allData, search]);
+
+  const authUser = useAuthStore((state) => state.user);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
   return (
     <main className="ranking-page">
@@ -140,7 +194,7 @@ export default function RankingsPage() {
           <h1>排行榜</h1>
           <p className="ranking-description">一直賭 一直爽。</p>
         </div>
-        <MyRankingCard data={allData} />
+        <MyRankingCard data={allData} currentUserId={authUser?.id} />
       </section>
 
       <div className="ranking-tabs" aria-label="排行榜類型">
@@ -166,8 +220,22 @@ export default function RankingsPage() {
         />
       </div>
 
-      <TopRankGrid data={filtered} />
-      <RankingTable data={filtered} />
+      {loading ? (
+        <section className="empty-state" role="status" aria-live="polite">
+          <h2>排行榜載入中...</h2>
+          <p>正在取得最新排名資料。</p>
+        </section>
+      ) : error ? (
+        <section className="empty-state" role="alert">
+          <h2>排行榜載入失敗</h2>
+          <p>{error}</p>
+        </section>
+      ) : (
+        <>
+          <TopRankGrid data={filtered} />
+          <RankingTable data={filtered} />
+        </>
+      )}
     </main>
   );
 }
