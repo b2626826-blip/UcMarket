@@ -20,7 +20,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.ucmarket.dto.CreateMarketRequest;
 import com.ucmarket.dto.MarketOddsResponse;
-import com.ucmarket.dto.MarketResponse;
 import com.ucmarket.dto.TradeQuoteRequest;
 import com.ucmarket.dto.TradeQuoteResponse;
 import com.ucmarket.dto.UpdateMarketRequest;
@@ -33,6 +32,7 @@ import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.service.MarketService;
 import com.ucmarket.service.TradeQuoteService;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 
 @RestController
@@ -43,8 +43,7 @@ public class MarketController {
 	private final MarketService marketService;
 	private final TradeQuoteService tradeQuoteService;
 
-	public MarketController(MarketRepository marketRepository,
-			MarketService marketService,
+	public MarketController(MarketRepository marketRepository, MarketService marketService,
 			TradeQuoteService tradeQuoteService) {
 		this.marketRepository = marketRepository;
 		this.marketService = marketService;
@@ -52,40 +51,36 @@ public class MarketController {
 	}
 
 	@GetMapping
-	public List<MarketResponse> listMarkets(@RequestParam(defaultValue = "0") int page,
+	public List<Market> listMarkets(@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int size) {
 		var pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1), Sort.by("createdAt").descending());
-		return marketRepository.findAll(pageable).getContent().stream()
-				.map(MarketResponse::from)
-				.toList();
+		return marketRepository.findAll(pageable).getContent();
 	}
 
 	@GetMapping("/{id}")
-	public MarketResponse getMarket(@PathVariable UUID id) {
+	public Market getMarket(@PathVariable UUID id) {
 		return marketRepository.findById(id)
-				.map(MarketResponse::from)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 	}
 
 	@GetMapping("/code/{code}")
-	public MarketResponse getMarketByCode(@PathVariable String code) {
+	public Market getMarketByCode(@PathVariable String code) {
 		return marketRepository.findByCode(code)
-				.map(MarketResponse::from)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 	}
 
 	@PostMapping
 	@ResponseStatus(HttpStatus.CREATED)
-	public MarketResponse createMarket(@AuthenticationPrincipal User user, @Valid @RequestBody CreateMarketRequest request) {
+	public Market createMarket(@AuthenticationPrincipal User user, @Valid @RequestBody CreateMarketRequest request) {
 		Market market = new Market(request.title(), request.description(), request.category(), request.marketType(),
 				request.sourceUrl(), request.resolutionRule(), request.closeAt());
 		market.setCreatorId(user.getId());
 
-		return MarketResponse.from(marketRepository.save(market));
+		return marketRepository.save(market);
 	}
 
 	@PostMapping("/{id}/submit")
-	public MarketResponse submitMarket(@PathVariable UUID id, @AuthenticationPrincipal User user) {
+	public Market submitMarket(@PathVariable UUID id, @AuthenticationPrincipal User user) {
 		Market market = marketRepository.findById(id)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
@@ -97,11 +92,11 @@ public class MarketController {
 		}
 
 		market.changeStatus(MarketStatus.PENDING);
-		return MarketResponse.from(marketRepository.save(market));
+		return marketRepository.save(market);
 	}
 
 	@PutMapping("/{id}")
-	public MarketResponse updateMarket(@PathVariable UUID id, @AuthenticationPrincipal User user,
+	public Market updateMarket(@PathVariable UUID id, @AuthenticationPrincipal User user,
 			@RequestBody UpdateMarketRequest request) {
 		Market market = marketRepository.findById(id)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
@@ -121,17 +116,20 @@ public class MarketController {
 		if (request.resolutionRule() != null) market.setResolutionRule(request.resolutionRule());
 		if (request.closeAt() != null) market.setCloseAt(request.closeAt());
 
-		return MarketResponse.from(marketRepository.save(market));
+		return marketRepository.save(market);
 	}
 
 	@PostMapping("/{id}/cancel")
-	public MarketResponse cancelMarket(@PathVariable UUID id, @AuthenticationPrincipal User user) {
-		if (!marketRepository.existsById(id)) {
-			throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+	public Market cancelMarket(@PathVariable UUID id, @AuthenticationPrincipal User user) {
+		try {
+			return marketService.cancelMarket(id, user.getId(), user.getRole() == UserRole.ADMIN);
+		} catch (EntityNotFoundException e) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+		} catch (IllegalArgumentException e) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage(), e);
+		} catch (IllegalStateException e) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
 		}
-		boolean isAdmin = user.getRole() == UserRole.ADMIN;
-		Market market = marketService.cancelMarket(id, user.getId(), isAdmin);
-		return MarketResponse.from(market);
 	}
 
 	@PostMapping("/{id}/trades/getquote")
@@ -146,6 +144,11 @@ public class MarketController {
 		return tradeQuoteService.getQuote(market, request.side(), request.amount());
 	}
 
+	@PostMapping("/{id}/trades/quote")
+	public TradeQuoteResponse quoteTradeAlias(@PathVariable UUID id, @Valid @RequestBody TradeQuoteRequest request) {
+		return quoteTrade(id, request);
+	}
+
 	@GetMapping("/{id}/odds")
 	public MarketOddsResponse getOdds(@PathVariable UUID id) {
 		Market market = marketRepository.findById(id)
@@ -158,4 +161,5 @@ public class MarketController {
 				market.getNoPool()
 		);
 	}
+
 }

@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.ucmarket.dto.MarketResponse;
 import com.ucmarket.dto.ResolveMarketRequest;
 import com.ucmarket.dto.admin.AdminMarketListResponse;
 import com.ucmarket.dto.admin.MarketSummaryItem;
@@ -61,59 +60,56 @@ public class AdminMarketController {
 
         List<Market> markets;
         if (status != null || category != null || keyword != null) {
-            markets = marketRepository.findAll();
+            markets = marketRepository.findAll(); // simplified; enhancement: use JPA Specification
         } else {
             markets = marketRepository.findAll();
         }
 
-        Map<UUID, String> creatorCodeCache = buildCreatorCodeCache(markets);
-        List<MarketResponse> responses = markets.stream()
-                .map(m -> MarketResponse.from(m, creatorCodeCache.get(m.getCreatorId())))
-                .toList();
-
-        return new AdminMarketListResponse(summary, responses);
+        fillCreatorCodes(markets);
+        return new AdminMarketListResponse(summary, markets);
     }
 
-    private Map<UUID, String> buildCreatorCodeCache(List<Market> markets) {
+    private void fillCreatorCodes(List<Market> markets) {
         Map<UUID, String> cache = new HashMap<>();
         for (Market m : markets) {
-            if (m.getCreatorId() != null && !cache.containsKey(m.getCreatorId())) {
-                String code = userRepository.findById(m.getCreatorId())
-                        .map(User::getCode).orElse(null);
-                cache.put(m.getCreatorId(), code);
+            if (m.getCreatorId() != null) {
+                String code = cache.computeIfAbsent(m.getCreatorId(),
+                        id -> userRepository.findById(id).map(User::getCode).orElse(null));
+                m.setCreatorCode(code);
             }
         }
-        return cache;
     }
 
     @PostMapping("/{id}/approve")
-    public ResponseEntity<MarketResponse> approveMarket(@PathVariable UUID id, @AuthenticationPrincipal User admin) {
+    public ResponseEntity<Market> approveMarket(@PathVariable UUID id, @AuthenticationPrincipal User admin) {
         Market market = marketService.approveMarket(id, admin.getId());
-        return ResponseEntity.ok(MarketResponse.from(market));
+        return ResponseEntity.ok(market);
     }
 
     @PostMapping("/{id}/reject")
-    public ResponseEntity<MarketResponse> rejectMarket(@PathVariable UUID id,
+    public ResponseEntity<Market> rejectMarket(@PathVariable UUID id,
             @AuthenticationPrincipal User admin,
             @Valid @RequestBody ReviewMarketRequest request) {
         Market market = marketService.rejectMarket(id, admin.getId(), request.comment());
-        return ResponseEntity.ok(MarketResponse.from(market));
+        return ResponseEntity.ok(market);
     }
 
     @PostMapping("/{id}/request-changes")
-    public ResponseEntity<MarketResponse> requestChanges(@PathVariable UUID id,
+    public ResponseEntity<Market> requestChanges(@PathVariable UUID id,
             @AuthenticationPrincipal User admin,
             @Valid @RequestBody ReviewMarketRequest request) {
         Market market = marketService.requestChanges(id, admin.getId(), request.comment());
-        return ResponseEntity.ok(MarketResponse.from(market));
+        return ResponseEntity.ok(market);
     }
 
+    // POST /api/admin/markets/{id}/resolve
+    // 管理員將指定市場結算為 YES 或 NO；系統完成派彩與持倉結算後，回傳更新後的市場資料。
     @PostMapping("/{id}/resolve")
-    public ResponseEntity<MarketResponse> resolveMarket(@PathVariable UUID id,
+    public ResponseEntity<Market> resolveMarket(@PathVariable UUID id,
             @AuthenticationPrincipal User admin,
             @Valid @RequestBody ResolveMarketRequest request) {
         Market market = marketService.resolveMarket(id, admin.getId(), request.result());
-        return ResponseEntity.ok(MarketResponse.from(market));
+        return ResponseEntity.ok(market);
     }
 
     @GetMapping("/{id}/reviews")
