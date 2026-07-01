@@ -12,7 +12,9 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.math.BigDecimal;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -119,5 +121,23 @@ class GlobalExceptionHandlerTest {
         assertTrue(body.containsKey("message"));
         assertEquals(400, body.get("status"));
         assertEquals("Bad Request", body.get("error"));
+    }
+
+    @Test
+    void handleWalletNotFound_shouldReturn404() {
+        ResponseEntity<Map<String, Object>> resp =
+                handler.handleWalletNotFound(new WalletNotFoundException(UUID.randomUUID()));
+
+        assertEquals(HttpStatus.NOT_FOUND, resp.getStatusCode());
+        assertEquals(404, resp.getBody().get("status"));
+    }
+
+    @Test
+    void handleInsufficientFunds_shouldReturn422() {
+        ResponseEntity<Map<String, Object>> resp = handler.handleInsufficientFunds(
+                new InsufficientFundsException(UUID.randomUUID(), new BigDecimal("100"), new BigDecimal("10")));
+
+        assertEquals(HttpStatus.UNPROCESSABLE_ENTITY, resp.getStatusCode());
+        assertEquals(422, resp.getBody().get("status"));
     }
 }

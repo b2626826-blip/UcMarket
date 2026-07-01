@@ -102,6 +102,8 @@ public class AdminMarketController {
         return ResponseEntity.ok(market);
     }
 
+    // POST /api/admin/markets/{id}/resolve
+    // 管理員將指定市場結算為 YES 或 NO；系統完成派彩與持倉結算後，回傳更新後的市場資料。
     @PostMapping("/{id}/resolve")
     public ResponseEntity<Market> resolveMarket(@PathVariable UUID id,
             @AuthenticationPrincipal User admin,

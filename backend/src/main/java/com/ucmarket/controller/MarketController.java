@@ -1,6 +1,5 @@
 package com.ucmarket.controller;
 
-import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,15 +26,13 @@ import com.ucmarket.dto.UpdateMarketRequest;
 import com.ucmarket.entity.Market;
 import com.ucmarket.entity.MarketSide;
 import com.ucmarket.entity.MarketStatus;
-import com.ucmarket.entity.Position;
-import com.ucmarket.entity.PositionStatus;
 import com.ucmarket.entity.User;
 import com.ucmarket.entity.UserRole;
 import com.ucmarket.repository.MarketRepository;
-import com.ucmarket.repository.PositionRepository;
+import com.ucmarket.service.MarketService;
 import com.ucmarket.service.TradeQuoteService;
-import com.ucmarket.service.WalletService;
 
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 
 @RestController
@@ -43,15 +40,13 @@ import jakarta.validation.Valid;
 public class MarketController {
 
 	private final MarketRepository marketRepository;
-	private final PositionRepository positionRepository;
-	private final WalletService walletService;
+	private final MarketService marketService;
 	private final TradeQuoteService tradeQuoteService;
 
-	public MarketController(MarketRepository marketRepository, PositionRepository positionRepository,
-			WalletService walletService, TradeQuoteService tradeQuoteService) {
+	public MarketController(MarketRepository marketRepository, MarketService marketService,
+			TradeQuoteService tradeQuoteService) {
 		this.marketRepository = marketRepository;
-		this.positionRepository = positionRepository;
-		this.walletService = walletService;
+		this.marketService = marketService;
 		this.tradeQuoteService = tradeQuoteService;
 	}
 
@@ -126,18 +121,15 @@ public class MarketController {
 
 	@PostMapping("/{id}/cancel")
 	public Market cancelMarket(@PathVariable UUID id, @AuthenticationPrincipal User user) {
-		Market market = marketRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-
-		if (!market.getCreatorId().equals(user.getId())
-				&& user.getRole() != UserRole.ADMIN) {
-			throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+		try {
+			return marketService.cancelMarket(id, user.getId(), user.getRole() == UserRole.ADMIN);
+		} catch (EntityNotFoundException e) {
+			throw new ResponseStatusException(HttpStatus.NOT_FOUND, e.getMessage(), e);
+		} catch (IllegalArgumentException e) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage(), e);
+		} catch (IllegalStateException e) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, e.getMessage(), e);
 		}
-
-		market.cancel();
-		Market saved = marketRepository.save(market);
-		refundPositions(saved);
-		return saved;
 	}
 
 	@PostMapping("/{id}/trades/getquote")
@@ -150,6 +142,11 @@ public class MarketController {
 		}
 
 		return tradeQuoteService.getQuote(market, request.side(), request.amount());
+	}
+
+	@PostMapping("/{id}/trades/quote")
+	public TradeQuoteResponse quoteTradeAlias(@PathVariable UUID id, @Valid @RequestBody TradeQuoteRequest request) {
+		return quoteTrade(id, request);
 	}
 
 	@GetMapping("/{id}/odds")
@@ -165,16 +162,4 @@ public class MarketController {
 		);
 	}
 
-	private void refundPositions(Market market) {
-		List<Position> positions = positionRepository.findByMarketIdAndStatus(market.getId(), PositionStatus.OPEN);
-		for (Position position : positions) {
-			BigDecimal refundAmount = position.getYesCost().add(position.getNoCost());
-			if (refundAmount.compareTo(BigDecimal.ZERO) > 0) {
-				walletService.credit(position.getUserId(), refundAmount, "MARKET", market.getId(),
-						"cancel:" + market.getId() + ":" + position.getId());
-			}
-			position.cancel();
-		}
-		positionRepository.saveAll(positions);
-	}
 }

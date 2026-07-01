@@ -37,6 +37,26 @@ public class GlobalExceptionHandler {
         return build(HttpStatus.NOT_FOUND, ex.getMessage());
     }
 
+    // 錢包領域例外（同 package、免 import）：查無錢包 → 404；餘額不足 → 422（例外公版）。
+    // 不接的話兩者都掉進 handleGeneral 回 500，前端分不出「使用者錯」還是「伺服器爆」。
+    @ExceptionHandler(WalletNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handleWalletNotFound(WalletNotFoundException ex) {
+        return build(HttpStatus.NOT_FOUND, ex.getMessage());
+    }
+
+    @ExceptionHandler(InsufficientFundsException.class)
+    public ResponseEntity<Map<String, Object>> handleInsufficientFunds(InsufficientFundsException ex) {
+        return build(HttpStatus.UNPROCESSABLE_ENTITY, ex.getMessage());
+    }
+
+    // 冪等鍵衝突 → 409。IdempotencyConflictException 自帶 @ResponseStatus(CONFLICT)，
+    // 但本類別下方有 @ExceptionHandler(Exception.class) catch-all，會搶先攔截並回 500 蓋掉 @ResponseStatus
+    // （ExceptionHandlerExceptionResolver 先於 ResponseStatusExceptionResolver）。故必須在此明確接它。
+    @ExceptionHandler(IdempotencyConflictException.class)
+    public ResponseEntity<Map<String, Object>> handleIdempotencyConflict(IdempotencyConflictException ex) {
+        return build(HttpStatus.CONFLICT, ex.getMessage());
+    }
+
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
         StringBuilder sb = new StringBuilder("Validation failed: ");

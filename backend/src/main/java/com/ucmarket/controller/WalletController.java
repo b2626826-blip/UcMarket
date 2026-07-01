@@ -2,26 +2,17 @@ package com.ucmarket.controller;
 
 import java.math.BigDecimal;
 import java.util.List;
-import java.util.UUID;
 
-import org.springframework.http.HttpStatus;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.ucmarket.dto.BalanceResponse;
-import com.ucmarket.dto.CreateWalletRequest;
-import com.ucmarket.dto.WalletResponse;
 import com.ucmarket.dto.WalletTransactionResponse;
-import com.ucmarket.entity.Wallet;
+import com.ucmarket.entity.User;
 import com.ucmarket.service.WalletService;
-
-import jakarta.validation.Valid;
 
 @RestController
 @RequestMapping("/api/wallets")
@@ -34,37 +25,25 @@ public class WalletController {
 		this.walletService = walletService;
 	}
 
-	@PostMapping
-	@ResponseStatus(HttpStatus.CREATED)
-	public WalletResponse createWallet(@Valid @RequestBody CreateWalletRequest request) {
-		Wallet wallet = walletService.createWalletForUser(request.userId());
-		return new WalletResponse(
-				wallet.getId(),
-				wallet.getUserId(),
-				wallet.getBalance(),
-				wallet.getCreatedAt()
-		);
+	// 註：建錢包不開 HTTP 端點 —— register 流程已於同一 @Transactional 內呼叫
+	// WalletService.createWalletForUser()（一人一錢包）。對外只暴露查詢，避免多餘越權面。
+
+	// GET /api/wallets/me/balance —— 查「自己」的餘額（userId 取自 JWT，不從網址拿 → 杜絕 IDOR）
+	@GetMapping("/me/balance")
+	public BalanceResponse getBalance(@AuthenticationPrincipal User user) {
+	    BigDecimal balance = walletService.getBalance(user.getId());
+	    return new BalanceResponse(user.getId(), balance);
 	}
-	
-	// GET /api/wallets/{userId}/balance —— 查餘額
-	// 20260607 增加
-	@GetMapping("/{userId}/balance")
-	public BalanceResponse getBalance(@PathVariable UUID userId) { // userId 來自「URL 路徑」，不是 body
-	    BigDecimal balance = walletService.getBalance(userId);
-	    return new BalanceResponse(userId, balance);
-	}
-	
-	// 查紀錄 20260607
-	@GetMapping("/{userId}/transactions")
+
+	// 查紀錄 (改綁 JWT，userId 取自登入身分）
+	@GetMapping("/me/transactions")
 	public List<WalletTransactionResponse> transactions(
-	        @PathVariable UUID userId,
+	        @AuthenticationPrincipal User user,
 	        @RequestParam(defaultValue = "0") int page) {
-	    return walletService.getTransactions(userId, page).stream()
+	    return walletService.getTransactions(user.getId(), page).stream()
 	            .map(tx -> new WalletTransactionResponse(
 	                    tx.getId(), tx.getType(), tx.getAmount(),
-	                    tx.getBalanceAfter(), tx.getReferenceType(), tx.getCreatedAt()))
+	                    tx.getBalanceAfter(), tx.getReferenceType(), tx.getReferenceId(), tx.getCreatedAt()))
 	            .toList();
 	}
 }
-
-// 這還沒review

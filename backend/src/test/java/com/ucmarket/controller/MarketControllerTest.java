@@ -9,6 +9,7 @@ import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.PositionRepository;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.security.JwtTokenProvider;
+import com.ucmarket.service.MarketService;
 import com.ucmarket.service.TradeQuoteService;
 import com.ucmarket.service.WalletService;
 import org.junit.jupiter.api.AfterEach;
@@ -45,6 +46,7 @@ class MarketControllerTest {
 
     @MockitoBean private MarketRepository marketRepository;
     @MockitoBean private PositionRepository positionRepository;
+    @MockitoBean private MarketService marketService;
     @MockitoBean private WalletService walletService;
     @MockitoBean private TradeQuoteService tradeQuoteService;
     @MockitoBean private JwtTokenProvider jwtTokenProvider;

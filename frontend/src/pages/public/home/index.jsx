@@ -10,18 +10,19 @@ const heroSlides = [
 ];
 
 const initialMarkets = [
-  { id: 1, category: '金融', title: 'WTI 原油在 2026 年 5 月收盤是否會高過 55？', date: '2026 年 5 月', yesPrice: 0.55, noPrice: 0.45, volume: '$2.3M', traders: '1,243' },
-  { id: 2, category: '金融', title: '美國債務上限是否會被永久取消？', date: '2026 年', yesPrice: 0.41, noPrice: 0.59, volume: '$8.7M', traders: '4,820' },
-  { id: 3, category: '加密', title: 'BTC 是否會在 2027 年前突破 200K？', date: '2027 年', yesPrice: 0.72, noPrice: 0.28, volume: '$12.4M', traders: '8,921' },
-  { id: 4, category: '政治', title: '共和黨是否會贏得下一屆美國總統大選？', date: '2028 年 11 月', yesPrice: 0.61, noPrice: 0.39, volume: '$5.8M', traders: '4,451' },
-  { id: 5, category: '體育', title: '湖人是否能拿下 NBA 總冠軍？', date: '2027 賽季', yesPrice: 0.44, noPrice: 0.56, volume: '$3.2M', traders: '3,211' },
-  { id: 6, category: '科技', title: 'AI 公司是否會在今年創下新 IPO 紀錄？', date: '2026 年', yesPrice: 0.68, noPrice: 0.32, volume: '$4.9M', traders: '2,987' },
-  { id: 7, category: '娛樂', title: '年度票房冠軍是否會突破 20 億美元？', date: '2026 年', yesPrice: 0.36, noPrice: 0.64, volume: '$1.6M', traders: '1,042' },
-  { id: 8, category: '加密', title: 'Ethereum 是否會在年底突破 10,000？', date: '2026 年底', yesPrice: 0.49, noPrice: 0.51, volume: '$6.1M', traders: '5,604' },
+  { id: 1, category: '政治', title: '共和黨是否會贏得下一屆美國總統大選？', date: '2028 年 11 月', yesPrice: 0.61, noPrice: 0.39, volume: '$5.8M', traders: '4,451' },
+  { id: 2, category: '政治', title: '台灣某重大政策是否會在 2026 年底前通過？', date: '2026 年 12 月', yesPrice: 0.52, noPrice: 0.48, volume: '$1.9M', traders: '2,104' },
+  { id: 3, category: '運動', title: '湖人是否能拿下下一屆 NBA 總冠軍？', date: '2027 賽季', yesPrice: 0.44, noPrice: 0.56, volume: '$3.2M', traders: '3,211' },
+  { id: 4, category: '運動', title: '2026 世界盃足球賽冠軍是否會是南美洲球隊？', date: '2026 年 7 月', yesPrice: 0.58, noPrice: 0.42, volume: '$4.5M', traders: '3,890' },
+  { id: 5, category: '天氣', title: '明天台中最高溫會超過 30°C 嗎？', date: '明天', yesPrice: 0.55, noPrice: 0.45, volume: '$320K', traders: '812' },
+  { id: 6, category: '天氣', title: '本週台北會下雨超過 3 天嗎？', date: '本週', yesPrice: 0.62, noPrice: 0.38, volume: '$280K', traders: '756' },
+  { id: 7, category: '時事', title: '某熱門社會議題是否會在本月登上主流媒體頭條？', date: '本月', yesPrice: 0.48, noPrice: 0.52, volume: '$410K', traders: '1,023' },
+  { id: 8, category: '時事', title: '某新興科技監管法案是否會在季內完成初審？', date: '本季', yesPrice: 0.37, noPrice: 0.63, volume: '$560K', traders: '1,245' },
   { id: 9, category: '金融', title: '美國 Fed 是否會在今年降息兩次以上？', date: '2026 年', yesPrice: 0.57, noPrice: 0.43, volume: '$9.5M', traders: '6,892' },
+  { id: 10, category: '金融', title: 'WTI 原油在 2026 年 5 月收盤是否會高過 75 美元？', date: '2026 年 5 月', yesPrice: 0.51, noPrice: 0.49, volume: '$2.3M', traders: '1,243' },
 ];
 
-const categories = ['全部', '金融', '加密', '政治', '體育', '科技', '娛樂'];
+const categories = ['全部', '政治', '運動', '天氣', '時事', '金融'];
 
 export default function HomePage() {
   const [slideIdx, setSlideIdx] = useState(0);

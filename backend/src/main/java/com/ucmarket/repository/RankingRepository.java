@@ -74,15 +74,33 @@ public interface RankingRepository extends JpaRepository<User, UUID> {
 	List<RankingWinRateRow> findWinRateRankings();
 	
 	@Query(value = """
-			WITH open_position_values AS (
+			WITH latest_market_prices AS (
+				SELECT market_id, yes_price, no_price
+				FROM (
+					SELECT
+						mph.market_id,
+						mph.yes_price,
+						mph.no_price,
+						ROW_NUMBER() OVER (
+							PARTITION BY mph.market_id
+							ORDER BY mph.recorded_at DESC, mph.id DESC
+						) AS rn
+					FROM market_price_history mph
+					WHERE mph.yes_price IS NOT NULL
+						AND mph.no_price IS NOT NULL
+				) ranked_prices
+				WHERE rn = 1
+			),
+			open_position_values AS (
 				SELECT
 					p.user_id,
 					SUM(
-						(p.yes_shares * m.yes_pool / (m.yes_pool + m.no_pool))
-						+ (p.no_shares * m.no_pool / (m.yes_pool + m.no_pool))
+						(p.yes_shares * COALESCE(lmp.yes_price, m.yes_pool / (m.yes_pool + m.no_pool)))
+						+ (p.no_shares * COALESCE(lmp.no_price, m.no_pool / (m.yes_pool + m.no_pool)))
 					) AS open_position_value
 				FROM positions p
 				JOIN markets m ON m.id = p.market_id
+				LEFT JOIN latest_market_prices lmp ON lmp.market_id = p.market_id
 				WHERE p.status = 'OPEN'
 					AND m.status IN ('ACTIVE', 'CLOSED')
 					AND (m.yes_pool + m.no_pool) > 0

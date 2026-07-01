@@ -24,5 +24,8 @@ dist/
 .env
 
 # Local planning / notes
+/.agents/
+/.codex/
 eagle/
 frontend/排行榜設計語彙.md
+docs/資料庫設計/db-backups/

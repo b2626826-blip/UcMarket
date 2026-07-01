@@ -1,5 +1,6 @@
 package com.ucmarket.service;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
@@ -17,9 +18,12 @@ import com.ucmarket.entity.Market;
 import com.ucmarket.entity.MarketReview;
 import com.ucmarket.entity.MarketReview.ReviewStatus;
 import com.ucmarket.entity.MarketStatus;
+import com.ucmarket.entity.Position;
+import com.ucmarket.entity.PositionStatus;
 import com.ucmarket.repository.AdminLogRepository;
 import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.MarketReviewRepository;
+import com.ucmarket.repository.PositionRepository;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -31,14 +35,19 @@ public class MarketService {
     private final MarketReviewRepository marketReviewRepository;
     private final AdminLogRepository adminLogRepository;
     private final ResolutionService resolutionService;
+    private final PositionRepository positionRepository;
+    private final WalletService walletService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public MarketService(MarketRepository marketRepository, MarketReviewRepository marketReviewRepository,
-            AdminLogRepository adminLogRepository, ResolutionService resolutionService) {
+            AdminLogRepository adminLogRepository, ResolutionService resolutionService,
+            PositionRepository positionRepository, WalletService walletService) {
         this.marketRepository = marketRepository;
         this.marketReviewRepository = marketReviewRepository;
         this.adminLogRepository = adminLogRepository;
         this.resolutionService = resolutionService;
+        this.positionRepository = positionRepository;
+        this.walletService = walletService;
     }
 
     public Market approveMarket(UUID marketId, UUID adminId) {
@@ -99,6 +108,43 @@ public class MarketService {
                 toJson(Map.of("result", result.name()))));
 
         return market;
+    }
+
+    public Market cancelMarket(UUID marketId, UUID userId, boolean isAdmin) {
+        Market market = findMarket(marketId);
+
+        if (!market.getCreatorId().equals(userId) && !isAdmin) {
+            throw new IllegalArgumentException("Only creator or admin can cancel this market");
+        }
+        if (market.getStatus() == MarketStatus.RESOLVED
+                || market.getStatus() == MarketStatus.REJECTED
+                || market.getStatus() == MarketStatus.CANCELED) {
+            throw new IllegalStateException(
+                    "Market in " + market.getStatus() + " status cannot be canceled");
+        }
+        if (!isAdmin && (market.getStatus() == MarketStatus.ACTIVE
+                || market.getStatus() == MarketStatus.CLOSED)) {
+            throw new IllegalStateException(
+                    "Only admin can cancel an ACTIVE or CLOSED market");
+        }
+
+        market.cancel();
+        Market saved = marketRepository.save(market);
+        refundPositions(saved);
+        return saved;
+    }
+
+    private void refundPositions(Market market) {
+        List<Position> positions = positionRepository.findByMarketIdAndStatus(market.getId(), PositionStatus.OPEN);
+        for (Position position : positions) {
+            BigDecimal refundAmount = position.getYesCost().add(position.getNoCost());
+            if (refundAmount.compareTo(BigDecimal.ZERO) > 0) {
+                walletService.credit(position.getUserId(), refundAmount, "MARKET", market.getId(),
+                        "cancel:" + market.getId() + ":" + position.getId());
+            }
+            position.cancel();
+        }
+        positionRepository.saveAll(positions);
     }
 
     @Scheduled(fixedDelay = 60_000)
