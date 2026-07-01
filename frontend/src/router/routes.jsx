@@ -22,6 +22,7 @@ import AdminLogsPage from "../pages/admin/admin-logs";
 import SettingsPage from "../pages/admin/settings";
 import TransactionsPage from "../pages/admin/transactions";
 import AdminCreateMarketPage from "../pages/admin/create-market";
+import CurrentEventsPage from "../pages/public/current-events";
 
 const router = createBrowserRouter([
   {
@@ -39,6 +40,10 @@ const router = createBrowserRouter([
       {
         path: "markets/:id",
         element: <MarketDetailPage />,
+      },
+      {
+        path: "markets/current-events",
+        element: <CurrentEventsPage />,
       },
       {
         path: "auth/login",
