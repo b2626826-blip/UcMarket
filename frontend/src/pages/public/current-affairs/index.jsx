@@ -6,7 +6,7 @@ import CurrentEventFilterNav from '../../../components/market/CurrentEventFilter
 import './style.css';
 import CurrentEventMarketCard from '../../../components/market/CurrentEventMarketCard';
 
-export default function CurrentEventsPage() {
+export default function CurrentAffairsPage() {
     const [searchParams, setSearchParams] = useSearchParams();
 
     const requestedFilterId = searchParams.get('filter') ?? 'all';
@@ -75,14 +75,14 @@ export default function CurrentEventsPage() {
     }, [filterId, keyword, status, sort]);
 
     return (
-        <section className="current-events-page">
-            <div className="current-events-layout">
-                <header className="current-events-header">
+        <section className="current-affairs-page">
+            <div className="current-affairs-layout">
+                <header className="current-affairs-header">
                     <h1>時事</h1>
                     <p>
                         追蹤國際、社會、科技、名人、電影、娛樂與八卦事件的市場共識。
                     </p>
-                    <div className="current-events-controls">
+                    <div className="current-affairs-controls">
                         <input
                             type="search"
                             value={keyword}
@@ -118,7 +118,7 @@ export default function CurrentEventsPage() {
                     onFilterChange={handleFilterChange}
                 />
 
-                <div className="current-events-results">
+                <div className="current-affairs-results">
                     {loading && <p>載入中...</p>}
 
                     {!loading && error && (
@@ -131,7 +131,7 @@ export default function CurrentEventsPage() {
 
 
                     {!loading && !error && markets.length > 0 && (
-                        <div className="current-events-grid">
+                        <div className="current-affairs-grid">
                             {markets.map((market) => (
                                 <CurrentEventMarketCard
                                     key={market.id}
