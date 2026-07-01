@@ -8,6 +8,11 @@ import HomePage from "../pages/public/home";
 import LoginPage from "../pages/public/login/LoginPage";
 import RegisterPage from "../pages/public/register/RegisterPage";
 import MarketDetailPage from "../pages/public/market-detail";
+import WeatherDetailPage from "../pages/public/market-detail-weather";
+import PoliticsDetailPage from "../pages/public/market-detail-politics";
+import SportsDetailPage from "../pages/public/market-detail-sports";
+import CurrentAffairsDetailPage from "../pages/public/market-detail-current-affairs";
+import FinanceDetailPage from "../pages/public/market-detail-finance";
 import PortfolioPage from "../pages/member/portfolio";
 import WalletPage from "../pages/member/wallet";
 import PositionsPage from "../pages/member/positions";
@@ -33,6 +38,11 @@ const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "markets", element: <HomePage /> },
       { path: "markets/:id", element: <MarketDetailPage /> },
+      { path: "markets/weather/:id", element: <WeatherDetailPage /> },
+      { path: "markets/politics/:id", element: <PoliticsDetailPage /> },
+      { path: "markets/sports/:id", element: <SportsDetailPage /> },
+      { path: "markets/current-affairs/:id", element: <CurrentAffairsDetailPage /> },
+      { path: "markets/finance/:id", element: <FinanceDetailPage /> },
       { path: "auth/login", element: <LoginPage /> },
       { path: "auth/register", element: <RegisterPage /> },
       { path: "rankings", element: <RankingsPage /> },
