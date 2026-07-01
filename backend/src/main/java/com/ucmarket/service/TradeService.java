@@ -35,7 +35,7 @@ public class TradeService {
 
 	@Transactional
 	public Trade placeTrade(UUID userId, TradeRequest request) {
-		Market market = marketRepository.findById(request.marketId())
+		Market market = marketRepository.findByIdForUpdate(request.marketId())
 				.orElseThrow(() -> new RuntimeException("市場不存在"));
 		if (market.getStatus() != MarketStatus.ACTIVE) {
 			throw new IllegalStateException("該市場目前無法下單");

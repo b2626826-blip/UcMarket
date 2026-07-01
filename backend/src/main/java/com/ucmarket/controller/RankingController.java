@@ -21,16 +21,22 @@ public class RankingController {
 		this.rankingService = rankingService;
 	}
 
+	// GET /api/rankings/profit
+	// 依「已結算派彩總額－已結算持倉成本」計算已實現損益，並由高到低回傳排行榜。
 	@GetMapping("/profit")
 	public List<RankingProfitResponse> getProfitRankings() {
 		return rankingService.getProfitRankings();
 	}
 	
+	// GET /api/rankings/win-rate
+	// 依已結算市場中的預測正確比例計算勝率，並由高到低回傳排行榜。
 	@GetMapping("/win-rate")
 	public List<RankingWinRateResponse> getWinRateRankings() {
 		return rankingService.getWinRateRankings();
 	}
 	
+	// GET /api/rankings/assets
+	// 依「錢包餘額＋未結算持倉市值」計算總資產，並由高到低回傳排行榜。
 	@GetMapping("/assets")
 	public List<RankingAssetsResponse> getAssetRankings() {
 	    return rankingService.getAssetRankings();
