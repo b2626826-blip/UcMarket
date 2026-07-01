@@ -29,6 +29,7 @@ import TransactionsPage from "../pages/admin/transactions";
 import SettingsPage from "../pages/admin/settings";
 import LogsPage from "../pages/admin/logs";
 import AdminLoginPage from "../pages/admin/login";
+import CurrentEventsPage from "../pages/public/current-events";
 
 const router = createBrowserRouter([
   {
@@ -37,6 +38,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: "markets", element: <HomePage /> },
+      { path: "markets/current-events", element: <CurrentEventsPage /> },
       { path: "markets/:id", element: <MarketDetailPage /> },
       { path: "markets/weather/:id", element: <WeatherDetailPage /> },
       { path: "markets/politics/:id", element: <PoliticsDetailPage /> },

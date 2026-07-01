@@ -1,0 +1,126 @@
+.current-events-page {
+    width: 92%;
+    max-width: 1500px;
+    min-height: 60vh;
+    margin: 0 auto;
+    padding: 48px 0 80px;
+}
+
+.current-events-layout {
+    display: grid;
+    grid-template-columns: 240px minmax(0, 1fr);
+    grid-template-areas:
+        "sidebar header"
+        "sidebar content";
+    column-gap: 32px;
+    row-gap: 28px;
+    align-items: start;
+}
+
+.current-events-header {
+    grid-area: header;
+}
+
+.current-events-header h1 {
+    margin: 0;
+    font-size: 44px;
+    font-weight: 800;
+    line-height: 1.1;
+}
+
+.current-events-header p {
+    max-width: 760px;
+    margin-top: 12px;
+    color: var(--text-secondary);
+    line-height: 1.7;
+}
+
+.current-events-controls {
+    display: grid;
+    grid-template-columns: minmax(240px, 1fr) 140px 150px;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.current-events-controls input,
+.current-events-controls select {
+    width: 100%;
+    min-width: 0;
+    height: 48px;
+    padding: 0 16px;
+    background: #111111;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    font: inherit;
+    outline: none;
+    color-scheme: dark;
+    transition: 0.2s ease;
+}
+
+.current-events-controls input::placeholder {
+    color: var(--text-secondary);
+}
+
+.current-events-controls select {
+    cursor: pointer;
+}
+
+.current-events-controls input:focus,
+.current-events-controls select:focus {
+    border-color: rgba(217, 170, 67, 0.5);
+    box-shadow: 0 0 0 3px rgba(217, 170, 67, 0.08);
+}
+
+.current-events-layout>.current-event-filter-nav {
+    grid-area: sidebar;
+}
+
+.current-events-results {
+    grid-area: content;
+    min-width: 0;
+}
+
+@media (max-width: 1199px) {
+    .current-events-layout {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-areas:
+            "header"
+            "sidebar"
+            "content";
+        gap: 24px;
+    }
+
+    .current-event-filter-nav::-webkit-scrollbar {
+        height: 4px;
+    }
+
+    .current-event-filter-nav::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .current-event-filter-nav::-webkit-scrollbar-thumb {
+        background: rgba(217, 170, 67, 0.45);
+        border-radius: 999px;
+    }
+    
+}
+
+@media (max-width: 767px) {
+    .current-events-page {
+        width: auto;
+        padding: 32px 20px 64px;
+    }
+
+    .current-events-controls {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .current-events-controls input {
+        grid-column: 1 / -1;
+    }
+
+    .current-events-header h1 {
+        font-size: 36px;
+    }
+}
