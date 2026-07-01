@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { getCurrentUser, login as apiLogin, register as apiRegister, logout as apiLogout } from '../api/authApi';
+import { setToken } from '../api/client';
 
 const useAuthStore = create((set) => ({
   user: null,
@@ -23,6 +24,7 @@ const useAuthStore = create((set) => ({
     try {
       const data = await apiLogin(email, password);
       const user = data.user || data;
+      if (data.accessToken) setToken(data.accessToken);
       set({ user, loading: false });
       return user;
     } catch (err) {
@@ -36,6 +38,7 @@ const useAuthStore = create((set) => ({
     try {
       const data = await apiRegister(username, email, password);
       const user = data.user || data;
+      if (data.accessToken) setToken(data.accessToken);
       set({ user, loading: false });
       return user;
     } catch (err) {
@@ -48,6 +51,7 @@ const useAuthStore = create((set) => ({
     try {
       await apiLogout();
     } catch { /* ignore */ }
+    setToken(null);
     set({ user: null });
   },
 
