@@ -3,10 +3,10 @@ import { useSearchParams } from 'react-router-dom';
 import { getCurrentEventMarkets } from '../../../api/marketApi';
 import { currentEventFilters } from '../../../config/currentEventFilters';
 import CurrentEventFilterNav from '../../../components/market/CurrentEventFilterNav';
-import './style.css';
+import './CurrentAffairsListPage.css';
 import CurrentEventMarketCard from '../../../components/market/CurrentEventMarketCard';
 
-export default function CurrentAffairsPage() {
+export default function CurrentAffairsListPage() {
     const [searchParams, setSearchParams] = useSearchParams();
 
     const requestedFilterId = searchParams.get('filter') ?? 'all';
