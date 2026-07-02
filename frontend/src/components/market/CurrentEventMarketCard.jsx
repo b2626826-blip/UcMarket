@@ -4,6 +4,7 @@ import {
   matchesCurrentEventFilter,
 } from '../../config/currentEventFilters';
 import { StatusLabel } from '../../types/market';
+import './CurrentEventMarketCard.css';
 
 const closeAtFormatter = new Intl.DateTimeFormat('zh-TW', {
   year: 'numeric',
@@ -35,28 +36,32 @@ export default function CurrentEventMarketCard({ market }) {
   return (
     <Link
       className="current-event-market-card"
-      to={`/markets/${market.id}`}
+      to={`/markets/current-affairs/${market.id}`}
     >
       <article>
-        <div className="current-event-market-card__media">
-          {market.imageUrl ? (
-            <img src={market.imageUrl} alt="" />
-          ) : (
-            <span aria-hidden="true">
-              <i className="fa-solid fa-newspaper"></i>
-            </span>
-          )}
+        <div className="current-event-market-card__heading">
+          <div className="current-event-market-card__media">
+            {market.imageUrl ? (
+              <img src={market.imageUrl} alt="" />
+            ) : (
+              <span aria-hidden="true">
+                <i className="fa-solid fa-newspaper"></i>
+              </span>
+            )}
+          </div>
+
+          <div className="current-event-market-card__summary">
+            <div className="current-event-market-card__tags">
+              <span>{market.category}</span>
+
+              {matchedFilters.map((filter) => (
+                <span key={filter.id}>{filter.label}</span>
+              ))}
+            </div>
+
+            <h2>{market.title}</h2>
+          </div>
         </div>
-
-        <div className="current-event-market-card__tags">
-          <span>{market.category}</span>
-
-          {matchedFilters.map((filter) => (
-            <span key={filter.id}>{filter.label}</span>
-          ))}
-        </div>
-
-        <h2>{market.title}</h2>
 
         <div
           className="current-event-market-card__probability"
@@ -87,7 +92,11 @@ export default function CurrentEventMarketCard({ market }) {
             截止 {formatCloseAt(market.closeAt)}
           </time>
 
-          <span>{StatusLabel[market.status] ?? market.status}</span>
+          <span
+            className={`current-event-market-card__status is-${market.status.toLowerCase()}`}
+          >
+            {StatusLabel[market.status] ?? market.status}
+          </span>
         </footer>
       </article>
     </Link>

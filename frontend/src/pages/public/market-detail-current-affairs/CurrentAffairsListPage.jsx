@@ -24,6 +24,13 @@ export default function CurrentAffairsListPage() {
     const [keyword, setKeyword] = useState('');
     const [status, setStatus] = useState('ACTIVE');
     const [sort, setSort] = useState('popular');
+    const [requestVersion, setRequestVersion] = useState(0);
+
+    const hasKeyword = keyword.trim().length > 0;
+
+    function handleRetry() {
+        setRequestVersion((currentVersion) => currentVersion + 1);
+    }
 
     function handleFilterChange(nextFilterId) {
         const nextSearchParams = new URLSearchParams(searchParams);
@@ -35,6 +42,13 @@ export default function CurrentAffairsListPage() {
         }
 
         setSearchParams(nextSearchParams);
+    }
+
+    function handleClearFilters() {
+        setKeyword('');
+        setStatus('ACTIVE');
+        setSort('popular');
+        handleFilterChange('all');
     }
 
     useEffect(() => {
@@ -72,7 +86,7 @@ export default function CurrentAffairsListPage() {
         return () => {
             ignore = true;
         };
-    }, [filterId, keyword, status, sort]);
+    }, [filterId, keyword, status, sort, requestVersion]);
 
     return (
         <section className="current-affairs-page">
@@ -119,14 +133,80 @@ export default function CurrentAffairsListPage() {
                 />
 
                 <div className="current-affairs-results">
-                    {loading && <p>載入中...</p>}
+                    {loading && (
+                        <div
+                            className="current-affairs-grid"
+                            aria-label="正在載入時事盤口"
+                            aria-busy="true"
+                        >
+                            {Array.from({ length: 3 }).map((_, index) => (
+                                <div
+                                    className="current-affairs-skeleton"
+                                    key={index}
+                                    aria-hidden="true"
+                                >
+                                    <div className="current-affairs-skeleton__heading">
+                                        <span className="current-affairs-skeleton__media" />
+
+                                        <div className="current-affairs-skeleton__copy">
+                                            <span className="current-affairs-skeleton__tag" />
+                                            <span className="current-affairs-skeleton__line" />
+                                            <span className="current-affairs-skeleton__line is-short" />
+                                        </div>
+                                    </div>
+
+                                    <span className="current-affairs-skeleton__probability" />
+                                    <span className="current-affairs-skeleton__bar" />
+                                    <span className="current-affairs-skeleton__footer" />
+                                </div>
+                            ))}
+                        </div>
+                    )}
 
                     {!loading && error && (
-                        <p role="alert">{error}</p>
+                        <div
+                            className="current-affairs-state is-error"
+                            role="alert"
+                        >
+                            <i
+                                className="fa-solid fa-triangle-exclamation"
+                                aria-hidden="true"
+                            ></i>
+
+                            <h2>時事盤口載入失敗</h2>
+                            <p>{error}</p>
+
+                            <button type="button" onClick={handleRetry}>
+                                重新載入
+                            </button>
+                        </div>
                     )}
 
                     {!loading && !error && markets.length === 0 && (
-                        <p>目前沒有符合條件的時事盤口。</p>
+                        <div className="current-affairs-state">
+                            <i
+                                className="fa-solid fa-magnifying-glass"
+                                aria-hidden="true"
+                            ></i>
+
+                            <h2>
+                                {hasKeyword
+                                    ? '找不到符合條件的盤口'
+                                    : '此分類目前沒有時事盤口'}
+                            </h2>
+
+                            <p>
+                                {hasKeyword
+                                    ? '請調整搜尋文字，或清除目前的篩選條件。'
+                                    : '請切換其他分類或盤口狀態。'}
+                            </p>
+
+                            {hasKeyword && (
+                                <button type="button" onClick={handleClearFilters}>
+                                    清除篩選
+                                </button>
+                            )}
+                        </div>
                     )}
 
 
