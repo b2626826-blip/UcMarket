@@ -3,6 +3,7 @@ package com.ucmarket.service;
 import com.ucmarket.dto.admin.MarketSummaryItem;
 import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.repository.MarketRepository;
+import com.ucmarket.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -18,12 +19,13 @@ import static org.mockito.Mockito.when;
 class AdminDashboardServiceTest {
 
     @Mock private MarketRepository marketRepository;
+    @Mock private UserRepository userRepository;
 
     private AdminDashboardService service;
 
     @BeforeEach
     void setUp() {
-        service = new AdminDashboardService(marketRepository);
+        service = new AdminDashboardService(marketRepository, userRepository);
     }
 
     @Test
