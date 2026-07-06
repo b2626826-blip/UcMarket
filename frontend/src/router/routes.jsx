@@ -7,7 +7,6 @@ import AdminGuard from "./AdminGuard";
 import HomePage from "../pages/public/home";
 import LoginPage from "../pages/public/login/LoginPage";
 import RegisterPage from "../pages/public/register/RegisterPage";
-import MarketDetailPage from "../pages/public/market-detail";
 import WeatherDetailPage from "../pages/public/market-detail-weather";
 import PoliticsDetailPage from "../pages/public/market-detail-politics";
 import SportsDetailPage from "../pages/public/market-detail-sports";
@@ -37,7 +36,6 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: "markets", element: <HomePage /> },
-      { path: "markets/:id", element: <MarketDetailPage /> },
       { path: "markets/weather/:id", element: <WeatherDetailPage /> },
       { path: "markets/politics/:id", element: <PoliticsDetailPage /> },
       { path: "markets/sports/:id", element: <SportsDetailPage /> },

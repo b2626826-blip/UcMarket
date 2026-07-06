@@ -42,3 +42,11 @@
 .trade-panel:hover::after {
   opacity: 1;
 }
+
+/* Sticky trade panel on the right side */
+.trade-panel-sticky {
+  position: sticky;
+  top: 40px;
+  align-self: start;
+  height: fit-content;
+}
