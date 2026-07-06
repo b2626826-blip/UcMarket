@@ -2,6 +2,8 @@ import { useState, useEffect } from 'react';
 import MarketCard from '../../../components/market/MarketCard';
 import MarketTrendCarousel from '../../../components/market/MarketTrendCarousel';
 import useGlowEffect from '../../../hooks/useGlowEffect';
+import CurrentEventMarketCard from '../../../components/market/CurrentEventMarketCard';
+import { getCurrentEventMarkets } from '../../../api/marketApi';
 
 const heroSlides = [
   { badge: '熱門市場', title: '預測未來', text: '透過市場價格反映真實世界機率', primary: '開始交易', secondary: '查看市場' },
@@ -15,10 +17,7 @@ const initialMarkets = [
   { id: 3, category: '運動', title: '湖人是否能拿下下一屆 NBA 總冠軍？', date: '2027 賽季', yesPrice: 0.44, noPrice: 0.56, volume: '$3.2M', traders: '3,211' },
   { id: 4, category: '運動', title: '2026 世界盃足球賽冠軍是否會是南美洲球隊？', date: '2026 年 7 月', yesPrice: 0.58, noPrice: 0.42, volume: '$4.5M', traders: '3,890' },
   { id: 5, category: '天氣', title: '明天台中最高溫會超過 30°C 嗎？', date: '明天', yesPrice: 0.55, noPrice: 0.45, volume: '$320K', traders: '812' },
-  { id: 6, category: '天氣', title: '本週台北會下雨超過 3 天嗎？', date: '本週', yesPrice: 0.62, noPrice: 0.38, volume: '$280K', traders: '756' },
-  { id: 7, category: '時事', title: '某熱門社會議題是否會在本月登上主流媒體頭條？', date: '本月', yesPrice: 0.48, noPrice: 0.52, volume: '$410K', traders: '1,023' },
-  { id: 8, category: '時事', title: '某新興科技監管法案是否會在季內完成初審？', date: '本季', yesPrice: 0.37, noPrice: 0.63, volume: '$560K', traders: '1,245' },
-  { id: 9, category: '金融', title: '美國 Fed 是否會在今年降息兩次以上？', date: '2026 年', yesPrice: 0.57, noPrice: 0.43, volume: '$9.5M', traders: '6,892' },
+  { id: 6, category: '天氣', title: '本週台北會下雨超過 3 天嗎？', date: '本週', yesPrice: 0.62, noPrice: 0.38, volume: '$280K', traders: '756' }, { id: 9, category: '金融', title: '美國 Fed 是否會在今年降息兩次以上？', date: '2026 年', yesPrice: 0.57, noPrice: 0.43, volume: '$9.5M', traders: '6,892' },
   { id: 10, category: '金融', title: 'WTI 原油在 2026 年 5 月收盤是否會高過 75 美元？', date: '2026 年 5 月', yesPrice: 0.51, noPrice: 0.49, volume: '$2.3M', traders: '1,243' },
 ];
 
@@ -30,6 +29,13 @@ export default function HomePage() {
   const [category, setCategory] = useState('全部');
   const [search, setSearch] = useState('');
   const [markets, setMarkets] = useState(initialMarkets);
+  const [currentEventMarkets, setCurrentEventMarkets] = useState([]);
+
+  useEffect(() => {
+    getCurrentEventMarkets().then(({ content }) => {
+      setCurrentEventMarkets(content);
+    });
+  }, []);
   useGlowEffect('.chart-card, .stats-card, .market-card');
 
   useEffect(() => {
@@ -62,6 +68,10 @@ export default function HomePage() {
     const matchSearch = m.title.toLowerCase().includes(search.toLowerCase()) || m.category.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
   });
+
+  const filteredCurrentEvents = currentEventMarkets.filter((market) =>
+    market.title.toLowerCase().includes(search.toLowerCase())
+  );
 
   const slide = heroSlides[slideIdx];
 
@@ -158,9 +168,15 @@ export default function HomePage() {
           <button><i className="fa-solid fa-magnifying-glass"></i></button>
         </div>
         <div className="market-grid" id="marketGrid">
-          {filtered.map((m) => (
-            <MarketCard key={m.id} market={m} onClickTrade={handleTrade} />
-          ))}
+          {category !== '時事' &&
+            filtered.map((market) => (
+              <MarketCard key={market.id} market={market} onClickTrade={handleTrade} />
+            ))}
+
+          {category === '時事' &&
+            filteredCurrentEvents.map((market) => (
+              <CurrentEventMarketCard key={market.id} market={market} />
+            ))}
         </div>
       </section>
     </div>

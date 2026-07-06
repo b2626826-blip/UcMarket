@@ -29,7 +29,6 @@ import TransactionsPage from "../pages/admin/transactions";
 import SettingsPage from "../pages/admin/settings";
 import LogsPage from "../pages/admin/logs";
 import AdminLoginPage from "../pages/admin/login";
-import CurrentAffairsListPage from "../pages/public/market-detail-current-affairs/CurrentAffairsListPage";
 
 const router = createBrowserRouter([
   {
@@ -38,7 +37,7 @@ const router = createBrowserRouter([
     children: [
       { index: true, element: <HomePage /> },
       { path: "markets", element: <HomePage /> },
-      { path: "markets/current-affairs", element: <CurrentAffairsListPage /> },
+      { path: "markets/current-affairs", element: <Navigate to="/" replace /> },
       { path: "markets/:id", element: <MarketDetailPage /> },
       { path: "markets/weather/:id", element: <WeatherDetailPage /> },
       { path: "markets/politics/:id", element: <PoliticsDetailPage /> },
