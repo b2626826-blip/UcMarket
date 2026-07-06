@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
-import Chart from 'chart.js/auto';
+import { useState, useEffect } from 'react';
 import MarketCard from '../../../components/market/MarketCard';
+import MarketTrendCarousel from '../../../components/market/MarketTrendCarousel';
 import useGlowEffect from '../../../hooks/useGlowEffect';
 
 const heroSlides = [
@@ -30,8 +30,6 @@ export default function HomePage() {
   const [category, setCategory] = useState('全部');
   const [search, setSearch] = useState('');
   const [markets, setMarkets] = useState(initialMarkets);
-  const [taipeiTime, setTaipeiTime] = useState('');
-  const chartRef = useRef(null);
   useGlowEffect('.chart-card, .stats-card, .market-card');
 
   useEffect(() => {
@@ -45,13 +43,6 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    setTaipeiTime(new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    const timer = setInterval(() => {
-      setTaipeiTime(new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -65,31 +56,6 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    const canvas = document.getElementById('marketChart');
-    if (!canvas || typeof Chart === 'undefined') return;
-    const ctx = canvas.getContext('2d');
-    if (chartRef.current) chartRef.current.destroy();
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(217, 170, 67, 0.35)');
-    gradient.addColorStop(1, 'rgba(217, 170, 67, 0)');
-    chartRef.current = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
-        datasets: [
-          { label: 'Yes 價格', data: [42,45,47,51,58,62,60,65,68,72,70,75], borderColor: '#d9aa43', backgroundColor: gradient, fill: true, tension: 0.45, borderWidth: 3, pointRadius: 4, pointHoverRadius: 7, pointBackgroundColor: '#d9aa43' },
-          { label: 'No 價格', data: [58,55,53,49,42,38,40,35,32,28,30,25], borderColor: '#00d66f', backgroundColor: 'transparent', fill: false, tension: 0.45, borderWidth: 2, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#00d66f' }
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111', titleColor: '#fff', bodyColor: '#d9aa43', borderColor: 'rgba(217,170,67,.35)', borderWidth: 1, padding: 12 } },
-        scales: { x: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { min: 0, max: 100, ticks: { color: '#888', callback: function(v) { return v + '%'; } }, grid: { color: 'rgba(255,255,255,.06)' } } }
-      }
-    });
-    return () => { if (chartRef.current) chartRef.current.destroy(); };
-  }, []);
 
   const filtered = markets.filter((m) => {
     const matchCat = category === '全部' || m.category === category;
@@ -125,26 +91,7 @@ export default function HomePage() {
       </section>
 
       <div className="dashboard" style={{ paddingTop: 80, paddingBottom: 80 }}>
-        <div className="chart-card">
-          <div className="chart-title">
-            <div className="chart-icon"><i className="fa-solid fa-chart-line"></i></div>
-            <div>
-              <h2>市場趨勢</h2>
-              <p>即時預測價格走勢</p>
-            </div>
-          </div>
-          <div className="chart-labels">
-            <span className="yes-dot"><i className="fa-solid fa-circle"></i> Yes 價格</span>
-            <span className="no-dot"><i className="fa-solid fa-circle"></i> No 價格</span>
-          </div>
-          <div className="chart-container">
-            <canvas id="marketChart"></canvas>
-          </div>
-          <div className="chart-time">
-            <span>台北時間 (UTC+8)</span>
-            <strong id="taipeiTime">{taipeiTime || '--'}</strong>
-          </div>
-        </div>
+        <MarketTrendCarousel />
         <div className="stats-card">
           <div className="stats-glow"></div>
           <div className="card-top">

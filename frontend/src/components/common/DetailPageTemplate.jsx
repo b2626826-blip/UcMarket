@@ -5,6 +5,10 @@ import './DetailPageTemplate.css';
 export default function DetailPageTemplate({
   id,
   subtitle,
+  startTime = '',
+  settleTime = '',
+  status = '',
+  settlementRule = '',
   heroExtras = null,
   children = null,
   marketId,
@@ -13,30 +17,51 @@ export default function DetailPageTemplate({
 
   return (
     <div className="trade-wrapper" style={{ paddingTop: 40, paddingBottom: 90 }}>
-      <div
-        className="trade-hero"
-        style={{
-          textAlign: 'left',
-          padding: '0 0 40px',
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: '24px',
-          flexWrap: 'wrap',
-        }}
-      >
-        <div>
-          <h1 style={{ fontSize: 42 }}>市場 #{id}</h1>
-          <p>{subtitle}</p>
-        </div>
-        {heroExtras}
-      </div>
-
       <div className="trade-dashboard">
-        <div>{children}</div>
-        <div>
+        <main className="trade-main-column">
+          <div className="trade-hero">
+            <div className="detail-template-hero-main">
+              <h1>市場 #{id}</h1>
+              <p>{subtitle}</p>
+
+              {(status || startTime || settleTime) && (
+                <div className="detail-template-meta-row">
+                  {status && (
+                    <div className="detail-template-meta-chip detail-template-meta-chip-live">
+                      <i className="fa-solid fa-circle"></i>
+                      <span>{status}</span>
+                    </div>
+                  )}
+                  {startTime && (
+                    <div className="detail-template-meta-chip">
+                      <label>開始時間</label>
+                      <strong>{startTime}</strong>
+                    </div>
+                  )}
+                  {settleTime && (
+                    <div className="detail-template-meta-chip">
+                      <label>結算時間</label>
+                      <strong>{settleTime}</strong>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {settlementRule && (
+                <div className="detail-template-rule-bar">
+                  <span className="detail-template-rule-label">結算規則</span>
+                  <p>{settlementRule}</p>
+                </div>
+              )}
+            </div>
+            {heroExtras}
+          </div>
+          {children}
+        </main>
+
+        <aside className="trade-panel-column">
           <TradePanel marketId={marketId ?? id} />
-        </div>
+        </aside>
       </div>
     </div>
   );
