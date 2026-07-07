@@ -16,7 +16,7 @@ CREATE TABLE users (
     code VARCHAR(32),
     username VARCHAR(32) NOT NULL,
     email VARCHAR(128) NOT NULL,
-    password_hash VARCHAR(128) NOT NULL,
+    password_hash VARCHAR(128),
     role VARCHAR(32) NOT NULL DEFAULT 'USER',
     status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
     reputation INTEGER NOT NULL DEFAULT 0,
@@ -50,6 +50,19 @@ CREATE TABLE user_sessions (
         revoked_at IS NULL
         OR (revoked_at >= created_at AND revoked_at <= expires_at)
     )
+);
+
+CREATE TABLE user_oauth_accounts (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL,
+    provider VARCHAR(32) NOT NULL,
+    provider_uid VARCHAR(128) NOT NULL,
+    email VARCHAR(128),
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT fk_oauth_user FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    CONSTRAINT uk_oauth_provider_uid UNIQUE (provider, provider_uid),
+    CONSTRAINT ck_oauth_provider CHECK (provider IN ('GOOGLE', 'FACEBOOK', 'GITHUB'))
 );
 
 CREATE TABLE wallets (
@@ -336,6 +349,8 @@ CREATE UNIQUE INDEX uk_wallet_transactions_idempotency_key
 
 CREATE INDEX idx_user_sessions_user_id ON user_sessions (user_id);
 CREATE INDEX idx_user_sessions_expires_at ON user_sessions (expires_at);
+CREATE INDEX idx_oauth_user_id ON user_oauth_accounts (user_id);
+CREATE INDEX idx_oauth_email ON user_oauth_accounts (email);
 
 CREATE INDEX idx_markets_creator_id ON markets (creator_id);
 CREATE INDEX idx_markets_status ON markets (status);
@@ -500,6 +515,7 @@ LEFT JOIN latest_history lh ON lh.market_id = m.id;
 
 COMMENT ON TABLE users IS '會員資料、角色、狀態與公開個人資料。';
 COMMENT ON TABLE user_sessions IS '登入 session 或 refresh token 紀錄。';
+COMMENT ON TABLE user_oauth_accounts IS '使用者綁定的第三方 OAuth 帳號（Google / Facebook / GitHub）。';
 COMMENT ON TABLE wallets IS '每位使用者一個虛擬點數錢包，balance 是 ledger amount 加總後的快照。';
 COMMENT ON TABLE markets IS '預測市場主資料、審核狀態、流動池與結算結果。';
 COMMENT ON TABLE market_reviews IS '管理員審核市場的紀錄。';
