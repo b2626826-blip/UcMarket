@@ -1,9 +1,14 @@
 import { useState } from "react";
+import { signInWithPopup } from "firebase/auth";
+import { auth, OAuthProviders } from "../../../config/firebase";
+import useAuthStore from "../../../store/authStore";
 import "./LoginPage.css";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [error, setError] = useState("");
+  const { firebaseLogin } = useAuthStore();
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -12,6 +17,29 @@ export default function LoginPage() {
     setTimeout(() => {
       setShowToast(false);
     }, 1800);
+  }
+
+  async function handleSocialLogin(providerName) {
+    setError("");
+    try {
+      const provider = OAuthProviders[providerName];
+      if (!provider) return;
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+      await firebaseLogin(idToken, providerName);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 1800);
+    } catch (err) {
+      let msg = "登入失敗";
+      if (err.code === "auth/account-exists-with-different-credential") {
+        msg = "此 Email 已使用其他登入方式註冊。";
+      } else if (err.code === "auth/popup-closed-by-user") {
+        msg = "登入視窗已關閉，請重新嘗試。";
+      } else if (err.message) {
+        msg = err.message;
+      }
+      setError(msg);
+    }
   }
 
   return (
@@ -87,12 +115,10 @@ export default function LoginPage() {
           </div>
 
           <div className="social-login">
-            <button>G</button>
-            <button>
-              <span className="material-symbols-outlined">account_balance_wallet</span>
-            </button>
-            <button>GH</button>
+            <button type="button" onClick={() => handleSocialLogin("GOOGLE")}>G</button>
+            <button type="button" onClick={() => handleSocialLogin("GITHUB")}>GH</button>
           </div>
+          {error && <p className="error-text" style={{ textAlign: "center", marginTop: 12 }}>{error}</p>}
 
           <p className="register-link">
             還沒有帳號？ <a href="/auth/register">立即註冊</a>

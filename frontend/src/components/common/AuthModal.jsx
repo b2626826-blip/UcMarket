@@ -1,4 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, OAuthProviders } from '../../config/firebase';
 import useAuthStore from '../../store/authStore';
 
 export default function AuthModal({ open, onClose, initialTab }) {
@@ -103,6 +105,33 @@ export default function AuthModal({ open, onClose, initialTab }) {
 
   function switchTab(t) { setTab(t); t === 'login' ? resetLogin() : resetReg(); setLoginBtnState({ text: '', bg: '' }); setRegBtnState({ text: '', bg: '' }); }
 
+  async function handleSocialLogin(providerName) {
+    setLoginBtnState({ text: '登入中...', bg: '' });
+    setRegBtnState({ text: '註冊中...', bg: '' });
+    try {
+      const provider = OAuthProviders[providerName];
+      if (!provider) return;
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+      await useAuthStore.getState().firebaseLogin(idToken, providerName);
+      showToastMsg('登入成功');
+      setTimeout(() => { onClose(); resetLogin(); resetReg(); setLoginBtnState({ text: '', bg: '' }); setRegBtnState({ text: '', bg: '' }); }, 1200);
+    } catch (err) {
+      let msg = '登入失敗';
+      if (err.code === 'auth/account-exists-with-different-credential') {
+        msg = '此 Email 已使用其他登入方式註冊。';
+      } else if (err.code === 'auth/popup-closed-by-user') {
+        msg = '登入視窗已關閉，請重新嘗試。';
+      } else if (err.message) {
+        msg = err.message;
+      }
+      setLoginErrors((p) => ({ ...p, email: msg }));
+      setRegErrors((p) => ({ ...p, email: msg }));
+      setLoginBtnState({ text: '', bg: '' });
+      setRegBtnState({ text: '', bg: '' });
+    }
+  }
+
   if (!open) return null;
 
   return (
@@ -149,9 +178,9 @@ export default function AuthModal({ open, onClose, initialTab }) {
           </form>
           <div className="login-divider"><span></span><p>或使用以下方式</p><span></span></div>
           <div className="social-login">
-            <button><i className="fa-brands fa-google"></i></button>
-            <button><i className="fa-solid fa-wallet"></i></button>
-            <button><i className="fa-brands fa-github"></i></button>
+            <button type="button" onClick={() => handleSocialLogin('GOOGLE')}><i className="fa-brands fa-google"></i></button>
+            <button type="button" onClick={() => handleSocialLogin('GITHUB')}><i className="fa-brands fa-github"></i></button>
+            <button type="button" disabled title="Facebook 即將推出"><i className="fa-brands fa-facebook"></i></button>
           </div>
           <p className="register-link">還沒有帳號？<a href="#" onClick={(e) => { e.preventDefault(); switchTab('register'); }}>立即註冊</a></p>
           <div className="security-list">
@@ -210,8 +239,8 @@ export default function AuthModal({ open, onClose, initialTab }) {
           </form>
           <div className="register-divider"><span></span><p>或使用以下方式繼續</p><span></span></div>
           <div className="social-register">
-            <button><i className="fa-brands fa-google"></i> Google</button>
-            <button><i className="fa-solid fa-wallet"></i> 錢包連接</button>
+            <button type="button" onClick={() => handleSocialLogin('GOOGLE')}><i className="fa-brands fa-google"></i> Google</button>
+            <button type="button" onClick={() => handleSocialLogin('GITHUB')}><i className="fa-brands fa-github"></i> GitHub</button>
           </div>
           <p className="login-link">已經有帳號？<a href="#" onClick={(e) => { e.preventDefault(); switchTab('login'); }}>立即登入</a></p>
         </div>

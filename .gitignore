@@ -22,6 +22,10 @@ dist/
 
 # Environment
 .env
+frontend/.env
+
+# Firebase service account credentials
+backend/src/main/resources/firebase-service-account.json
 
 # Local planning / notes
 /.agents/

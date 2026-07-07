@@ -10,9 +10,7 @@ const categoryToSlug = {
 
 export default function MarketCard({ market, onClickTrade }) {
   const slug = categoryToSlug[market.category];
-  const detailPath = slug
-    ? `/markets/${slug}/${market.id}`
-    : `/markets/${market.id}`;
+  const detailPath = `/markets/${slug}/${market.id}`;
 
   return (
     <div className="market-card" style={{ display: 'block' }}>

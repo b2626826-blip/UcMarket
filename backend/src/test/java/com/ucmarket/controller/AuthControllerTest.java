@@ -3,11 +3,13 @@ package com.ucmarket.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ucmarket.dto.auth.AuthResponse;
 import com.ucmarket.dto.auth.AuthResponse.UserInfo;
+import com.ucmarket.dto.auth.FirebaseLoginRequest;
 import com.ucmarket.dto.auth.LoginRequest;
 import com.ucmarket.dto.auth.RegisterRequest;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.security.JwtTokenProvider;
 import com.ucmarket.service.AuthService;
+import com.ucmarket.service.FirebaseAuthService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -31,6 +33,7 @@ class AuthControllerTest {
     @Autowired private ObjectMapper objectMapper;
 
     @MockitoBean private AuthService authService;
+    @MockitoBean private FirebaseAuthService firebaseAuthService;
     @MockitoBean private JwtTokenProvider jwtTokenProvider;
     @MockitoBean private UserRepository userRepository;
 
@@ -97,5 +100,31 @@ class AuthControllerTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"refreshToken\":\"refresh-token\"}"))
                 .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void firebaseLogin_shouldReturn200() throws Exception {
+        FirebaseLoginRequest request = new FirebaseLoginRequest("fake-id-token", "GOOGLE");
+        AuthResponse response = new AuthResponse("access", "refresh", 604800L,
+                new UserInfo(UUID.randomUUID(), "googleuser", "user@gmail.com", "USER", "ACTIVE", 0, null, null));
+
+        when(firebaseAuthService.loginWithFirebase(any())).thenReturn(response);
+
+        mockMvc.perform(post("/api/auth/oauth/firebase")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.accessToken").value("access"))
+                .andExpect(jsonPath("$.user.email").value("user@gmail.com"));
+    }
+
+    @Test
+    void firebaseLogin_shouldReturn400_whenValidationFails() throws Exception {
+        FirebaseLoginRequest request = new FirebaseLoginRequest("", "");
+
+        mockMvc.perform(post("/api/auth/oauth/firebase")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 }

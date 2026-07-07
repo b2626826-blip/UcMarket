@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ucmarket.dto.auth.AuthResponse;
 import com.ucmarket.dto.auth.AuthResponse.UserInfo;
 import com.ucmarket.dto.auth.ChangePasswordRequest;
+import com.ucmarket.dto.auth.FirebaseLoginRequest;
 import com.ucmarket.dto.auth.LoginRequest;
 import com.ucmarket.dto.auth.LogoutRequest;
 import com.ucmarket.dto.auth.RefreshRequest;
@@ -22,6 +23,7 @@ import com.ucmarket.dto.auth.RegisterRequest;
 import com.ucmarket.dto.auth.UpdateProfileRequest;
 import com.ucmarket.entity.User;
 import com.ucmarket.service.AuthService;
+import com.ucmarket.service.FirebaseAuthService;
 
 import jakarta.validation.Valid;
 
@@ -30,15 +32,23 @@ import jakarta.validation.Valid;
 public class AuthController {
 
     private final AuthService authService;
+    private final FirebaseAuthService firebaseAuthService;
 
-    public AuthController(AuthService authService) {
+    public AuthController(AuthService authService, FirebaseAuthService firebaseAuthService) {
         this.authService = authService;
+        this.firebaseAuthService = firebaseAuthService;
     }
 
     @PostMapping("/register")
     public ResponseEntity<AuthResponse> register(@Valid @RequestBody RegisterRequest request) {
         AuthResponse response = authService.register(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    }
+
+    @PostMapping("/oauth/firebase")
+    public ResponseEntity<AuthResponse> firebaseLogin(@Valid @RequestBody FirebaseLoginRequest request) {
+        AuthResponse response = firebaseAuthService.loginWithFirebase(request);
+        return ResponseEntity.ok(response);
     }
 
     @PostMapping("/login")

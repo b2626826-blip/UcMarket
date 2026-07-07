@@ -128,3 +128,11 @@
     padding: 12px 14px;
   }
 }
+
+/* Sticky trade panel on the right side */
+.trade-panel-sticky {
+  position: sticky;
+  top: 40px;
+  align-self: start;
+  height: fit-content;
+}
