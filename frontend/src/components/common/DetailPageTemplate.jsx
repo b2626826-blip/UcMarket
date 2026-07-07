@@ -11,8 +11,10 @@ export default function DetailPageTemplate({
   settlementRule = '',
   category,
   heroLayout = 'left',
+  heroBanner = null,
   heroExtras = null,
   children = null,
+  belowDashboard = null,
   marketId,
   market = null,
   tradePanel = null,
@@ -21,6 +23,7 @@ export default function DetailPageTemplate({
 
   const heroContent = (
     <div className="trade-hero">
+      {heroBanner}
       <div className="detail-template-hero-main">
         <h1>{category || `市場 #${id}`}</h1>
         <p>{subtitle}</p>
@@ -73,6 +76,8 @@ export default function DetailPageTemplate({
           {tradePanel ?? <TradePanel marketId={marketId ?? id} market={market} />}
         </aside>
       </div>
+
+      {belowDashboard}
     </div>
   );
 }

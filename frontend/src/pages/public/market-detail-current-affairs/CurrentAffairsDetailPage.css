@@ -1,3 +1,35 @@
+.current-affairs-showcase {
+  position: relative;
+  width: 100%;
+  height: clamp(240px, 36vw, 360px);
+  margin-bottom: 32px;
+  overflow: hidden;
+  background: #050505;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+}
+
+.current-affairs-showcase__label {
+  position: absolute;
+  top: 28px;
+  left: 32px;
+  z-index: 1;
+  color: #fff;
+  font-size: clamp(36px, 5vw, 56px);
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  line-height: 1;
+  text-shadow: 0 3px 18px rgba(0, 0, 0, 0.9);
+}
+
+.current-affairs-showcase img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 85%;
+}
+
 .current-affairs-info__header {
   display: flex; justify-content: space-between; align-items: flex-start; gap: 24px;
 }
@@ -6,10 +38,6 @@
   display: inline-block; margin-bottom: 12px; color: var(--gold); font-weight: 800;
 }
 .current-affairs-info__header h2 { margin: 0; font-size: 26px; line-height: 1.45; }
-.current-affairs-info__status {
-  flex-shrink: 0; padding: 7px 12px; border-radius: 999px;
-  background: rgba(217, 170, 67, 0.12); color: var(--gold); font-weight: 800;
-}
 .current-affairs-info__description {
   margin: 20px 0; color: var(--text-secondary); line-height: 1.8;
 }
@@ -26,7 +54,18 @@
   display: flex; justify-content: space-between; margin-top: 20px;
   padding-top: 18px; border-top: 1px solid var(--border);
 }
+.current-affairs-info__details {
+  margin-top: 18px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+}
 @media (max-width: 768px) {
+  .current-affairs-showcase {
+    height: 220px;
+    margin-bottom: 24px;
+    border-radius: 18px;
+  }
+  .current-affairs-showcase__label { top: 20px; left: 20px; font-size: 36px; }
   .current-affairs-info__header { flex-direction: column; }
   .current-affairs-info__prices { grid-template-columns: 1fr; }
 }

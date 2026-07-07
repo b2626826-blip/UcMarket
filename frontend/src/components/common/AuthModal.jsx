@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { signInWithPopup } from 'firebase/auth';
-import { auth, OAuthProviders } from '../../config/firebase';
+import { auth, firebaseEnabled, OAuthProviders } from '../../config/firebase';
 import useAuthStore from '../../store/authStore';
 
 export default function AuthModal({ open, onClose, initialTab }) {
@@ -178,8 +178,8 @@ export default function AuthModal({ open, onClose, initialTab }) {
           </form>
           <div className="login-divider"><span></span><p>或使用以下方式</p><span></span></div>
           <div className="social-login">
-            <button type="button" onClick={() => handleSocialLogin('GOOGLE')}><i className="fa-brands fa-google"></i></button>
-            <button type="button" onClick={() => handleSocialLogin('GITHUB')}><i className="fa-brands fa-github"></i></button>
+            <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? 'Firebase 尚未設定' : undefined} onClick={() => handleSocialLogin('GOOGLE')}><i className="fa-brands fa-google"></i></button>
+            <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? 'Firebase 尚未設定' : undefined} onClick={() => handleSocialLogin('GITHUB')}><i className="fa-brands fa-github"></i></button>
             <button type="button" disabled title="Facebook 即將推出"><i className="fa-brands fa-facebook"></i></button>
           </div>
           <p className="register-link">還沒有帳號？<a href="#" onClick={(e) => { e.preventDefault(); switchTab('register'); }}>立即註冊</a></p>
@@ -239,8 +239,8 @@ export default function AuthModal({ open, onClose, initialTab }) {
           </form>
           <div className="register-divider"><span></span><p>或使用以下方式繼續</p><span></span></div>
           <div className="social-register">
-            <button type="button" onClick={() => handleSocialLogin('GOOGLE')}><i className="fa-brands fa-google"></i> Google</button>
-            <button type="button" onClick={() => handleSocialLogin('GITHUB')}><i className="fa-brands fa-github"></i> GitHub</button>
+            <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? 'Firebase 尚未設定' : undefined} onClick={() => handleSocialLogin('GOOGLE')}><i className="fa-brands fa-google"></i> Google</button>
+            <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? 'Firebase 尚未設定' : undefined} onClick={() => handleSocialLogin('GITHUB')}><i className="fa-brands fa-github"></i> GitHub</button>
           </div>
           <p className="login-link">已經有帳號？<a href="#" onClick={(e) => { e.preventDefault(); switchTab('login'); }}>立即登入</a></p>
         </div>

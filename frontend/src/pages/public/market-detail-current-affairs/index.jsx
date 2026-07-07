@@ -3,6 +3,7 @@ import DetailPageTemplate from '../../../components/common/DetailPageTemplate';
 import { useEffect, useState } from 'react';
 import { StatusLabel } from '../../../types/market';
 import './CurrentAffairsDetailPage.css';
+import currentAffairsBanner from './current-affairs-banner.gif';
 import CurrentEventMarketCard from '../../../components/market/CurrentEventMarketCard';
 import {
   getCurrentEventMarketDetail,
@@ -43,11 +44,29 @@ export default function CurrentAffairsDetailPage() {
 
     <DetailPageTemplate
       id={market.code}
-      subtitle={market.title}
-      status={StatusLabel[market.status] ?? market.status}
-      settleTime={new Date(market.closeAt).toLocaleString('zh-TW')}
-      settlementRule={market.resolutionRule}
+      category={market.title}
+      subtitle={`市場 #${market.code}`}
       marketId={market.id}
+      heroBanner={(
+        <div className="current-affairs-showcase">
+          <strong className="current-affairs-showcase__label">時事</strong>
+          <img src={currentAffairsBanner} alt="時事市場展示" />
+        </div>
+      )}
+      belowDashboard={(
+        <section className="current-affairs-related">
+          <header>
+            <h2>其他時事市場</h2>
+            <p>點擊卡片切換到其他時事市場</p>
+          </header>
+
+          <div className="current-affairs-related__grid">
+            {otherMarkets.map((item) => (
+              <CurrentEventMarketCard key={item.id} market={item} />
+            ))}
+          </div>
+        </section>
+      )}
     >
       <div className="trade-market-card">
         <header className="current-affairs-info__header">
@@ -55,9 +74,6 @@ export default function CurrentAffairsDetailPage() {
             <span className="current-affairs-info__badge">時事市場</span>
             <h2>{market.title}</h2>
           </div>
-          <span className="current-affairs-info__status">
-            {StatusLabel[market.status] ?? market.status}
-          </span>
         </header>
 
         <p className="current-affairs-info__description">{market.description}</p>
@@ -79,20 +95,25 @@ export default function CurrentAffairsDetailPage() {
           <span>交易量</span>
           <strong>{market.volume == null ? '—' : market.volume.toLocaleString('zh-TW')}</strong>
         </footer>
-      </div>
 
-      <section className="current-affairs-related">
-        <header>
-          <h2>其他時事市場</h2>
-          <p>點擊卡片切換到其他時事市場</p>
-        </header>
+        <div className="current-affairs-info__details">
+          <div className="detail-template-meta-row">
+            <div className="detail-template-meta-chip detail-template-meta-chip-live">
+              <i className="fa-solid fa-circle"></i>
+              <span>{StatusLabel[market.status] ?? market.status}</span>
+            </div>
+            <div className="detail-template-meta-chip">
+              <label>結算時間</label>
+              <strong>{new Date(market.closeAt).toLocaleString('zh-TW')}</strong>
+            </div>
+          </div>
 
-        <div className="current-affairs-related__grid">
-          {otherMarkets.map((item) => (
-            <CurrentEventMarketCard key={item.id} market={item} />
-          ))}
+          <div className="detail-template-rule-bar">
+            <span className="detail-template-rule-label">結算規則</span>
+            <p>{market.resolutionRule}</p>
+          </div>
         </div>
-      </section>
+      </div>
     </DetailPageTemplate>
   );
 }

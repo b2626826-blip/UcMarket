@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { signInWithPopup } from "firebase/auth";
-import { auth, OAuthProviders } from "../../../config/firebase";
+import { auth, firebaseEnabled, OAuthProviders } from "../../../config/firebase";
 import useAuthStore from "../../../store/authStore";
 import "./RegisterPage.css";
 
@@ -156,8 +156,8 @@ export default function RegisterPage() {
             </div>
 
             <div className="social-register">
-              <button type="button" onClick={() => handleSocialLogin("GOOGLE")}>Google</button>
-              <button type="button" onClick={() => handleSocialLogin("GITHUB")}>GitHub</button>
+              <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? "Firebase 尚未設定" : undefined} onClick={() => handleSocialLogin("GOOGLE")}>Google</button>
+              <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? "Firebase 尚未設定" : undefined} onClick={() => handleSocialLogin("GITHUB")}>GitHub</button>
             </div>
             {error && <p className="error-text" style={{ textAlign: "center", marginTop: 12 }}>{error}</p>}
 

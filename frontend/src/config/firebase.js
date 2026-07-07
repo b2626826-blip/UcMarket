@@ -8,11 +8,13 @@ const firebaseConfig = {
   appId: import.meta.env.VITE_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const googleProvider = new GoogleAuthProvider();
-export const githubProvider = new GithubAuthProvider();
-export const facebookProvider = new FacebookAuthProvider();
+export const firebaseEnabled = Object.values(firebaseConfig).every(Boolean);
+
+const app = firebaseEnabled ? initializeApp(firebaseConfig) : null;
+export const auth = app ? getAuth(app) : null;
+export const googleProvider = firebaseEnabled ? new GoogleAuthProvider() : null;
+export const githubProvider = firebaseEnabled ? new GithubAuthProvider() : null;
+export const facebookProvider = firebaseEnabled ? new FacebookAuthProvider() : null;
 
 export const OAuthProviders = {
   GOOGLE: googleProvider,
