@@ -9,6 +9,8 @@
 - `wallet_transactions` 整併錢包需求表與既有 DDL：刪除重複的 `user_id`、`market_id`；使用者由 `wallet_id -> wallets.user_id` 取得，市場或交易來源由 `reference_type` / `reference_id` 追蹤。
 - `RESOLVE_PAYOUT` 統一命名為 `RESOLUTION_PAYOUT`。
 - `roles` 不獨立成表，先沿用 `users.role` enum-like 欄位，避免和現有使用者設計重複。
+- OAuth 帳號與原生帳密共用 `users`：`users.password_hash` 允許 `NULL`，第三方身分放在 `user_oauth_accounts`。
+- `user_oauth_accounts` 以 `(provider, provider_uid)` 保證第三方帳號唯一，provider 限制為 `GOOGLE`、`FACEBOOK`、`GITHUB`；刪除使用者時連動刪除綁定，並為 `user_id`、`email` 建立索引。
 - `user_portfolio_snapshots`、`notifications`、`admin_logs` 是非交易核心但有文件提到的延伸表，已納入並和主表關聯。
 
 ## Mermaid ERD
@@ -17,6 +19,7 @@
 erDiagram
     USERS ||--|| WALLETS : owns
     USERS ||--o{ USER_SESSIONS : logs_in
+    USERS ||--o{ USER_OAUTH_ACCOUNTS : links
     USERS ||--o{ MARKETS : creates
     USERS ||--o{ MARKETS : approves
     USERS ||--o{ MARKETS : resolves
@@ -44,7 +47,7 @@ erDiagram
         uuid id PK
         varchar username UK
         varchar email UK
-        varchar password_hash
+        varchar password_hash "nullable for OAuth"
         varchar role "USER / ADMIN"
         varchar status "ACTIVE / BANNED / DISABLED"
         integer reputation
@@ -62,6 +65,15 @@ erDiagram
         timestamp expires_at
         timestamp revoked_at
         varchar ip_address
+        timestamp created_at
+    }
+
+    USER_OAUTH_ACCOUNTS {
+        uuid id PK
+        uuid user_id FK
+        varchar provider "GOOGLE / FACEBOOK / GITHUB"
+        varchar provider_uid "UK with provider"
+        varchar email
         timestamp created_at
     }
 
@@ -210,7 +222,7 @@ erDiagram
 
 | 模組 | 主要資料表 |
 | --- | --- |
-| 會員 / Auth | `users`, `user_sessions` |
+| 會員 / Auth | `users`, `user_sessions`, `user_oauth_accounts` |
 | 市場 | `markets`, `market_options`, `market_reviews`, `market_price_history` |
 | 交易 | `trades`, `positions`, `wallets`, `wallet_transactions` |
 | Resolution 結算 | `markets`, `positions`, `wallets`, `wallet_transactions`, `users` |

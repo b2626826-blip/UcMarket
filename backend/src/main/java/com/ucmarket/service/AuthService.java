@@ -140,6 +140,10 @@ public class AuthService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
+        if (user.getPasswordHash() == null) {
+            throw new IllegalStateException("OAuth users cannot change password");
+        }
+
         if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
             throw new IllegalArgumentException("Current password is incorrect");
         }
@@ -148,7 +152,7 @@ public class AuthService {
         userRepository.save(user);
     }
 
-    private AuthResponse buildAuthResponse(User user) {
+    public AuthResponse buildAuthResponse(User user) {
         String accessToken = jwtTokenProvider.generateAccessToken(user);
         String refreshToken = jwtTokenProvider.generateRefreshToken();
         long expiresIn = jwtTokenProvider.getRefreshTokenExpiration();

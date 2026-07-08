@@ -1,5 +1,6 @@
 package com.ucmarket.repository;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,14 +30,26 @@ public interface PositionRepository extends JpaRepository<Position, UUID> {
 	@Modifying
 	@Query(value = """
 			INSERT INTO positions (
-				id, user_id, market_id,
-				yes_shares, no_shares, yes_cost, no_cost,
-				status, updated_at
+				id,
+				user_id,
+				market_id,
+				yes_shares,
+				no_shares,
+				yes_cost,
+				no_cost,
+				status,
+				updated_at
 			)
 			VALUES (
-				:id, :userId, :marketId,
-				:shares, 0, :cost, 0,
-				'OPEN', CURRENT_TIMESTAMP
+				:id,
+				:userId,
+				:marketId,
+				:shares,
+				0,
+				:cost,
+				0,
+				'OPEN',
+				CURRENT_TIMESTAMP
 			)
 			ON CONFLICT (user_id, market_id) WHERE option_id IS NULL
 			DO UPDATE SET
@@ -49,21 +62,33 @@ public interface PositionRepository extends JpaRepository<Position, UUID> {
 			@Param("id") UUID id,
 			@Param("userId") UUID userId,
 			@Param("marketId") UUID marketId,
-			@Param("shares") java.math.BigDecimal shares,
-			@Param("cost") java.math.BigDecimal cost
+			@Param("shares") BigDecimal shares,
+			@Param("cost") BigDecimal cost
 	);
 
 	@Modifying
 	@Query(value = """
 			INSERT INTO positions (
-				id, user_id, market_id,
-				yes_shares, no_shares, yes_cost, no_cost,
-				status, updated_at
+				id,
+				user_id,
+				market_id,
+				yes_shares,
+				no_shares,
+				yes_cost,
+				no_cost,
+				status,
+				updated_at
 			)
 			VALUES (
-				:id, :userId, :marketId,
-				0, :shares, 0, :cost,
-				'OPEN', CURRENT_TIMESTAMP
+				:id,
+				:userId,
+				:marketId,
+				0,
+				:shares,
+				0,
+				:cost,
+				'OPEN',
+				CURRENT_TIMESTAMP
 			)
 			ON CONFLICT (user_id, market_id) WHERE option_id IS NULL
 			DO UPDATE SET
@@ -76,8 +101,8 @@ public interface PositionRepository extends JpaRepository<Position, UUID> {
 			@Param("id") UUID id,
 			@Param("userId") UUID userId,
 			@Param("marketId") UUID marketId,
-			@Param("shares") java.math.BigDecimal shares,
-			@Param("cost") java.math.BigDecimal cost
+			@Param("shares") BigDecimal shares,
+			@Param("cost") BigDecimal cost
 	);
 
 	List<Position> findByMarketId(UUID marketId);

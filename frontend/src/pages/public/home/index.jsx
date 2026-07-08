@@ -1,7 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
-import Chart from 'chart.js/auto';
+import { useState, useEffect } from 'react';
 import MarketCard from '../../../components/market/MarketCard';
+import MarketTrendCarousel from '../../../components/market/MarketTrendCarousel';
 import useGlowEffect from '../../../hooks/useGlowEffect';
+import CurrentEventMarketCard from '../../../components/market/CurrentEventMarketCard';
+import { getCurrentEventMarkets } from '../../../api/marketApi';
 
 const heroSlides = [
   { badge: '熱門市場', title: '預測未來', text: '透過市場價格反映真實世界機率', primary: '開始交易', secondary: '查看市場' },
@@ -10,18 +12,16 @@ const heroSlides = [
 ];
 
 const initialMarkets = [
-  { id: 1, category: '金融', title: 'WTI 原油在 2026 年 5 月收盤是否會高過 55？', date: '2026 年 5 月', yesPrice: 0.55, noPrice: 0.45, volume: '$2.3M', traders: '1,243' },
-  { id: 2, category: '金融', title: '美國債務上限是否會被永久取消？', date: '2026 年', yesPrice: 0.41, noPrice: 0.59, volume: '$8.7M', traders: '4,820' },
-  { id: 3, category: '加密', title: 'BTC 是否會在 2027 年前突破 200K？', date: '2027 年', yesPrice: 0.72, noPrice: 0.28, volume: '$12.4M', traders: '8,921' },
-  { id: 4, category: '政治', title: '共和黨是否會贏得下一屆美國總統大選？', date: '2028 年 11 月', yesPrice: 0.61, noPrice: 0.39, volume: '$5.8M', traders: '4,451' },
-  { id: 5, category: '體育', title: '湖人是否能拿下 NBA 總冠軍？', date: '2027 賽季', yesPrice: 0.44, noPrice: 0.56, volume: '$3.2M', traders: '3,211' },
-  { id: 6, category: '科技', title: 'AI 公司是否會在今年創下新 IPO 紀錄？', date: '2026 年', yesPrice: 0.68, noPrice: 0.32, volume: '$4.9M', traders: '2,987' },
-  { id: 7, category: '娛樂', title: '年度票房冠軍是否會突破 20 億美元？', date: '2026 年', yesPrice: 0.36, noPrice: 0.64, volume: '$1.6M', traders: '1,042' },
-  { id: 8, category: '加密', title: 'Ethereum 是否會在年底突破 10,000？', date: '2026 年底', yesPrice: 0.49, noPrice: 0.51, volume: '$6.1M', traders: '5,604' },
-  { id: 9, category: '金融', title: '美國 Fed 是否會在今年降息兩次以上？', date: '2026 年', yesPrice: 0.57, noPrice: 0.43, volume: '$9.5M', traders: '6,892' },
+  { id: 1, category: '政治', title: '共和黨是否會贏得下一屆美國總統大選？', date: '2028 年 11 月', yesPrice: 0.61, noPrice: 0.39, volume: '$5.8M', traders: '4,451' },
+  { id: 2, category: '政治', title: '台灣某重大政策是否會在 2026 年底前通過？', date: '2026 年 12 月', yesPrice: 0.52, noPrice: 0.48, volume: '$1.9M', traders: '2,104' },
+  { id: 3, category: '運動', title: '湖人是否能拿下下一屆 NBA 總冠軍？', date: '2027 賽季', yesPrice: 0.44, noPrice: 0.56, volume: '$3.2M', traders: '3,211' },
+  { id: 4, category: '運動', title: '2026 世界盃足球賽冠軍是否會是南美洲球隊？', date: '2026 年 7 月', yesPrice: 0.58, noPrice: 0.42, volume: '$4.5M', traders: '3,890' },
+  { id: 5, category: '天氣', title: '明天台中最高溫會超過 30°C 嗎？', date: '明天', yesPrice: 0.55, noPrice: 0.45, volume: '$320K', traders: '812' },
+  { id: 6, category: '天氣', title: '本週台北會下雨超過 3 天嗎？', date: '本週', yesPrice: 0.62, noPrice: 0.38, volume: '$280K', traders: '756' }, { id: 9, category: '金融', title: '美國 Fed 是否會在今年降息兩次以上？', date: '2026 年', yesPrice: 0.57, noPrice: 0.43, volume: '$9.5M', traders: '6,892' },
+  { id: 10, category: '金融', title: 'WTI 原油在 2026 年 5 月收盤是否會高過 75 美元？', date: '2026 年 5 月', yesPrice: 0.51, noPrice: 0.49, volume: '$2.3M', traders: '1,243' },
 ];
 
-const categories = ['全部', '金融', '加密', '政治', '體育', '科技', '娛樂'];
+const categories = ['全部', '政治', '運動', '天氣', '時事', '金融'];
 
 export default function HomePage() {
   const [slideIdx, setSlideIdx] = useState(0);
@@ -29,8 +29,13 @@ export default function HomePage() {
   const [category, setCategory] = useState('全部');
   const [search, setSearch] = useState('');
   const [markets, setMarkets] = useState(initialMarkets);
-  const [taipeiTime, setTaipeiTime] = useState('');
-  const chartRef = useRef(null);
+  const [currentEventMarkets, setCurrentEventMarkets] = useState([]);
+
+  useEffect(() => {
+    getCurrentEventMarkets().then(({ content }) => {
+      setCurrentEventMarkets(content);
+    });
+  }, []);
   useGlowEffect('.chart-card, .stats-card, .market-card');
 
   useEffect(() => {
@@ -44,13 +49,6 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    setTaipeiTime(new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    const timer = setInterval(() => {
-      setTaipeiTime(new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit', second: '2-digit' }));
-    }, 1000);
-    return () => clearInterval(timer);
-  }, []);
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -64,37 +62,16 @@ export default function HomePage() {
     return () => clearInterval(timer);
   }, []);
 
-  useEffect(() => {
-    const canvas = document.getElementById('marketChart');
-    if (!canvas || typeof Chart === 'undefined') return;
-    const ctx = canvas.getContext('2d');
-    if (chartRef.current) chartRef.current.destroy();
-    const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(217, 170, 67, 0.35)');
-    gradient.addColorStop(1, 'rgba(217, 170, 67, 0)');
-    chartRef.current = new Chart(ctx, {
-      type: 'line',
-      data: {
-        labels: ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'],
-        datasets: [
-          { label: 'Yes 價格', data: [42,45,47,51,58,62,60,65,68,72,70,75], borderColor: '#d9aa43', backgroundColor: gradient, fill: true, tension: 0.45, borderWidth: 3, pointRadius: 4, pointHoverRadius: 7, pointBackgroundColor: '#d9aa43' },
-          { label: 'No 價格', data: [58,55,53,49,42,38,40,35,32,28,30,25], borderColor: '#00d66f', backgroundColor: 'transparent', fill: false, tension: 0.45, borderWidth: 2, pointRadius: 3, pointHoverRadius: 6, pointBackgroundColor: '#00d66f' }
-        ]
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { backgroundColor: '#111', titleColor: '#fff', bodyColor: '#d9aa43', borderColor: 'rgba(217,170,67,.35)', borderWidth: 1, padding: 12 } },
-        scales: { x: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,.04)' } }, y: { min: 0, max: 100, ticks: { color: '#888', callback: function(v) { return v + '%'; } }, grid: { color: 'rgba(255,255,255,.06)' } } }
-      }
-    });
-    return () => { if (chartRef.current) chartRef.current.destroy(); };
-  }, []);
 
   const filtered = markets.filter((m) => {
     const matchCat = category === '全部' || m.category === category;
     const matchSearch = m.title.toLowerCase().includes(search.toLowerCase()) || m.category.toLowerCase().includes(search.toLowerCase());
     return matchCat && matchSearch;
   });
+
+  const filteredCurrentEvents = currentEventMarkets.filter((market) =>
+    market.title.toLowerCase().includes(search.toLowerCase())
+  );
 
   const slide = heroSlides[slideIdx];
 
@@ -124,26 +101,7 @@ export default function HomePage() {
       </section>
 
       <div className="dashboard" style={{ paddingTop: 80, paddingBottom: 80 }}>
-        <div className="chart-card">
-          <div className="chart-title">
-            <div className="chart-icon"><i className="fa-solid fa-chart-line"></i></div>
-            <div>
-              <h2>市場趨勢</h2>
-              <p>即時預測價格走勢</p>
-            </div>
-          </div>
-          <div className="chart-labels">
-            <span className="yes-dot"><i className="fa-solid fa-circle"></i> Yes 價格</span>
-            <span className="no-dot"><i className="fa-solid fa-circle"></i> No 價格</span>
-          </div>
-          <div className="chart-container">
-            <canvas id="marketChart"></canvas>
-          </div>
-          <div className="chart-time">
-            <span>台北時間 (UTC+8)</span>
-            <strong id="taipeiTime">{taipeiTime || '--'}</strong>
-          </div>
-        </div>
+        <MarketTrendCarousel />
         <div className="stats-card">
           <div className="stats-glow"></div>
           <div className="card-top">
@@ -210,9 +168,15 @@ export default function HomePage() {
           <button><i className="fa-solid fa-magnifying-glass"></i></button>
         </div>
         <div className="market-grid" id="marketGrid">
-          {filtered.map((m) => (
-            <MarketCard key={m.id} market={m} onClickTrade={handleTrade} />
-          ))}
+          {category !== '時事' &&
+            filtered.map((market) => (
+              <MarketCard key={market.id} market={market} onClickTrade={handleTrade} />
+            ))}
+
+          {category === '時事' &&
+            filteredCurrentEvents.map((market) => (
+              <CurrentEventMarketCard key={market.id} market={market} />
+            ))}
         </div>
       </section>
     </div>

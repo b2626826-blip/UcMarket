@@ -33,9 +33,10 @@ public class User {
 	@Column(nullable = false, length = 128, unique = true)
 	private String email;
 
-	// DB 欄位為 password_hash，Java 屬性採用 camelCase 命名。
-	@Column(name = "password_hash", nullable = false, length = 128)
-	private String passwordHash;
+    // DB 欄位為 password_hash，Java 屬性採用 camelCase 命名。
+    // OAuth 使用者無密碼，因此允許 null。
+    @Column(name = "password_hash", length = 128)
+    private String passwordHash;
 
 	@Enumerated(EnumType.STRING)
 	@Column(nullable = false, length = 32)

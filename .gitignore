@@ -22,8 +22,16 @@ dist/
 
 # Environment
 .env
+frontend/.env
+
+# Firebase service account credentials
+backend/src/main/resources/firebase-service-account.json
 
 # Local planning / notes
+/.agents/
+/.codex/
 eagle/
+design-qa.md
 frontend/排行榜設計語彙.md
+frontend/時事盤口設計規格.md
 docs/資料庫設計/db-backups/

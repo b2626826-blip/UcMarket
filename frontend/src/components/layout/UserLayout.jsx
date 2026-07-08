@@ -1,17 +1,27 @@
-import { useState, useCallback } from 'react';
-import { Outlet, Link } from 'react-router-dom';
+import { useState, useCallback, useEffect } from 'react';
+import { Outlet, Link, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import AuthModal from '../common/AuthModal';
 import Toast from '../common/Toast';
 
 export default function UserLayout() {
+  const location = useLocation();
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const checkAuth = useAuthStore((s) => s.checkAuth);
   const [authOpen, setAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState('login');
 
   const openLogin = useCallback(() => { setAuthTab('login'); setAuthOpen(true); }, []);
   const openRegister = useCallback(() => { setAuthTab('register'); setAuthOpen(true); }, []);
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+  }, [location.pathname]);
 
   return (
     <>
@@ -23,7 +33,9 @@ export default function UserLayout() {
         <div className="nav-menu">
           <Link to="/" data-page="views/dashboard.html">市場</Link>
           <Link to="/rankings">排行榜</Link>
-          <Link to="/wallet">錢包</Link>
+          {user && <Link to="/wallet">錢包</Link>}
+          {user && <Link to="/trades">交易紀錄</Link>}
+          {user && <Link to="/markets/new">建立市場</Link>}
         </div>
         <div className="nav-right">
           {user ? (

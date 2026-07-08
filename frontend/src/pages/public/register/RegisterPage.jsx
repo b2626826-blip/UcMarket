@@ -1,10 +1,15 @@
 import { useState } from "react";
+import { signInWithPopup } from "firebase/auth";
+import { auth, firebaseEnabled, OAuthProviders } from "../../../config/firebase";
+import useAuthStore from "../../../store/authStore";
 import "./RegisterPage.css";
 
 export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [showToast, setShowToast] = useState(false);
+  const [error, setError] = useState("");
+  const { firebaseLogin } = useAuthStore();
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -13,6 +18,29 @@ export default function RegisterPage() {
     setTimeout(() => {
       setShowToast(false);
     }, 1800);
+  }
+
+  async function handleSocialLogin(providerName) {
+    setError("");
+    try {
+      const provider = OAuthProviders[providerName];
+      if (!provider) return;
+      const result = await signInWithPopup(auth, provider);
+      const idToken = await result.user.getIdToken();
+      await firebaseLogin(idToken, providerName);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 1800);
+    } catch (err) {
+      let msg = "登入失敗";
+      if (err.code === "auth/account-exists-with-different-credential") {
+        msg = "此 Email 已使用其他登入方式註冊。";
+      } else if (err.code === "auth/popup-closed-by-user") {
+        msg = "登入視窗已關閉，請重新嘗試。";
+      } else if (err.message) {
+        msg = err.message;
+      }
+      setError(msg);
+    }
   }
 
   return (
@@ -128,9 +156,10 @@ export default function RegisterPage() {
             </div>
 
             <div className="social-register">
-              <button>Google</button>
-              <button>錢包連接</button>
+              <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? "Firebase 尚未設定" : undefined} onClick={() => handleSocialLogin("GOOGLE")}>Google</button>
+              <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? "Firebase 尚未設定" : undefined} onClick={() => handleSocialLogin("GITHUB")}>GitHub</button>
             </div>
+            {error && <p className="error-text" style={{ textAlign: "center", marginTop: 12 }}>{error}</p>}
 
             <p className="login-link">
               已經有帳號？ <a href="/auth/login">立即登入</a>

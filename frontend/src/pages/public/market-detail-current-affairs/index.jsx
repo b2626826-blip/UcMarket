@@ -1,0 +1,150 @@
+import { useParams } from 'react-router-dom';
+import DetailPageTemplate from '../../../components/common/DetailPageTemplate';
+import { useEffect, useState } from 'react';
+import { StatusLabel } from '../../../types/market';
+import './CurrentAffairsDetailPage.css';
+import currentAffairsBanner from './current-affairs-banner.gif';
+import CurrentEventMarketCard from '../../../components/market/CurrentEventMarketCard';
+import CurrentAffairsMarketChart, {
+  getCurrentAffairsMarketMetrics,
+} from './CurrentAffairsMarketChart';
+import {
+  getCurrentEventMarketDetail,
+  getCurrentEventMarkets,
+} from '../../../api/marketApi';
+
+export default function CurrentAffairsDetailPage() {
+  const { id } = useParams();
+
+  const [market, setMarket] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [otherMarkets, setOtherMarkets] = useState([]);
+
+  useEffect(() => {
+    setLoading(true);
+
+    getCurrentEventMarketDetail(id).then((data) => {
+      setMarket(data);
+      setLoading(false);
+    });
+  }, [id]);
+
+  useEffect(() => {
+    getCurrentEventMarkets({ status: '', size: 6 }).then(({ content }) => {
+      setOtherMarkets(content.filter((item) => item.id !== id));
+    });
+  }, [id]);
+
+  if (loading) {
+    return <p>市場資料載入中...</p>;
+  }
+
+  if (!market) {
+    return <p>找不到此時事市場。</p>;
+  }
+
+  const metrics = getCurrentAffairsMarketMetrics(market);
+  const updatedAt = market.updatedAt ?? market.createdAt;
+  const sourceLabel = market.sourceUrl
+    ? new URL(market.sourceUrl).hostname.replace(/^www\./, '')
+    : '尚未提供';
+  const formatChange = (value) => `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
+
+  return (
+
+    <DetailPageTemplate
+      id={market.code}
+      category={market.title}
+      subtitle={`市場 #${market.code}`}
+      marketId={market.id}
+      heroBanner={(
+        <div className="current-affairs-showcase">
+          <strong className="current-affairs-showcase__label">時事</strong>
+          <img src={currentAffairsBanner} alt="時事市場展示" />
+        </div>
+      )}
+      belowDashboard={(
+        <section className="current-affairs-related">
+          <header>
+            <h2>其他時事市場</h2>
+            <p>點擊卡片切換到其他時事市場</p>
+          </header>
+
+          <div className="current-affairs-related__grid">
+            {otherMarkets.map((item) => (
+              <CurrentEventMarketCard key={item.id} market={item} />
+            ))}
+          </div>
+        </section>
+      )}
+    >
+      <div className="trade-market-card current-affairs-market-card">
+        <div className="current-affairs-overview">
+          <section className="current-affairs-editorial" aria-label="事件摘要與資料來源">
+            <span className="current-affairs-info__badge">事件摘要</span>
+            <p className="current-affairs-info__description">{market.description}</p>
+
+            <div className="current-affairs-source">
+              <span>資料來源</span>
+              {market.sourceUrl ? (
+                <a href={market.sourceUrl} target="_blank" rel="noreferrer">
+                  {sourceLabel}
+                  <i className="bi bi-box-arrow-up-right" aria-hidden="true"></i>
+                </a>
+              ) : (
+                <strong>{sourceLabel}</strong>
+              )}
+              <time dateTime={updatedAt}>
+                更新於 {new Date(updatedAt).toLocaleString('zh-TW')}
+              </time>
+            </div>
+          </section>
+
+          <section className="current-affairs-info__prices" aria-label="目前機率與 24 小時漲跌">
+            <div>
+              <span>YES</span>
+              <strong>{market.yesProbability}%</strong>
+              <small className={metrics.yesChange24h >= 0 ? 'is-up' : 'is-down'}>
+                24H {formatChange(metrics.yesChange24h)}
+              </small>
+            </div>
+            <div>
+              <span>NO</span>
+              <strong>{market.noProbability}%</strong>
+              <small className={metrics.noChange24h >= 0 ? 'is-up' : 'is-down'}>
+                24H {formatChange(metrics.noChange24h)}
+              </small>
+            </div>
+          </section>
+        </div>
+
+        <CurrentAffairsMarketChart market={market} />
+
+        <div className="current-affairs-market-meta">
+          <footer className="current-affairs-info__stats">
+            <span>交易量</span>
+            <strong>{market.volume == null ? '—' : market.volume.toLocaleString('zh-TW')}</strong>
+          </footer>
+
+          <div className="current-affairs-info__details">
+            <div className="detail-template-meta-row">
+              <div className="detail-template-meta-chip detail-template-meta-chip-live">
+                <i className="fa-solid fa-circle"></i>
+                <span>{StatusLabel[market.status] ?? market.status}</span>
+              </div>
+              <div className="detail-template-meta-chip">
+                <label>結算時間</label>
+                <strong>{new Date(market.closeAt).toLocaleString('zh-TW')}</strong>
+              </div>
+            </div>
+
+            <div className="detail-template-rule-bar">
+              <span className="detail-template-rule-label">結算規則</span>
+              <p>{market.resolutionRule}</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </DetailPageTemplate>
+  );
+}

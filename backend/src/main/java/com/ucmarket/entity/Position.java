@@ -13,9 +13,16 @@ import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import jakarta.persistence.UniqueConstraint;
 
 @Entity
-@Table(name = "positions")
+@Table(
+		name = "positions",
+		uniqueConstraints = @UniqueConstraint(
+				name = "uk_positions_user_market",
+				columnNames = { "user_id", "market_id" }
+		)
+)
 public class Position {
 
 	@Id
