@@ -64,8 +64,8 @@ export default function UserLayout() {
           <div><h4>法律</h4><a href="#">服務條款</a><a href="#">隱私政策</a><a href="#">風險聲明</a></div>
         </div>
         <div className="footer-bottom">
-          <div className="footer-brand"><div className="logo-icon" style={{ width: 28, height: 28, fontSize: 12 }}><i className="fa-solid fa-chart-simple"></i></div><strong>POLYMARKET</strong></div>
-          <p>&copy; 2026 Polymarket. All rights reserved.</p>
+          <div className="footer-brand"><div className="logo-icon" style={{ width: 28, height: 28, fontSize: 12 }}><i className="fa-solid fa-chart-simple"></i></div><strong>UCMARKET</strong></div>
+          <p>&copy; 2026 UCMARKET. All rights reserved.</p>
           <div className="footer-social"><i className="fa-brands fa-x-twitter"></i><i className="fa-brands fa-discord"></i><i className="fa-brands fa-telegram"></i><i className="fa-brands fa-github"></i></div>
         </div>
       </footer>
