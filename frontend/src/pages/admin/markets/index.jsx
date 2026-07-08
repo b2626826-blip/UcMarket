@@ -1,20 +1,10 @@
 import { useState, useEffect } from 'react';
 import { getAdminMarkets, approveMarket, rejectMarket, requestMarketChanges, resolveMarket, submitMarket, cancelMarket } from '../../../api/marketApi';
 import useUiStore from '../../../store/uiStore';
+import StatusBadge from '../../../components/common/StatusBadge';
+import { formatTime } from '../../../utils/format';
 
 const STATUS_LABEL = { PENDING: '待審核', ACTIVE: '進行中', CLOSED: '已截止', RESOLVED: '已結算', REJECTED: '已拒絕', DRAFT: '草稿', CANCELED: '已取消' };
-const STATUS_CLASS = { PENDING: 'status-pending', ACTIVE: 'status-active', CLOSED: 'status-closed', RESOLVED: 'status-approved', REJECTED: 'status-rejected', DRAFT: 'status-closed', CANCELED: 'status-closed' };
-
-function formatTime(val) {
-  if (!val) return '';
-  return val.replace('T', ' ').substring(0, 16);
-}
-
-function statusBadge(status) {
-  const cls = STATUS_CLASS[status] || 'status-closed';
-  const label = STATUS_LABEL[status] || status;
-  return <span className={`status-badge ${cls}`}><span className="status-dot"></span>{label}</span>;
-}
 
 export default function MarketsPage() {
   const [allMarkets, setAllMarkets] = useState([]);
@@ -173,10 +163,10 @@ export default function MarketsPage() {
                     <td>{m.title || ''}</td>
                     <td>{m.category || '-'}</td>
                     <td>{m.creatorCode || (m.creatorId || '').substring(0, 8)}</td>
-                    <td>{formatTime(m.closeAt)}</td>
+                    <td>{formatTime(m.closeAt, 16)}</td>
                     <td className="text-success fw-semibold">{m.yesPool || 0}</td>
                     <td className="text-danger fw-semibold">{m.noPool || 0}</td>
-                    <td>{statusBadge(m.status)}</td>
+                    <td><StatusBadge status={m.status} label={STATUS_LABEL[m.status] || m.status} /></td>
                     <td className="text-center">{actionButtons(m)}</td>
                   </tr>
                 ))}

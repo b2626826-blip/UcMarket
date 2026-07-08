@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getAdminTransactions } from '../../../api/adminApi';
 import useUiStore from '../../../store/uiStore';
-
-function formatTime(val) {
-  if (!val) return '';
-  return val.replace('T', ' ').substring(0, 19);
-}
+import StatusBadge from '../../../components/common/StatusBadge';
+import { formatTime } from '../../../utils/format';
 
 export default function TransactionsPage() {
   const [allTx, setAllTx] = useState([]);
@@ -98,10 +95,10 @@ export default function TransactionsPage() {
                     <td className="small">{tx.userCode || (tx.userId || '').substring(0, 8)}</td>
                     <td className="small">{tx.marketCode || (tx.marketId || '').substring(0, 8)}</td>
                     <td>
-                      {tx.action === 'BUY' ? <span className="status-badge status-approved"><span className="status-dot"></span>買入</span> : <span className="status-badge status-closed"><span className="status-dot"></span>賣出</span>}
+                      {tx.action === 'BUY' ? <StatusBadge status="BUY" label="買入" /> : <StatusBadge status="SELL" label="賣出" />}
                     </td>
                     <td>
-                      {tx.side === 'YES' ? <span className="status-badge status-active"><span className="status-dot"></span>YES</span> : <span className="status-badge status-closed"><span className="status-dot"></span>NO</span>}
+                      {tx.side === 'YES' ? <StatusBadge status="YES" label="YES" /> : <StatusBadge status="NO" label="NO" />}
                     </td>
                     <td className="fw-semibold">{tx.amount || 0}</td>
                     <td>{tx.price || 0}</td>

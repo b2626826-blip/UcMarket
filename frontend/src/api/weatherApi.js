@@ -1,3 +1,8 @@
+/**
+ * ⚠️ 孤兒檔案（ORPHAN，2026-07-08 盤點）— 全專案零引用，與
+ * pages/public/market-detail-weather/weatherApi.js 為逐字重複的雙胞胎；
+ * 實際被使用的是頁面內那份。保留待日後接回使用或移除；若已重新啟用請刪除本註解。
+ */
 const CWA_BASE = 'https://opendata.cwa.gov.tw/api/v1/rest/datastore';
 const DATASET = 'F-C0032-001';
 
