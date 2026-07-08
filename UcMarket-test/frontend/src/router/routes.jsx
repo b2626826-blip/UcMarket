@@ -9,6 +9,9 @@ import LoginPage from "../pages/public/login/LoginPage";
 import RegisterPage from "../pages/public/register/RegisterPage";
 import MarketDetailPage from "../pages/public/market-detail";
 import WeatherDetailPage from "../pages/public/market-detail-weather";
+// here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+import PoliticsListPage from "../pages/public/market-politics";
+// here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 import PoliticsDetailPage from "../pages/public/market-detail-politics";
 import SportsDetailPage from "../pages/public/market-detail-sports";
 import CurrentAffairsDetailPage from "../pages/public/market-detail-current-affairs";
@@ -19,7 +22,6 @@ import PositionsPage from "../pages/member/positions";
 import TradeHistoryPage from "../pages/member/trade-history";
 import RankingsPage from "../pages/member/rankings";
 import CreateMarketPage from "../pages/member/create-market";
-
 import DashboardPage from "../pages/admin/dashboard";
 import MarketsPage from "../pages/admin/markets";
 import CreateMarketAdminPage from "../pages/admin/markets/create";
@@ -38,8 +40,12 @@ const router = createBrowserRouter([
       { index: true, element: <HomePage /> },
       { path: "markets", element: <HomePage /> },
       { path: "markets/:id", element: <MarketDetailPage /> },
-      { path: "markets/weather/:id", element: <WeatherDetailPage /> },
+      // here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+      { path: "markets/weather/:id", element: <WeatherDetailPageㄙㄣ /> },
+      { path: "markets/politics", element: <PoliticsListPage /> },
+      // here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
       { path: "markets/politics/:id", element: <PoliticsDetailPage /> },
+      // here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
       { path: "markets/sports/:id", element: <SportsDetailPage /> },
       { path: "markets/current-affairs/:id", element: <CurrentAffairsDetailPage /> },
       { path: "markets/finance/:id", element: <FinanceDetailPage /> },
