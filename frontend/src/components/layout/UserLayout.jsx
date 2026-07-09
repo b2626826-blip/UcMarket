@@ -42,11 +42,8 @@ export default function UserLayout() {
           <>
             <div className="nav-menu">
               <Link to="/home" data-page="views/dashboard.html">市場</Link>
-              <Link to="/markets/politics">政治市場</Link>
               <Link to="/rankings">排行榜</Link>
-              {user && <Link to="/wallet">錢包</Link>}
-              {user && <Link to="/trades">交易紀錄</Link>}
-              {user && <Link to="/markets/new">建立市場</Link>}
+              <Link to={user ? '/wallet' : '/auth/login'}>錢包</Link>
             </div>
             <div className="nav-right">
               {user ? (
