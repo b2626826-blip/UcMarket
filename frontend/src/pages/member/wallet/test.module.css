@@ -1,0 +1,193 @@
+/* ═══════════════════════════════════════════════════════════════
+   錢包頁組裝 · 樣式(CSS Modules,集中一包)
+   ───────────────────────────────────────────────────────────────
+   ★ 顏色/字體全對齊 design.md(theme.css token):
+     綠 var(--color-green) #33e97f、紅 var(--color-red) #ff476d、
+     金 var(--gold) #d9aa43 / var(--color-primary) #f7c55b、
+     文字 var(--color-text-primary/secondary/soft)、字體 Inter。
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── 頁面外框 ─────────────────────────────────────────────── */
+.page {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 40px 24px 90px;
+  color: var(--color-text-primary);
+  font-family: Inter, system-ui, sans-serif;
+}
+
+/* ── 頁面標題 ─────────────────────────────────────────────── */
+.title h1 { margin: 0 0 4px; font-size: 30px; color: var(--color-text-primary); }
+.title p  { margin: 0; color: var(--color-text-secondary); font-size: 14px; }
+
+.section { margin-top: 28px; }
+
+/* ── 黃金比例排:左 1.618 : 右 1 ── */
+.row {
+  display: grid;
+  grid-template-columns: 1.618fr 1fr;
+  gap: 24px;
+  align-items: stretch;   /* 兩欄等高 → 熱力圖卡填滿左欄 */
+}
+@media (max-width: 768px) { .row { grid-template-columns: 1fr; } }
+
+/* ═══ 卡片共用特效:滑鼠金色光暈 + hover 浮起金邊 ═══ */
+.page :global(.glowcard) { position: relative; overflow: hidden; transition: transform .3s ease, border-color .3s ease, box-shadow .3s ease; }
+.page :global(.glowcard)::after { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(217, 170, 67, .16), transparent 36%); opacity: 0; transition: opacity .3s; }
+.page :global(.glowcard):hover::after { opacity: 1; }
+.page :global(.glowcard):hover { transform: translateY(-6px); border-color: rgba(217, 170, 67, .4) !important; box-shadow: 0 0 0 1px rgba(217, 170, 67, .12), 0 20px 45px rgba(0, 0, 0, .45), 0 0 38px rgba(217, 170, 67, .12); }
+.page :global(.glowcard) > * { position: relative; z-index: 1; }
+
+/* ═══ 區塊1 餘額卡 ═══ */
+.balCard {
+  position: relative;
+  margin-top: 28px;
+  padding: 34px;
+  border-radius: 20px;
+  border: 1px solid rgba(217, 170, 67, .28);
+  background: radial-gradient(circle at 100% 0%, rgba(217, 170, 67, .10), transparent 55%), #060503;
+}
+.balLabel { color: var(--gold); font-size: 12px; letter-spacing: 4px; text-transform: uppercase; }
+.balNum {
+  display: block;
+  margin-top: 12px;
+  font-size: 62px;
+  font-weight: 800;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+  background: linear-gradient(135deg, var(--color-primary), var(--gold));   /* 金漸層:亮金→金 */
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+}
+.eye {
+  position: absolute; top: 22px; right: 22px; width: 40px; height: 40px;
+  display: grid; place-items: center; color: var(--gold); cursor: pointer;
+  background: rgba(217, 170, 67, .06); border: 1px solid rgba(217, 170, 67, .35);
+  border-radius: 12px; transition: color .25s, background .25s, border-color .25s, box-shadow .25s, transform .1s;
+}
+.eye:hover { color: var(--color-primary); background: rgba(217, 170, 67, .14); border-color: rgba(217, 170, 67, .6); box-shadow: 0 0 0 1px rgba(217, 170, 67, .12), 0 6px 20px rgba(217, 170, 67, .18); }
+.eye:active { transform: translateY(1px); }
+.eye svg { width: 19px; height: 19px; display: block; }
+
+/* KPI */
+.kpi { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-top: 28px; }
+.kpiCell { padding: 16px; border: 1px solid rgba(217, 170, 67, .15); border-radius: 12px; background: rgba(217, 170, 67, .03); }
+.kpiLabel { margin: 0 0 6px; color: var(--color-text-secondary); font-size: 12px; }
+.kpiVal { font-size: 21px; font-weight: 800; font-variant-numeric: tabular-nums; }
+.pos { color: var(--color-green); }   /* 正數 */
+.neg { color: var(--color-red); }     /* 負數 */
+@media (max-width: 640px) { .kpi { grid-template-columns: repeat(2, 1fr); } }
+
+/* ═══ 區塊2 現金走勢圖 ═══ */
+.trend :global(.card){ padding:26px; border-radius:18px; border:1px solid rgba(217,170,67,.28); background:radial-gradient(circle at 100% 0%, rgba(217,170,67,.08), transparent 55%), #060503; }
+.trend :global(.head){ display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap; }
+.trend :global(.label){ color:var(--gold); font-size:12px; letter-spacing:3px; text-transform:uppercase; }
+.trend :global(.val){ font-size:44px; font-weight:800; letter-spacing:-1px; margin-top:6px; font-variant-numeric:tabular-nums; }
+.trend :global(.meta){ margin-top:4px; font-size:14px; }
+.trend :global(.chg){ font-weight:600; }
+.trend :global(.chg.up){ color:var(--color-green); }
+.trend :global(.chg.down){ color:var(--color-red); }
+.trend :global(.date){ color:var(--color-text-secondary); margin-left:10px; }
+.trend :global(.toggle){ background:transparent; border:1px solid rgba(217,170,67,.35); color:var(--gold); border-radius:999px; padding:8px 14px; cursor:pointer; font-size:13px; font-weight:600; transition:all .2s; white-space:nowrap; }
+.trend :global(.toggle:hover){ background:rgba(217,170,67,.1); }
+.trend :global(.toggle.on){ background:var(--gold); border-color:var(--gold); color:#402d00; }
+.trend :global(.box){ height:300px; margin-top:16px; }
+.trend :global(.legend){ margin-top:12px; color:var(--color-text-secondary); font-size:12px; }
+.trend :global(.legend i){ display:inline-block; width:9px; height:9px; border-radius:2px; margin:0 5px 0 0; vertical-align:middle; }
+.trend :global(.sw-green){ background:var(--color-green); }
+.trend :global(.sw-red){ background:var(--color-red); }
+.trend :global(.hint){ color:var(--color-text-secondary); font-size:12px; margin-top:6px; }
+
+/* ═══ 區塊3左 熱力圖(塞滿左欄;標題統一 20px/700)═══ */
+.heat{ width:100%; height:100%; font-family:Inter,system-ui,sans-serif; }
+.heat :global(.panel){ height:100%; display:flex; flex-direction:column; background:rgba(9,9,9,.6); backdrop-filter:blur(20px); border:1px solid var(--color-border-glass); border-radius:var(--radius-card); padding:24px 26px; }
+.heat :global(h3){ color:var(--color-text-primary); font-size:20px; font-weight:700; margin:0 0 12px; }
+.heat :global(.sub){ color:var(--color-text-secondary); font-size:12px; margin:0 0 16px; }
+.heat :global(.months){ display:grid; grid-template-columns:repeat(21,1fr); gap:3px; margin:0 0 4px 30px; font-size:11px; color:var(--color-text-soft); }
+.heat :global(.chart){ display:flex; gap:6px; align-items:stretch; }
+.heat :global(.days){ display:grid; grid-template-rows:repeat(7,1fr); gap:3px; font-size:11px; color:var(--color-text-soft); width:24px; align-items:center; flex:none; }
+.heat :global(.grid){ flex:1; display:grid; grid-auto-flow:column; grid-template-columns:repeat(21,1fr); grid-template-rows:repeat(7,1fr); gap:3px; aspect-ratio:21 / 7; }
+.cell{ border-radius:3px; animation:hwave-w 3.5s ease-in-out infinite; }
+.heat :global(.stats){ display:flex; gap:30px; flex-wrap:wrap; margin-top:auto; padding-top:8px; }
+.heat :global(.stat){ display:flex; flex-direction:column; gap:5px; }
+.heat :global(.stat span){ color:var(--color-text-soft); font-size:12px; }
+.heat :global(.stat strong){ color:var(--color-text-primary); font-size:22px; font-weight:800; font-variant-numeric:tabular-nums; }
+.heat :global(.legend){ display:flex; align-items:center; justify-content:flex-end; gap:5px; margin-top:auto; padding-top:14px; font-size:11px; color:var(--color-text-soft); }
+.heat :global(.legend i){ width:13px; height:13px; border-radius:3px; display:inline-block; }
+@keyframes hwave-w { 0%,100%{ filter:brightness(.55); } 50%{ filter:brightness(1.2); } }
+@media (prefers-reduced-motion: reduce){ .cell{ animation:none; } }
+
+/* 葉片圖:填滿右欄、max-width 當上限 */
+.page :global(.pa-chart) { max-width: 480px; width: 100%; margin: 0 auto; padding: 0; }
+
+/* ═══ 區塊4 資金流水(標題統一 20px/700;襯線→Inter;綠紅金→token)═══ */
+.flow { --gd:var(--gold); --gd2:var(--gold); --gline:rgba(217,170,67,.16); --wl2:var(--color-text-secondary);
+  color:var(--color-text-primary); font-family:Inter,system-ui,sans-serif; }
+.flow :global(.serif){ font-family:inherit; }   /* 對齊 design.md:全站 Inter,拿掉襯線 */
+.flow :global(.head){ display:flex; justify-content:space-between; align-items:flex-end; flex-wrap:wrap; gap:10px; margin-bottom:18px; }
+.flow :global(h1){ font-size:20px; font-weight:700; margin:0; color:var(--color-text-primary); }
+.flow :global(.sub){ color:var(--wl2); font-size:13px; }
+.flow :global(.card){ background:rgba(9,9,9,.6); backdrop-filter:blur(20px); border:1px solid rgba(217,170,67,.18); border-radius:var(--radius-card); overflow:hidden; }
+
+/* 篩選列 */
+.flow :global(.bar){ display:flex; gap:8px; flex-wrap:wrap; align-items:center; padding:18px 22px; border-bottom:1px solid var(--gline); }
+.flow :global(input){ height:36px; background:rgba(255,255,255,.03); border:1px solid var(--gline); border-radius:10px; color:var(--color-text-primary); padding:0 12px; font-size:14px; outline:none; font-family:inherit; }
+.flow :global(input:focus){ border-color:var(--gd); }
+.flow :global(.arrow){ color:var(--wl2); }
+.flow :global(.search){ flex:1; min-width:150px; }
+.flow :global(.tabs){ display:flex; gap:6px; flex-wrap:wrap; margin-left: 22px;}
+.flow :global(.tabs button){ height:36px; padding:0 14px; border-radius:999px; border:1px solid transparent; background:transparent; color:var(--color-text-secondary); font-weight:700; font-size:13px; cursor:pointer; }
+.flow :global(.tabs button.on){ background:var(--gd); color:#402d00; }
+.flow :global(.presets){ display:flex; gap:6px; }
+.flow :global(.presets button){ height:36px; padding:0 12px; border-radius:8px; border:1px solid var(--gline); background:rgba(217,170,67,.06); color:var(--gd); font-weight:700; font-size:12px; cursor:pointer; }
+.flow :global(.presets button:hover){ background:rgba(217,170,67,.14); }
+.flow :global(.csv){ height:36px; padding:0 16px; border-radius:10px; border:1px solid var(--gd); background:transparent; color:var(--gd); font-weight:800; font-size:13px; cursor:pointer; white-space:nowrap; }
+.flow :global(.csv:hover){ background:var(--gd); color:#402d00; }
+
+/* KPI 帶 */
+.flow :global(.kpi){ display:flex; border-bottom:1px solid var(--gline); }
+.flow :global(.kpi>div){ flex:1; padding:16px 22px; border-right:1px solid var(--gline); }
+.flow :global(.kpi>div:last-child){ border-right:none; }
+.flow :global(.kpi .k){ color:var(--wl2); font-size:12px; margin-bottom:6px; }
+.flow :global(.kpi .v){ font-size:19px; font-weight:800; font-variant-numeric:tabular-nums; }
+
+/* 帳表 —— 強制表格結構(避免 _new1 全域 .row/.card 撞名把 td 弄成 block) */
+.flow :global(table){ display:table; width:100%; border-collapse:collapse; font-size:14px; table-layout:fixed; }
+.flow :global(table thead){ display:table-header-group; }
+.flow :global(table tbody){ display:table-row-group; }
+.flow :global(table tr){ display:table-row; }
+.flow :global(table td), .flow :global(table th){ display:table-cell; white-space:nowrap; }
+/* 欄寬定比 —— 讓 5 欄平均攤開,不要全擠右邊、中間空一大塊(table-layout:fixed 只認表頭那列的寬) */
+.flow :global(thead th:nth-child(1)){ width:20%; }   /* 日期 */
+.flow :global(thead th:nth-child(2)){ width:16%; }   /* 摘要 */
+.flow :global(thead th:nth-child(3)){ width:21%; }   /* 支出 */
+.flow :global(thead th:nth-child(4)){ width:21%; }   /* 收入 */
+.flow :global(thead th:nth-child(5)){ width:22%; }   /* 結餘 */
+.flow :global(thead th){ text-align:center; color:var(--gd); font-weight:600; font-size:12px; padding:12px 22px; background:rgba(217,170,67,.05); }
+.flow :global(tbody td){ padding:13px 22px; border-top:1px solid var(--gline); text-align:center; }
+.flow :global(tr.row){ cursor:pointer; }
+.flow :global(tr.row:hover td){ background:rgba(217,170,67,.05); }
+.flow :global(.date){ color:var(--wl2); font-variant-numeric:tabular-nums; }
+.flow :global(.tag){ display:inline-block; padding:3px 9px; border-radius:6px; font-size:12px; font-weight:800; }
+.flow :global(.buy){ background:rgba(217,170,67,.14); color:var(--gd); }
+.flow :global(.sell){ background:rgba(51,233,127,.14); color:var(--color-green); }
+.flow :global(.settle){ background:rgba(255,255,255,.06); color:var(--color-text-soft); }
+.flow :global(.out){ color:var(--color-red); font-variant-numeric:tabular-nums; }
+.flow :global(.in){ color:var(--color-green); font-variant-numeric:tabular-nums; }
+.flow :global(.balcol){ font-weight:800; color:var(--gd); font-variant-numeric:tabular-nums; }
+.flow :global(.muted){ color:var(--color-text-secondary); }
+.flow :global(tr.detail td){ padding:0 22px; border-top:none; background:rgba(217,170,67,.05); }
+.flow :global(.box){ display:flex; gap:34px; flex-wrap:wrap; padding:14px 0 18px; font-size:13px; color:var(--wl2); }
+.flow :global(.box b){ color:var(--color-text-soft); font-weight:700; margin-left:6px; }
+
+/* 頁尾 + 分頁 */
+.flow :global(.foot){ padding:14px 22px; color:var(--wl2); font-size:13px; border-top:1px solid var(--gline); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; }
+.flow :global(.pager){ display:flex; align-items:center; gap:14px; flex-wrap:wrap; }
+.flow :global(.pager label){ display:inline-flex; align-items:center; gap:6px; color:var(--wl2); }
+.flow :global(.pager select){ height:30px; background:rgba(255,255,255,.03); border:1px solid var(--gline); border-radius:8px; color:var(--gd); font-family:inherit; font-size:13px; font-weight:700; padding:0 6px; outline:none; cursor:pointer; }
+.flow :global(.pager button){ height:30px; padding:0 12px; border-radius:8px; border:1px solid var(--gline); background:rgba(217,170,67,.06); color:var(--gd); font-weight:700; font-size:12px; cursor:pointer; }
+.flow :global(.pager button:hover:not(:disabled)){ background:rgba(217,170,67,.14); }
+.flow :global(.pager button:disabled){ opacity:.35; cursor:not-allowed; }
+.flow :global(.pager .pageno){ color:var(--wl2); }
+.flow :global(.empty){ text-align:center; color:var(--wl2); padding:40px; }
