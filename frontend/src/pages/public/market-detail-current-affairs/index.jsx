@@ -17,15 +17,29 @@ export default function CurrentAffairsDetailPage() {
   const [loading, setLoading] = useState(true);
   const [otherMarkets, setOtherMarkets] = useState([]);
   const [error, setError] = useState('');
+  const [notFoundMessage, setNotFoundMessage] = useState('');
 
   useEffect(() => {
     setLoading(true);
     setError('');
     setMarket(null);
+    setNotFoundMessage('');
 
     getCurrentEventMarketDetail(id)
-      .then(setMarket)
-      .catch(() => {
+      .then((currentMarket) => {
+        if (!currentMarket) {
+          setNotFoundMessage('此市場不是時事分類，無法在時事詳情頁顯示。');
+          return;
+        }
+
+        setMarket(currentMarket);
+      })
+      .catch((apiError) => {
+        if (apiError.status === 404) {
+          setNotFoundMessage('找不到此時事市場。');
+          return;
+        }
+
         setError('時事市場載入失敗，請稍後再試。');
       })
       .finally(() => {
@@ -49,6 +63,10 @@ export default function CurrentAffairsDetailPage() {
 
   if (error) {
     return <p role="alert">{error}</p>;
+  }
+
+  if (notFoundMessage) {
+    return <p>{notFoundMessage}</p>;
   }
 
   if (!market) {
