@@ -14,6 +14,7 @@ export const StatusLabel = {
 };
 
 export const CURRENT_EVENT_CATEGORY = '時事';
+export const CURRENT_EVENT_CATEGORY_CODE = 'CURRENT_AFFAIRS';
 
 /**
  * @typedef {Object} CurrentEventMarket
