@@ -1,7 +1,6 @@
-import { getApi, postApi, putApi } from './client';
 import { matchesCurrentEventFilter } from '../config/currentEventFilters';
-import { mockCurrentEventMarkets } from '../mocks/currentEventMarkets';
-import { CURRENT_EVENT_CATEGORY } from '../types/market';
+import { CURRENT_EVENT_CATEGORY, CURRENT_EVENT_CATEGORY_CODE } from '../types/market';
+import { getApi, postApi } from './client';
 
 export function getMarkets() {
   return getApi('/api/markets');
@@ -25,29 +24,43 @@ export async function getCurrentEventMarkets(filters = {}) {
     .trim()
     .toLocaleLowerCase('zh-TW');
 
-  let matchedMarkets = mockCurrentEventMarkets.filter((market) => {
-    const matchesCategory =
-      market.category === CURRENT_EVENT_CATEGORY;
-
-    const matchesStatus =
-      !status || market.status === status;
-
-    const matchesKeyword =
-      !normalizedKeyword ||
-      market.title
-        .toLocaleLowerCase('zh-TW')
-        .includes(normalizedKeyword);
-
-    const matchesFilter =
-      matchesCurrentEventFilter(market, filterId);
-
-    return (
-      matchesCategory &&
-      matchesStatus &&
-      matchesKeyword &&
-      matchesFilter
-    );
+  const query = new URLSearchParams({
+    category: CURRENT_EVENT_CATEGORY_CODE,
+    page: String(page),
+    size: String(size),
   });
+
+  if (status) {
+    query.set('status', status);
+  }
+
+  const markets = await getApi(`/api/markets?${query}`);
+
+  let matchedMarkets = markets
+    .map(normalizeCurrentEventMarket)
+    .filter((market) => {
+      const matchesCategory =
+        market.category === CURRENT_EVENT_CATEGORY;
+
+      const matchesStatus =
+        !status || market.status === status;
+
+      const matchesKeyword =
+        !normalizedKeyword ||
+        market.title
+          .toLocaleLowerCase('zh-TW')
+          .includes(normalizedKeyword);
+
+      const matchesFilter =
+        matchesCurrentEventFilter(market, filterId);
+
+      return (
+        matchesCategory &&
+        matchesStatus &&
+        matchesKeyword &&
+        matchesFilter
+      );
+    });
 
   if (sort === 'latest') {
     matchedMarkets = [...matchedMarkets].sort(
@@ -61,34 +74,21 @@ export async function getCurrentEventMarkets(filters = {}) {
     );
   }
 
-  const currentPage = Math.max(
-    0,
-    Math.trunc(Number(page) || 0)
-  );
-
-  const pageSize = Math.max(
-    1,
-    Math.trunc(Number(size) || 20)
-  );
-
-  const start = currentPage * pageSize;
-
   return {
-    content: matchedMarkets.slice(start, start + pageSize),
-    page: currentPage,
-    size: pageSize,
-    totalElements: matchedMarkets.length,
-    totalPages: Math.ceil(matchedMarkets.length / pageSize),
+    content: matchedMarkets
   };
 }
 
 export async function getCurrentEventMarketDetail(id) {
-  return (
-    mockCurrentEventMarkets.find(
-      (market) => market.id === String(id)
-    ) ?? null
-  );
+  const market = await getApi(`/api/markets/${id}`);
+
+  if (market.category !== CURRENT_EVENT_CATEGORY_CODE) {
+    return null;
+  }
+
+  return normalizeCurrentEventMarket(market);
 }
+
 export function createMarket(data) {
   return postApi('/api/markets', data);
 }
@@ -119,4 +119,22 @@ export function requestMarketChanges(id, comment) {
 
 export function resolveMarket(id, result) {
   return postApi('/api/admin/markets/' + id + '/resolve', { result });
+}
+
+function normalizeCurrentEventMarket(market) {
+  const yesPool = Number(market.yesPool ?? 0);
+  const noPool = Number(market.noPool ?? 0);
+  const totalPool = yesPool + noPool;
+  const yesProbability = totalPool > 0
+    ? Math.round((yesPool / totalPool) * 100)
+    : 50;
+
+  return {
+    ...market,
+    category: CURRENT_EVENT_CATEGORY,
+    yesProbability,
+    noProbability: 100 - yesProbability,
+    volume: null,
+    imageUrl: null,
+  };
 }

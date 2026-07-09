@@ -9,6 +9,10 @@ public interface RankingAssetsRow {
 
 	String getUsername();
 
+	String getAccount();
+
+	String getPrimaryMarket();
+
 	String getAvatarUrl();
 
 	BigDecimal getWalletBalance();
