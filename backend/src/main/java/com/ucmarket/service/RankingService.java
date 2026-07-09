@@ -51,6 +51,8 @@ public class RankingService {
 		return new RankingProfitResponse(
 				row.getUserId(),
 				row.getUsername(),
+				row.getAccount(),
+				row.getPrimaryMarket(),
 				row.getAvatarUrl(),
 				row.getTotalPayout(),
 				row.getSettledCost(),
@@ -61,6 +63,8 @@ public class RankingService {
 		return new RankingWinRateResponse(
 				row.getUserId(),
 				row.getUsername(),
+				row.getAccount(),
+				row.getPrimaryMarket(),
 				row.getAvatarUrl(),
 				row.getResolvedMarketCount(),
 				row.getCorrectCount(),
@@ -72,6 +76,8 @@ public class RankingService {
 		return new RankingAssetsResponse(
 				row.getUserId(),
 				row.getUsername(),
+				row.getAccount(),
+				row.getPrimaryMarket(),
 				row.getAvatarUrl(),
 				row.getWalletBalance(),
 				row.getOpenPositionValue(),

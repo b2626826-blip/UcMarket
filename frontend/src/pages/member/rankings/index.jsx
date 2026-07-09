@@ -85,9 +85,8 @@ function TopRankGrid({ data }) {
         <article key={user.rank} className={`top-card top-${user.rank}`}>
           <div className="rank-medal">#{user.rank}</div>
           <h2>{user.name}</h2>
-          <p>{formatText(user.account)}</p>
-          <strong>{formatProfit(user.profit)}</strong>
-          <span>勝率 {formatPercent(user.winRate)}</span>
+          <strong className="top-card-profit">{formatProfit(user.profit)}</strong>
+          <span className="top-card-win-rate">勝率{formatPercent(user.winRate)}</span>
         </article>
       ))}
     </section>

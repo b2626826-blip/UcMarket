@@ -30,6 +30,7 @@ class RankingRepositoryTest {
 		jdbcTemplate.update("""
 					INSERT INTO users (
 						id,
+						code,
 						username,
 						email,
 						password_hash,
@@ -39,9 +40,10 @@ class RankingRepositoryTest {
 						created_at,
 						updated_at
 					)
-					VALUES (?, ?, ?, ?, 'USER', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+					VALUES (?, ?, ?, ?, ?, 'USER', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 					""",
 					userId,
+					"USR-" + suffix,
 					"ranking_" + suffix,
 				"ranking-" + suffix + "@example.com",
 				"test-password-hash"
@@ -84,6 +86,16 @@ class RankingRepositoryTest {
 					marketId,
 					userId,
 				"Ranking repository test market"
+		);
+
+		jdbcTemplate.update("""
+				INSERT INTO trades (
+					id, user_id, market_id, side, action, amount, price, shares, created_at
+				)
+				VALUES (random_uuid(), ?, ?, 'YES', 'BUY', 20.00, 0.5000, 40.0000, CURRENT_TIMESTAMP)
+				""",
+				userId,
+				marketId
 		);
 
 		jdbcTemplate.update("""
@@ -137,6 +149,8 @@ class RankingRepositoryTest {
 					.orElseThrow();
 
 		assertThat(ranking.getUsername()).isEqualTo("ranking_" + suffix);
+		assertThat(ranking.getAccount()).isEqualTo("USR-" + suffix);
+		assertThat(ranking.getPrimaryMarket()).isEqualTo("Ranking repository test market");
 		assertThat(ranking.getTotalPayout()).isEqualByComparingTo("20.00");
 		assertThat(ranking.getSettledCost()).isEqualByComparingTo("12.00");
 		assertThat(ranking.getRealizedProfit()).isEqualByComparingTo("8.00");
@@ -154,6 +168,7 @@ class RankingRepositoryTest {
 		jdbcTemplate.update("""
 					INSERT INTO users (
 						id,
+						code,
 						username,
 						email,
 						password_hash,
@@ -163,9 +178,10 @@ class RankingRepositoryTest {
 						created_at,
 						updated_at
 					)
-					VALUES (?, ?, ?, ?, 'USER', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+					VALUES (?, ?, ?, ?, ?, 'USER', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 					""",
 					userId,
+					"USR-" + suffix,
 					"win_rate_" + suffix,
 				"win-rate-" + suffix + "@example.com",
 				"test-password-hash"
@@ -220,6 +236,16 @@ class RankingRepositoryTest {
 		);
 
 		jdbcTemplate.update("""
+				INSERT INTO trades (
+					id, user_id, market_id, side, action, amount, price, shares, created_at
+				)
+				VALUES (random_uuid(), ?, ?, 'NO', 'BUY', 20.00, 0.5000, 40.0000, CURRENT_TIMESTAMP)
+				""",
+				userId,
+				noMarketId
+		);
+
+		jdbcTemplate.update("""
 					INSERT INTO positions (
 						id,
 						user_id,
@@ -271,6 +297,8 @@ class RankingRepositoryTest {
 					.orElseThrow();
 
 		assertThat(ranking.getUsername()).isEqualTo("win_rate_" + suffix);
+		assertThat(ranking.getAccount()).isEqualTo("USR-" + suffix);
+		assertThat(ranking.getPrimaryMarket()).isEqualTo("Resolved NO market");
 		assertThat(ranking.getResolvedMarketCount()).isEqualTo(2L);
 		assertThat(ranking.getCorrectCount()).isEqualTo(1L);
 		assertThat(ranking.getWinRate()).isEqualByComparingTo("0.5000");
@@ -286,6 +314,7 @@ class RankingRepositoryTest {
 		jdbcTemplate.update("""
 					INSERT INTO users (
 						id,
+						code,
 						username,
 						email,
 						password_hash,
@@ -295,9 +324,10 @@ class RankingRepositoryTest {
 						created_at,
 						updated_at
 					)
-					VALUES (?, ?, ?, ?, 'USER', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+					VALUES (?, ?, ?, ?, ?, 'USER', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
 					""",
 					userId,
+					"USR-" + suffix,
 					"assets_" + suffix,
 				"assets-" + suffix + "@example.com",
 				"test-password-hash"
@@ -347,6 +377,16 @@ class RankingRepositoryTest {
 		);
 
 		jdbcTemplate.update("""
+				INSERT INTO trades (
+					id, user_id, market_id, side, action, amount, price, shares, created_at
+				)
+				VALUES (random_uuid(), ?, ?, 'YES', 'BUY', 20.00, 0.5000, 40.0000, CURRENT_TIMESTAMP)
+				""",
+				userId,
+				marketId
+		);
+
+		jdbcTemplate.update("""
 				INSERT INTO market_price_history (
 					market_id,
 					yes_price,
@@ -391,6 +431,8 @@ class RankingRepositoryTest {
 					.orElseThrow();
 
 		assertThat(ranking.getUsername()).isEqualTo("assets_" + suffix);
+		assertThat(ranking.getAccount()).isEqualTo("USR-" + suffix);
+		assertThat(ranking.getPrimaryMarket()).isEqualTo("Assets ranking test market");
 		assertThat(ranking.getWalletBalance()).isEqualByComparingTo("100.00");
 		assertThat(ranking.getOpenPositionValue()).isEqualByComparingTo("8.50");
 		assertThat(ranking.getTotalAssetValue()).isEqualByComparingTo("108.50");
