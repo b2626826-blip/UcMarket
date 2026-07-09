@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { createMarket, submitMarket } from '../../../api/marketApi';
 import useUiStore from '../../../store/uiStore';
 import Button from '../../../components/common/Button';
+import { CURRENT_EVENT_CATEGORY_CODE } from '../../../types/market';
 
 export default function CreateMarketPage() {
   const [form, setForm] = useState({ title: '', description: '', category: '', marketType: 'BINARY', sourceUrl: '', resolutionRule: '', closeAt: '' });
@@ -59,6 +60,7 @@ export default function CreateMarketPage() {
               <option value="">選擇分類</option>
               <option value="金融">金融</option><option value="加密">加密</option><option value="政治">政治</option>
               <option value="體育">體育</option><option value="科技">科技</option><option value="娛樂">娛樂</option>
+              <option value={CURRENT_EVENT_CATEGORY_CODE}>時事</option>
             </select>
           </div>
           <div className="form-group">

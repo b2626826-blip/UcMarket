@@ -1,5 +1,6 @@
 package com.ucmarket.controller;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -17,6 +18,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
@@ -136,15 +138,19 @@ class MarketControllerTest {
     @Test
     void createMarket_shouldReturn201() throws Exception {
         CreateMarketRequest request = new CreateMarketRequest(
-                "New Market", "Desc", "Cat", null, null, null, LocalDateTime.now().plusDays(7));
+                "New Market", "Desc", "CURRENT_AFFAIRS", null, null, null, LocalDateTime.now().plusDays(7));
 
-        Market saved = new Market("New Market", "Desc", "Cat", null, null, null, LocalDateTime.now().plusDays(7));
+        Market saved = new Market("New Market", "Desc", "CURRENT_AFFAIRS", null, null, null, LocalDateTime.now().plusDays(7));
         when(marketRepository.save(any())).thenReturn(saved);
 
         mockMvc.perform(post("/api/markets")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated());
+
+        ArgumentCaptor<Market> marketCaptor = ArgumentCaptor.forClass(Market.class);
+        verify(marketRepository).save(marketCaptor.capture());
+        assertEquals("CURRENT_AFFAIRS", marketCaptor.getValue().getCategory());
     }
 
     @Test
