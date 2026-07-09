@@ -8,6 +8,12 @@ export const rankingApiEndpoints = {
 
 const inFlightRankRequests = new Map();
 
+function toRankingNumber(value, multiplier = 1) {
+  if (value === null || value === undefined) return null;
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue * multiplier : null;
+}
+
 function mergeRankingData(profitData, winRateData, assetsData) {
   const rankingsByUser = new Map();
 
@@ -29,17 +35,17 @@ function mergeRankingData(profitData, winRateData, assetsData) {
   };
 
   for (const item of profitData) {
-    getRanking(item).profit = Number(item.realizedProfit);
+    getRanking(item).profit = toRankingNumber(item.realizedProfit);
   }
 
   for (const item of winRateData) {
     const ranking = getRanking(item);
-    ranking.winRate = Number(item.winRate) * 100;
-    ranking.resolvedMarketCount = Number(item.resolvedMarketCount);
+    ranking.winRate = toRankingNumber(item.winRate, 100);
+    ranking.resolvedMarketCount = toRankingNumber(item.resolvedMarketCount) ?? 0;
   }
 
   for (const item of assetsData) {
-    getRanking(item).assets = Number(item.totalAssetValue);
+    getRanking(item).assets = toRankingNumber(item.totalAssetValue);
   }
 
   return [...rankingsByUser.values()];
@@ -52,8 +58,8 @@ function sortRankings(type, rankings) {
     .sort((left, right) => {
       const leftValue = left[field];
       const rightValue = right[field];
-      const leftHasValue = leftValue !== null && leftValue !== undefined;
-      const rightHasValue = rightValue !== null && rightValue !== undefined;
+      const leftHasValue = Number.isFinite(leftValue);
+      const rightHasValue = Number.isFinite(rightValue);
 
       if (leftHasValue !== rightHasValue) return rightHasValue ? 1 : -1;
       if (leftHasValue && rightValue !== leftValue) return rightValue - leftValue;
