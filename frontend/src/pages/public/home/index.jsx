@@ -84,24 +84,6 @@ export default function HomePage() {
         </div>
       </div>
 
-      <section className="platform-metrics" aria-label="平台統計">
-        {[
-          { label: '本平台註冊人數', value: '12,680', unit: '人', icon: 'fa-user-plus' },
-          { label: '本平台交易金額', value: '$48.2M', unit: '', icon: 'fa-coins' },
-          { label: '本平台盤口數量', value: '10', unit: '個', icon: 'fa-chart-column' },
-          { label: '本平台預測人數', value: '8,421', unit: '人', icon: 'fa-users' },
-        ].map((metric) => (
-          <article className="platform-metric-card" key={metric.label}>
-            <div className="platform-metric-icon" aria-hidden="true">
-              <i className={`fa-solid ${metric.icon}`}></i>
-            </div>
-            <span>{metric.label}</span>
-            <strong>{metric.value}</strong>
-            {metric.unit && <small>{metric.unit}</small>}
-          </article>
-        ))}
-      </section>
-
       <section id="markets" className="markets">
         <div className="section-title">
           <h2>預測市場</h2>
