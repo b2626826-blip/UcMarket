@@ -10,6 +10,8 @@ export default function UserLayout() {
   const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
   const checkAuth = useAuthStore((s) => s.checkAuth);
+  const role = user?.role || user?.userRole;
+  const isAdmin = role === 'ADMIN' || role === 'admin';
   const [authOpen, setAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState('login');
 
@@ -49,6 +51,8 @@ export default function UserLayout() {
               {user ? (
                 <>
                   <span id="user-display" style={{ color: 'var(--gold)', fontWeight: 700 }}>{user.username || user.email}</span>
+                  {isAdmin && <Link to="/admin/dashboard" target="UcmarketAdmin" rel="noreferrer">管理員</Link>}
+                  <Link to="/markets/new">建立市場</Link>
                   <Link to="/portfolio">儀表板</Link>
                   <Link to="/positions">持倉</Link>
                   <a href="#logout" id="logout-link" onClick={(e) => { e.preventDefault(); logout(); }}>登出</a>
