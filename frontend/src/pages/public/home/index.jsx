@@ -4,6 +4,7 @@ import CurrentEventMarketCard from '../../../components/market/CurrentEventMarke
 import MarketCard from '../../../components/market/MarketCard';
 import MarketTrendCarousel from '../../../components/market/MarketTrendCarousel';
 import useGlowEffect from '../../../hooks/useGlowEffect';
+import { CURRENT_EVENT_CATEGORY } from '../../../types/market';
 
 const initialMarkets = [
   { id: 1, category: '政治', title: '共和黨是否會贏得下一屆美國總統大選？', date: '2028 年 11 月', yesPrice: 0.61, noPrice: 0.39, volume: '$5.8M', traders: '4,451' },
@@ -15,7 +16,7 @@ const initialMarkets = [
   { id: 10, category: '金融', title: 'WTI 原油在 2026 年 5 月收盤是否會高過 75 美元？', date: '2026 年 5 月', yesPrice: 0.51, noPrice: 0.49, volume: '$2.3M', traders: '1,243' },
 ];
 
-const categories = ['全部', '政治', '運動', '天氣', '時事', '金融'];
+const categories = ['全部', '政治', '運動', '天氣', CURRENT_EVENT_CATEGORY, '金融'];
 
 export default function HomePage() {
   const [category, setCategory] = useState('全部');
@@ -26,7 +27,7 @@ export default function HomePage() {
   const [currentEventError, setCurrentEventError] = useState('');
 
   useEffect(() => {
-    if (category !== '時事') {
+    if (category !== CURRENT_EVENT_CATEGORY) {
       return;
     }
 
@@ -118,27 +119,27 @@ export default function HomePage() {
           <button><i className="fa-solid fa-magnifying-glass"></i></button>
         </div>
         <div className="market-grid" id="marketGrid">
-          {category === '時事' && currentEventLoading && (
+          {category === CURRENT_EVENT_CATEGORY && currentEventLoading && (
             <p>時事市場載入中...</p>
           )}
 
-          {category !== '時事' &&
+          {category !== CURRENT_EVENT_CATEGORY &&
             filtered.map((market) => (
               <MarketCard key={market.id} market={market} onClickTrade={handleTrade} />
             ))}
 
-          {category === '時事' && !currentEventLoading && currentEventError && (
+          {category === CURRENT_EVENT_CATEGORY && !currentEventLoading && currentEventError && (
             <p role="alert">{currentEventError}</p>
           )}
 
-          {category === '時事' &&
+          {category === CURRENT_EVENT_CATEGORY &&
             !currentEventLoading &&
             !currentEventError &&
             filteredCurrentEvents.length === 0 && (
               <p>目前沒有符合條件的時事市場。</p>
             )}
 
-          {category === '時事' &&
+          {category === CURRENT_EVENT_CATEGORY &&
             !currentEventLoading &&
             !currentEventError &&
             filteredCurrentEvents.map((market) => (
