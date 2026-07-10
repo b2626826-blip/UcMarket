@@ -168,46 +168,101 @@ no_price = yes_pool / (yes_pool + no_pool)
 
 ## 9. 資料表設計
 
+> 以下欄位以目前實際 PostgreSQL 資料庫（14 張表）為準，與 `資料庫設計/ucmarket-ddl.sql`、`資料庫設計/ucmarket-er-diagram.md` 一致。`code` 為各主表的可讀顯示碼（唯一）。
+
 ### users
 
 | 欄位 | 型別 | 說明 |
 | --- | --- | --- |
-| id | uuid | 使用者 ID |
-| username | varchar | 使用者名稱 |
-| email | varchar | Email |
-| password_hash | varchar | 密碼雜湊 |
-| role | enum | user / admin |
+| id | uuid | 使用者 ID（PK） |
+| code | varchar | 可讀顯示碼（唯一） |
+| username | varchar | 使用者名稱（唯一） |
+| email | varchar | Email（唯一） |
+| password_hash | varchar | 密碼雜湊；OAuth 帳號可為 null |
+| role | enum | USER / ADMIN |
+| status | enum | ACTIVE / BANNED / DISABLED |
 | reputation | integer | 聲望值 |
+| last_login_at | timestamp | 最後登入時間 |
+| avatar_url | text | 頭像 URL |
+| bio | text | 個人簡介 |
 | created_at | timestamp | 建立時間 |
+| updated_at | timestamp | 更新時間 |
+
+### user_sessions
+
+| 欄位 | 型別 | 說明 |
+| --- | --- | --- |
+| id | uuid | Session ID（PK） |
+| user_id | uuid | 使用者 ID（FK） |
+| refresh_token_hash | varchar | refresh token 雜湊（唯一） |
+| expires_at | timestamp | 過期時間 |
+| revoked_at | timestamp | 撤銷時間；未撤銷為 null |
+| ip_address | varchar | 來源 IP |
+| created_at | timestamp | 建立時間 |
+
+### user_oauth_accounts
+
+| 欄位 | 型別 | 說明 |
+| --- | --- | --- |
+| id | uuid | 綁定 ID（PK） |
+| user_id | uuid | 使用者 ID（FK） |
+| provider | enum | GOOGLE / FACEBOOK / GITHUB |
+| provider_uid | varchar | 第三方唯一識別；與 provider 組成唯一鍵 |
+| email | varchar | 第三方 Email |
+| created_at | timestamp | 綁定時間 |
 
 ### wallets
 
 | 欄位 | 型別 | 說明 |
 | --- | --- | --- |
-| id | uuid | 錢包 ID |
-| user_id | uuid | 使用者 ID |
+| id | uuid | 錢包 ID（PK） |
+| user_id | uuid | 使用者 ID（FK，唯一） |
 | balance | numeric | 虛擬點數餘額 |
+| locked_balance | numeric | 凍結中餘額 |
+| version | integer | 樂觀鎖版本號 |
+| created_at | timestamp | 建立時間 |
 | updated_at | timestamp | 更新時間 |
+
+### wallet_transactions
+
+| 欄位 | 型別 | 說明 |
+| --- | --- | --- |
+| id | uuid | 異動 ID（PK） |
+| wallet_id | uuid | 錢包 ID（FK） |
+| type | enum | SIGNUP_BONUS / TRADE_BUY / TRADE_SELL / RESOLUTION_PAYOUT / REFUND / BONUS / ADJUSTMENT |
+| amount | numeric | 異動金額 |
+| balance_after | numeric | 異動後餘額 |
+| reference_type | enum | BONUS / TRADE / MARKET / ADJUSTMENT / ADMIN / SYSTEM；可為 null |
+| reference_id | uuid | 來源單據 ID |
+| idempotency_key | varchar | 冪等鍵（唯一） |
+| metadata | jsonb | 附加資料 |
+| created_at | timestamp | 建立時間 |
 
 ### markets
 
 | 欄位 | 型別 | 說明 |
 | --- | --- | --- |
-| id | uuid | 市場 ID |
-| creator_id | uuid | 開盤者 ID |
+| id | uuid | 市場 ID（PK） |
+| code | varchar | 可讀顯示碼（唯一） |
+| creator_id | uuid | 開盤者 ID（FK） |
 | title | varchar | 市場標題 |
 | description | text | 市場說明 |
 | category | varchar | 分類 |
-| market_type | enum | binary / count_range / multiple_choice |
+| market_type | enum | BINARY / COUNT_RANGE / MULTIPLE_CHOICE |
 | source_url | text | 結算資料來源 |
 | resolution_rule | text | 結算規則 |
 | close_at | timestamp | 停止交易時間 |
-| status | enum | draft / pending / active / closed / resolved / rejected / canceled |
-| result | enum | yes / no / null；MVP 二元市場使用 |
+| status | enum | DRAFT / PENDING / ACTIVE / CLOSED / RESOLVED / REJECTED / CANCELED |
+| result | enum | YES / NO / null；MVP 二元市場使用 |
 | result_value | numeric | 實際結算數值；次數型市場使用 |
 | yes_pool | numeric | Yes 流動池；MVP 二元市場使用 |
 | no_pool | numeric | No 流動池；MVP 二元市場使用 |
+| approved_at | timestamp | 審核通過時間 |
+| approved_by | uuid | 審核者 ID（FK） |
+| resolved_at | timestamp | 結算時間 |
+| resolved_by | uuid | 結算者 ID（FK） |
 | created_at | timestamp | 建立時間 |
+| updated_at | timestamp | 更新時間 |
 
 ### market_options
 
@@ -228,10 +283,11 @@ no_price = yes_pool / (yes_pool + no_pool)
 
 | 欄位 | 型別 | 說明 |
 | --- | --- | --- |
-| id | uuid | 審核 ID |
-| market_id | uuid | 市場 ID |
-| reviewer_id | uuid | 管理員 ID |
-| status | enum | approved / rejected / changes_requested |
+| id | uuid | 審核 ID（PK） |
+| code | varchar | 可讀顯示碼（唯一） |
+| market_id | uuid | 市場 ID（FK） |
+| reviewer_id | uuid | 管理員 ID（FK） |
+| status | enum | APPROVED / REJECTED / CHANGES_REQUESTED |
 | comment | text | 審核意見 |
 | created_at | timestamp | 審核時間 |
 
@@ -239,41 +295,90 @@ no_price = yes_pool / (yes_pool + no_pool)
 
 | 欄位 | 型別 | 說明 |
 | --- | --- | --- |
-| id | uuid | 交易 ID |
-| user_id | uuid | 使用者 ID |
-| market_id | uuid | 市場 ID |
-| side | enum | yes / no；MVP 二元市場使用 |
-| option_id | uuid | 市場選項 ID；進階多選項市場使用 |
-| action | enum | buy / sell |
+| id | uuid | 交易 ID（PK） |
+| code | varchar | 可讀顯示碼（唯一） |
+| user_id | uuid | 使用者 ID（FK） |
+| market_id | uuid | 市場 ID（FK） |
+| option_id | uuid | 市場選項 ID（FK）；進階多選項市場使用 |
+| side | enum | YES / NO；MVP 二元市場使用，可為 null |
+| action | enum | BUY / SELL |
 | amount | numeric | 花費點數 |
-| shares | numeric | 取得份額 |
 | price | numeric | 成交價格 |
+| shares | numeric | 取得份額 |
 | created_at | timestamp | 交易時間 |
 
 ### positions
 
 | 欄位 | 型別 | 說明 |
 | --- | --- | --- |
-| id | uuid | 持倉 ID |
-| user_id | uuid | 使用者 ID |
-| market_id | uuid | 市場 ID |
-| option_id | uuid | 市場選項 ID；進階多選項市場使用 |
+| id | uuid | 持倉 ID（PK） |
+| user_id | uuid | 使用者 ID（FK） |
+| market_id | uuid | 市場 ID（FK） |
+| option_id | uuid | 市場選項 ID（FK）；進階多選項市場使用 |
 | yes_shares | numeric | Yes 份額；MVP 二元市場使用 |
 | no_shares | numeric | No 份額；MVP 二元市場使用 |
+| yes_cost | numeric | Yes 累計成本；MVP 二元市場使用 |
+| no_cost | numeric | No 累計成本；MVP 二元市場使用 |
+| shares | numeric | 選項份額；進階多選項市場使用 |
+| cost | numeric | 選項累計成本；進階多選項市場使用 |
+| status | enum | OPEN / SETTLED / CANCELED |
 | updated_at | timestamp | 更新時間 |
 
 ### market_price_history
 
 | 欄位 | 型別 | 說明 |
 | --- | --- | --- |
-| id | uuid | 紀錄 ID |
-| market_id | uuid | 市場 ID |
-| option_id | uuid | 市場選項 ID；進階多選項市場使用 |
+| id | uuid | 紀錄 ID（PK） |
+| market_id | uuid | 市場 ID（FK） |
+| option_id | uuid | 市場選項 ID（FK）；進階多選項市場使用 |
 | yes_price | numeric | Yes 價格；MVP 二元市場使用 |
 | no_price | numeric | No 價格；MVP 二元市場使用 |
 | option_price | numeric | 選項價格；進階多選項市場使用 |
-| volume | numeric | 成交量 |
+| trade_volume | numeric | 成交量 |
 | recorded_at | timestamp | 紀錄時間 |
+
+### user_portfolio_snapshots
+
+個人資產歷史快照，用於個人績效折線圖。
+
+| 欄位 | 型別 | 說明 |
+| --- | --- | --- |
+| id | uuid | 快照 ID（PK） |
+| user_id | uuid | 使用者 ID（FK） |
+| wallet_balance | numeric | 當時錢包餘額 |
+| position_value | numeric | 當時持倉估值 |
+| total_asset_value | numeric | 總資產 = 餘額 + 持倉估值 |
+| realized_profit | numeric | 已實現盈虧 |
+| unrealized_profit | numeric | 未實現盈虧 |
+| recorded_at | timestamp | 紀錄時間 |
+
+### notifications
+
+| 欄位 | 型別 | 說明 |
+| --- | --- | --- |
+| id | uuid | 通知 ID（PK） |
+| user_id | uuid | 收件使用者 ID（FK） |
+| market_id | uuid | 關聯市場 ID（FK）；可為 null |
+| type | enum | TRADE_SUCCESS / MARKET_CLOSED / MARKET_RESOLVED / SYSTEM / ADMIN |
+| title | varchar | 通知標題 |
+| message | text | 通知內容 |
+| reference_type | varchar | 來源類型 |
+| reference_id | uuid | 來源 ID |
+| read_at | timestamp | 已讀時間；未讀為 null |
+| created_at | timestamp | 建立時間 |
+
+### admin_logs
+
+| 欄位 | 型別 | 說明 |
+| --- | --- | --- |
+| id | uuid | 稽核 ID（PK） |
+| code | varchar | 可讀顯示碼（唯一） |
+| admin_user_id | uuid | 操作管理員 ID（FK） |
+| action | varchar | 操作動作 |
+| target_type | varchar | 操作對象類型 |
+| target_id | uuid | 操作對象 ID |
+| metadata | jsonb | 附加資料 |
+| created_at | timestamp | 建立時間 |
 
 ## 10. API 規劃
 

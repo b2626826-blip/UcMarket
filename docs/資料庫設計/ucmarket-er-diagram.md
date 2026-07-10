@@ -45,6 +45,7 @@ erDiagram
 
     USERS {
         uuid id PK
+        varchar code UK
         varchar username UK
         varchar email UK
         varchar password_hash "nullable for OAuth"
@@ -102,6 +103,7 @@ erDiagram
 
     MARKETS {
         uuid id PK
+        varchar code UK
         uuid creator_id FK
         varchar title
         text description
@@ -109,7 +111,6 @@ erDiagram
         varchar market_type
         text source_url
         text resolution_rule
-        timestamp preopen_at
         timestamp close_at
         varchar status
         varchar result
@@ -126,6 +127,7 @@ erDiagram
 
     MARKET_REVIEWS {
         uuid id PK
+        varchar code UK
         uuid market_id FK
         uuid reviewer_id FK
         varchar status
@@ -146,6 +148,7 @@ erDiagram
 
     TRADES {
         uuid id PK
+        varchar code UK
         uuid user_id FK
         uuid market_id FK
         uuid option_id FK
@@ -209,6 +212,7 @@ erDiagram
 
     ADMIN_LOGS {
         uuid id PK
+        varchar code UK
         uuid admin_user_id FK
         varchar action
         varchar target_type
