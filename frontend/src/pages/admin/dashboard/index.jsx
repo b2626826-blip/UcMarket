@@ -3,15 +3,12 @@ import { Chart, DoughnutController, ArcElement, Legend, Tooltip } from 'chart.js
 import { getDashboardStats, getDashboardReviews } from '../../../api/adminApi';
 import { approveMarket, rejectMarket, requestMarketChanges } from '../../../api/marketApi';
 import useUiStore from '../../../store/uiStore';
+import StatusBadge from '../../../components/common/StatusBadge';
+import { formatTime } from '../../../utils/format';
 
 Chart.register(DoughnutController, ArcElement, Legend, Tooltip);
 
 const STATUS_LABEL = { PENDING: '待審核', ACTIVE: '進行中', CLOSED: '已截止', RESOLVED: '已結算', REJECTED: '已拒絕', DRAFT: '草稿', CANCELED: '已取消' };
-
-function formatTime(val) {
-  if (!val) return '';
-  return val.replace('T', ' ').substring(0, 19);
-}
 
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
@@ -146,7 +143,7 @@ export default function DashboardPage() {
                     <td>{r.title || ''}</td>
                     <td>{r.creatorCode || (r.creatorId || '').substring(0, 8)}</td>
                     <td>{formatTime(r.createdAt)}</td>
-                    <td><span className="status-badge status-pending"><span className="status-dot"></span>{r.category || ''}</span></td>
+                    <td><StatusBadge status="PENDING" label={r.category || ''} /></td>
                     <td>{formatTime(r.closeAt)}</td>
                     <td>
                       <button className="icon-btn text-success" title="核准" onClick={() => handleApprove(r.id)}><i className="bi bi-check-lg"></i></button>

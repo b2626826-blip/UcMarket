@@ -4,12 +4,7 @@ import CurrentEventMarketCard from '../../../components/market/CurrentEventMarke
 import MarketCard from '../../../components/market/MarketCard';
 import MarketTrendCarousel from '../../../components/market/MarketTrendCarousel';
 import useGlowEffect from '../../../hooks/useGlowEffect';
-
-const heroSlides = [
-  { badge: '熱門市場', title: '預測未來', text: '透過市場價格反映真實世界機率', primary: '開始交易', secondary: '查看市場' },
-  { badge: '加密市場', title: 'BTC 200K', text: '預測比特幣是否突破歷史新高', primary: '立即參與', secondary: '查看走勢' },
-  { badge: '政治市場', title: '美國大選', text: '即時追蹤全球政治預測市場', primary: '查看盤口', secondary: '了解玩法' },
-];
+import { CURRENT_EVENT_CATEGORY } from '../../../types/market';
 
 const initialMarkets = [
   { id: 1, category: '政治', title: '共和黨是否會贏得下一屆美國總統大選？', date: '2028 年 11 月', yesPrice: 0.61, noPrice: 0.39, volume: '$5.8M', traders: '4,451' },
@@ -21,11 +16,9 @@ const initialMarkets = [
   { id: 10, category: '金融', title: 'WTI 原油在 2026 年 5 月收盤是否會高過 75 美元？', date: '2026 年 5 月', yesPrice: 0.51, noPrice: 0.49, volume: '$2.3M', traders: '1,243' },
 ];
 
-const categories = ['全部', '政治', '運動', '天氣', '時事', '金融'];
+const categories = ['全部', '政治', '運動', '天氣', CURRENT_EVENT_CATEGORY, '金融'];
 
 export default function HomePage() {
-  const [slideIdx, setSlideIdx] = useState(0);
-  const [fading, setFading] = useState(false);
   const [category, setCategory] = useState('全部');
   const [search, setSearch] = useState('');
   const [markets, setMarkets] = useState(initialMarkets);
@@ -34,7 +27,7 @@ export default function HomePage() {
   const [currentEventError, setCurrentEventError] = useState('');
 
   useEffect(() => {
-    if (category !== '時事') {
+    if (category !== CURRENT_EVENT_CATEGORY) {
       return;
     }
 
@@ -55,18 +48,6 @@ export default function HomePage() {
   }, [category]);
 
   useGlowEffect('.chart-card, .stats-card, .market-card');
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setFading(true);
-      setTimeout(() => {
-        setSlideIdx((i) => (i + 1) % heroSlides.length);
-        setFading(false);
-      }, 400);
-    }, 4000);
-    return () => clearInterval(timer);
-  }, []);
-
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -91,34 +72,13 @@ export default function HomePage() {
     market.title.toLowerCase().includes(search.toLowerCase())
   );
 
-  const slide = heroSlides[slideIdx];
-
   function handleTrade(market, side) {
     alert('交易確認\n\n市場：' + market.title + '\n方向：' + side + '\n價格：$' + (side === 'YES' ? market.yesPrice.toFixed(2) : market.noPrice.toFixed(2)));
   }
 
   return (
-    <div>
-      <section className="hero">
-        <div className="ticker-layer">
-          <div className="ticker-row row-1">BTC 200K&nbsp;&nbsp;&nbsp;ETH 10K&nbsp;&nbsp;&nbsp;SOL 500&nbsp;&nbsp;&nbsp;DOGE 1</div>
-          <div className="ticker-row row-2">美國大選&nbsp;&nbsp;&nbsp;Fed 降息&nbsp;&nbsp;&nbsp;AI 監管&nbsp;&nbsp;&nbsp;NBA 冠軍</div>
-          <div className="ticker-row row-3">預測未來&nbsp;&nbsp;&nbsp;套利機會&nbsp;&nbsp;&nbsp;即時價格&nbsp;&nbsp;&nbsp;分散風險</div>
-        </div>
-        <div className="hero-slider">
-          <div className="slide" key={slideIdx} style={{ opacity: fading ? 0 : 1, transition: 'opacity .6s ease' }}>
-            <span className="badge">{slide.badge}</span>
-            <h1>{slide.title}</h1>
-            <p>{slide.text}</p>
-            <div className="hero-buttons">
-              <button className="primary-btn">{slide.primary}</button>
-              <button className="secondary-btn">{slide.secondary}</button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <div className="dashboard" style={{ paddingTop: 80, paddingBottom: 80 }}>
+    <div className="markets-dashboard-page">
+      <div className="dashboard home-dashboard">
         <MarketTrendCarousel />
         <div className="stats-card">
           <div className="stats-glow"></div>
@@ -143,34 +103,7 @@ export default function HomePage() {
         </div>
       </div>
 
-      <section className="info-grid">
-        <div className="info-card">
-          <h3>走勢摘要</h3>
-          <ul>
-            {[
-              { name: '2028 美國總統大選', pct: '+12.5%', cls: 'green' },
-              { name: 'BTC 突破 150,000', pct: '+8.3%', cls: 'green' },
-              { name: 'GDP 達到 3%', pct: '-2.1%', cls: 'red' },
-            ].map((item) => (
-              <li key={item.name}><span>{item.name}</span><span className={item.cls}>{item.pct}</span></li>
-            ))}
-          </ul>
-        </div>
-        <div className="info-card">
-          <h3>熱門事件</h3>
-          <ol>
-            <li>美國總統大選</li><li>BTC 200K</li><li>NBA 總冠軍</li><li>GDP 預測</li><li>電影票房</li>
-          </ol>
-        </div>
-        <div className="info-card">
-          <h3>搜尋結果</h3>
-          <ul>
-            <li>WTI 原油預測</li><li>布蘭特原油</li><li>OPEC 減產</li><li>全球能源需求</li><li>新能源車</li>
-          </ul>
-        </div>
-      </section>
-
-      <section className="markets">
+      <section id="markets" className="markets">
         <div className="section-title">
           <h2>預測市場</h2>
         </div>
@@ -186,27 +119,27 @@ export default function HomePage() {
           <button><i className="fa-solid fa-magnifying-glass"></i></button>
         </div>
         <div className="market-grid" id="marketGrid">
-          {category === '時事' && currentEventLoading && (
+          {category === CURRENT_EVENT_CATEGORY && currentEventLoading && (
             <p>時事市場載入中...</p>
           )}
 
-          {category !== '時事' &&
+          {category !== CURRENT_EVENT_CATEGORY &&
             filtered.map((market) => (
               <MarketCard key={market.id} market={market} onClickTrade={handleTrade} />
             ))}
 
-          {category === '時事' && !currentEventLoading && currentEventError && (
+          {category === CURRENT_EVENT_CATEGORY && !currentEventLoading && currentEventError && (
             <p role="alert">{currentEventError}</p>
           )}
 
-          {category === '時事' &&
+          {category === CURRENT_EVENT_CATEGORY &&
             !currentEventLoading &&
             !currentEventError &&
             filteredCurrentEvents.length === 0 && (
               <p>目前沒有符合條件的時事市場。</p>
             )}
 
-          {category === '時事' &&
+          {category === CURRENT_EVENT_CATEGORY &&
             !currentEventLoading &&
             !currentEventError &&
             filteredCurrentEvents.map((market) => (

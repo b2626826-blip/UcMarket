@@ -1,0 +1,124 @@
+.admin-create-market-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(300px, 0.42fr);
+  gap: var(--space-4);
+  align-items: start;
+}
+
+.admin-market-preview {
+  position: sticky;
+  top: 88px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+}
+
+.admin-market-preview__header,
+.admin-market-preview__outcomes,
+.admin-market-preview__details > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.admin-market-preview__header {
+  align-items: center;
+  color: var(--text-secondary);
+  font-size: .75rem;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+
+.admin-market-preview__header small,
+.admin-market-preview__category {
+  display: inline-flex;
+  width: fit-content;
+  border-radius: 999px;
+  background: rgba(217, 170, 67, .12);
+  color: var(--brand-gold);
+  padding: 4px 9px;
+  font-size: .7rem;
+  font-weight: 700;
+}
+
+.admin-market-preview__category {
+  margin-top: var(--space-4);
+}
+
+.admin-market-preview h2 {
+  margin: var(--space-2) 0 0;
+  color: var(--text-primary);
+  font-size: 1.35rem;
+  line-height: 1.4;
+}
+
+.admin-market-preview__description {
+  min-height: 44px;
+  margin: var(--space-2) 0 0;
+  color: var(--text-secondary);
+  font-size: .85rem;
+  line-height: 1.6;
+}
+
+.admin-market-preview__outcomes {
+  margin-top: var(--space-4);
+}
+
+.admin-market-preview__outcomes div {
+  flex: 1;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-3);
+}
+
+.admin-market-preview__outcomes div:first-child {
+  border-color: rgba(0, 214, 79, .4);
+}
+
+.admin-market-preview__outcomes small,
+.admin-market-preview__details dt {
+  color: var(--text-muted);
+  font-size: .75rem;
+}
+
+.admin-market-preview__outcomes strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--text-primary);
+  font-size: 1.25rem;
+}
+
+.admin-market-preview__details {
+  margin: var(--space-4) 0 0;
+  border-top: 1px solid var(--border);
+}
+
+.admin-market-preview__details > div {
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.admin-market-preview__details dt {
+  flex-shrink: 0;
+}
+
+.admin-market-preview__details dd {
+  max-width: 65%;
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--text-primary);
+  font-size: .75rem;
+  text-align: right;
+}
+
+@media (max-width: 1100px) {
+  .admin-create-market-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-market-preview {
+    position: static;
+  }
+}

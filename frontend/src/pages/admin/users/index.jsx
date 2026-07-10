@@ -1,15 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getAdminUsers, suspendUser, unsuspendUser } from '../../../api/adminApi';
 import useUiStore from '../../../store/uiStore';
-
-function formatTime(val) {
-  if (!val) return '-';
-  return val.replace('T', ' ').substring(0, 16);
-}
-function formatBalance(n) {
-  if (n == null) return '-';
-  return Number(n).toLocaleString();
-}
+import StatusBadge from '../../../components/common/StatusBadge';
+import { formatTime, formatBalance } from '../../../utils/format';
 
 export default function UsersPage() {
   const [allUsers, setAllUsers] = useState([]);
@@ -118,16 +111,16 @@ export default function UsersPage() {
                     <td className="fw-semibold small">{u.code || (u.id || '').substring(0, 8)}</td>
                     <td>{u.username || ''}</td>
                     <td>{u.email || ''}</td>
-                    <td>{u.role === 'ADMIN' ? <span className="status-badge status-active"><span className="status-dot"></span>管理員</span> : <span className="status-badge status-closed"><span className="status-dot"></span>一般用戶</span>}</td>
+                    <td>{u.role === 'ADMIN' ? <StatusBadge status="ADMIN" label="管理員" /> : <StatusBadge status="USER" label="一般用戶" />}</td>
                     <td>
-                      {u.status === 'ACTIVE' && <span className="status-badge status-active"><span className="status-dot"></span>正常</span>}
-                      {u.status === 'BANNED' && <span className="status-badge status-rejected"><span className="status-dot"></span>停權</span>}
-                      {u.status === 'DISABLED' && <span className="status-badge status-closed"><span className="status-dot"></span>停用</span>}
-                      {!['ACTIVE','BANNED','DISABLED'].includes(u.status) && <span className="status-badge status-closed"><span className="status-dot"></span>{u.status}</span>}
+                      {u.status === 'ACTIVE' && <StatusBadge status="ACTIVE" label="正常" />}
+                      {u.status === 'BANNED' && <StatusBadge status="BANNED" label="停權" />}
+                      {u.status === 'DISABLED' && <StatusBadge status="DISABLED" label="停用" />}
+                      {!['ACTIVE','BANNED','DISABLED'].includes(u.status) && <StatusBadge status={u.status} label={u.status} />}
                     </td>
                     <td>{formatBalance(u.balance)}</td>
-                    <td>{formatTime(u.createdAt)}</td>
-                    <td>{formatTime(u.lastLoginAt)}</td>
+                    <td>{formatTime(u.createdAt, 16) || '-'}</td>
+                    <td>{formatTime(u.lastLoginAt, 16) || '-'}</td>
                     <td>
                       {u.status === 'ACTIVE' && <button className="icon-btn text-danger" title="停權" onClick={() => handleSuspend(u.id)}><i className="bi bi-shield-slash"></i></button>}
                       {u.status === 'BANNED' && <button className="icon-btn text-success" title="啟用" onClick={() => handleUnsuspend(u.id)}><i className="bi bi-shield-check"></i></button>}

@@ -437,4 +437,124 @@ class RankingRepositoryTest {
 		assertThat(ranking.getOpenPositionValue()).isEqualByComparingTo("8.50");
 		assertThat(ranking.getTotalAssetValue()).isEqualByComparingTo("108.50");
 	}
+
+	@Test
+	void findAssetRankingsUsesZeroValueWithoutPriceHistory() {
+		UUID userId = UUID.randomUUID();
+		UUID walletId = UUID.randomUUID();
+		UUID marketId = UUID.randomUUID();
+		String suffix = userId.toString().substring(0, 8);
+
+		jdbcTemplate.update("""
+				INSERT INTO users (
+					id, code, username, email, password_hash, role, status, reputation, created_at, updated_at
+				)
+				VALUES (?, ?, ?, ?, ?, 'USER', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+				""",
+				userId,
+				"USR-" + suffix,
+				"fallback_" + suffix,
+				"fallback-" + suffix + "@example.com",
+				"test-password-hash"
+		);
+
+		jdbcTemplate.update("""
+				INSERT INTO wallets (id, user_id, balance, locked_balance, version, created_at, updated_at)
+				VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+				""",
+				walletId, userId, 100.00, 0.00, 0
+		);
+
+		jdbcTemplate.update("""
+				INSERT INTO markets (
+					id, creator_id, title, source_url, resolution_rule, close_at, status, market_type,
+					yes_pool, no_pool, created_at, updated_at
+				)
+				VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'ACTIVE', 'BINARY', 80.00, 20.00,
+					CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+				""",
+				marketId,
+				userId,
+				"No price history market",
+				"https://example.com/source",
+				"Resolve by official source"
+		);
+
+		jdbcTemplate.update("""
+				INSERT INTO positions (
+					id, user_id, market_id, yes_shares, no_shares, yes_cost, no_cost, status, updated_at
+				)
+				VALUES (random_uuid(), ?, ?, ?, ?, ?, ?, 'OPEN', CURRENT_TIMESTAMP)
+				""",
+				userId, marketId, 10.00, 5.00, 8.00, 1.00
+		);
+
+		RankingAssetsRow ranking = rankingRepository.findAssetRankings().stream()
+				.filter(row -> row.getUsername().equals("fallback_" + suffix))
+				.findFirst()
+				.orElseThrow();
+
+		assertThat(ranking.getOpenPositionValue()).isEqualByComparingTo("0.00");
+		assertThat(ranking.getTotalAssetValue()).isEqualByComparingTo("100.00");
+	}
+
+	@Test
+	void findAssetRankingsIgnoresMultiOptionPositions() {
+		UUID userId = UUID.randomUUID();
+		UUID walletId = UUID.randomUUID();
+		UUID marketId = UUID.randomUUID();
+		String suffix = userId.toString().substring(0, 8);
+
+		jdbcTemplate.update("""
+				INSERT INTO users (
+					id, code, username, email, password_hash, role, status, reputation, created_at, updated_at
+				)
+				VALUES (?, ?, ?, ?, ?, 'USER', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+				""",
+				userId,
+				"USR-" + suffix,
+				"option_" + suffix,
+				"option-" + suffix + "@example.com",
+				"test-password-hash"
+		);
+
+		jdbcTemplate.update("""
+				INSERT INTO wallets (id, user_id, balance, locked_balance, version, created_at, updated_at)
+				VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+				""",
+				walletId, userId, 100.00, 0.00, 0
+		);
+
+		jdbcTemplate.update("""
+				INSERT INTO markets (
+					id, creator_id, title, source_url, resolution_rule, close_at, status, market_type,
+					yes_pool, no_pool, created_at, updated_at
+				)
+				VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 'ACTIVE', 'BINARY', 80.00, 20.00,
+					CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+				""",
+				marketId,
+				userId,
+				"Option position exclusion market",
+				"https://example.com/source",
+				"Resolve by official source"
+		);
+
+		jdbcTemplate.update("""
+				INSERT INTO positions (
+					id, user_id, market_id, option_id, yes_shares, no_shares, yes_cost, no_cost, status, updated_at
+				)
+				VALUES (random_uuid(), ?, ?, ?, ?, ?, ?, ?, 'OPEN', CURRENT_TIMESTAMP)
+				""",
+				userId, marketId, UUID.randomUUID(), 100.00, 0.00, 80.00, 0.00
+		);
+
+		RankingAssetsRow ranking = rankingRepository.findAssetRankings().stream()
+				.filter(row -> row.getUsername().equals("option_" + suffix))
+				.findFirst()
+				.orElseThrow();
+
+		assertThat(ranking.getOpenPositionValue()).isEqualByComparingTo("0.00");
+		assertThat(ranking.getTotalAssetValue()).isEqualByComparingTo("100.00");
+	}
 }

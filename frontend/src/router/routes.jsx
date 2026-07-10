@@ -4,11 +4,13 @@ import UserLayout from "../components/layout/UserLayout";
 import AdminLayout from "../components/layout/AdminLayout";
 import AuthGuard from "./AuthGuard";
 import AdminGuard from "./AdminGuard";
+import LandingPage from "../pages/public/landing";
 import HomePage from "../pages/public/home";
 import LoginPage from "../pages/public/login/LoginPage";
 import RegisterPage from "../pages/public/register/RegisterPage";
 import MarketDetailPage from "../pages/public/market-detail";
 import WeatherDetailPage from "../pages/public/market-detail-weather";
+import PoliticsListPage from "../pages/public/market-politics";
 import PoliticsDetailPage from "../pages/public/market-detail-politics";
 import SportsDetailPage from "../pages/public/market-detail-sports";
 import CurrentAffairsDetailPage from "../pages/public/market-detail-current-affairs";
@@ -35,9 +37,11 @@ const router = createBrowserRouter([
     path: "/",
     element: <UserLayout />,
     children: [
-      { index: true, element: <HomePage /> },
+      { index: true, element: <LandingPage /> },
+      { path: "home", element: <HomePage /> },
       { path: "markets", element: <HomePage /> },
-      { path: "markets/current-affairs", element: <Navigate to="/" replace /> },
+      { path: "markets/current-affairs", element: <Navigate to="/home" replace /> },
+      { path: "markets/politics", element: <PoliticsListPage /> },
       { path: "markets/:id", element: <MarketDetailPage /> },
       { path: "markets/weather/:id", element: <WeatherDetailPage /> },
       { path: "markets/politics/:id", element: <PoliticsDetailPage /> },

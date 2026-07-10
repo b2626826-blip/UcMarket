@@ -8,33 +8,44 @@ export const rankingApiEndpoints = {
 
 const inFlightRankRequests = new Map();
 
+function toRankingNumber(value, multiplier = 1) {
+  if (value === null || value === undefined) return null;
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue * multiplier : null;
+}
+
 function mergeRankingData(profitData, winRateData, assetsData) {
   const rankingsByUser = new Map();
 
+  const getRanking = (item) => {
+    if (!rankingsByUser.has(item.userId)) {
+      rankingsByUser.set(item.userId, {
+        userId: item.userId,
+        name: item.username,
+        account: item.account,
+        market: item.primaryMarket,
+        profit: null,
+        winRate: null,
+        resolvedMarketCount: 0,
+        assets: null,
+      });
+    }
+
+    return rankingsByUser.get(item.userId);
+  };
+
   for (const item of profitData) {
-    rankingsByUser.set(item.userId, {
-      userId: item.userId,
-      name: item.username,
-      account: item.account,
-      market: item.primaryMarket,
-      profit: Number(item.realizedProfit),
-      winRate: null,
-      resolvedMarketCount: 0,
-      assets: null,
-    });
+    getRanking(item).profit = toRankingNumber(item.realizedProfit);
   }
 
   for (const item of winRateData) {
-    const ranking = rankingsByUser.get(item.userId);
-    if (ranking) {
-      ranking.winRate = Number(item.winRate) * 100;
-      ranking.resolvedMarketCount = Number(item.resolvedMarketCount);
-    }
+    const ranking = getRanking(item);
+    ranking.winRate = toRankingNumber(item.winRate, 100);
+    ranking.resolvedMarketCount = toRankingNumber(item.resolvedMarketCount) ?? 0;
   }
 
   for (const item of assetsData) {
-    const ranking = rankingsByUser.get(item.userId);
-    if (ranking) ranking.assets = Number(item.totalAssetValue);
+    getRanking(item).assets = toRankingNumber(item.totalAssetValue);
   }
 
   return [...rankingsByUser.values()];
@@ -42,12 +53,22 @@ function mergeRankingData(profitData, winRateData, assetsData) {
 
 function sortRankings(type, rankings) {
   const field = type === "win-rate" ? "winRate" : type;
+
   return rankings
-    .sort((left, right) =>
-      right[field] - left[field]
-      || (type === "win-rate" && right.resolvedMarketCount - left.resolvedMarketCount)
-      || left.name.localeCompare(right.name)
-    )
+    .sort((left, right) => {
+      const leftValue = left[field];
+      const rightValue = right[field];
+      const leftHasValue = Number.isFinite(leftValue);
+      const rightHasValue = Number.isFinite(rightValue);
+
+      if (leftHasValue !== rightHasValue) return rightHasValue ? 1 : -1;
+      if (leftHasValue && rightValue !== leftValue) return rightValue - leftValue;
+      if (type === "win-rate" && right.resolvedMarketCount !== left.resolvedMarketCount) {
+        return right.resolvedMarketCount - left.resolvedMarketCount;
+      }
+
+      return left.name.localeCompare(right.name);
+    })
     .map((item, index) => ({ ...item, rank: index + 1 }));
 }
 

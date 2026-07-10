@@ -1,5 +1,8 @@
-import { useParams } from 'react-router-dom';
+import { Link, useParams } from 'react-router-dom';
 import DetailPageTemplate from '../../../components/common/DetailPageTemplate';
+import politicsBanner from './politics-banner.png';
+import usFlag from './us-flag.png';
+import './PoliticsDetailPage.css';
 
 export default function PoliticsDetailPage() {
   const { id } = useParams();
@@ -10,6 +13,57 @@ export default function PoliticsDetailPage() {
       subtitle="政治事件預測市場"
       marketId={id}
     >
+      <section className="politics-detail-hero">
+        <img src={politicsBanner} alt="政治市場" />
+        <div className="politics-detail-hero__content">
+          <span>POLITICS MARKET</span>
+          <h1>政治市場</h1>
+          <p>獨立事件</p>
+          <strong>G7 峰會是否會發布新的共同制裁聲明？</strong>
+        </div>
+      </section>
+
+      <section className="politics-detail-feature">
+        <div className="politics-detail-feature__copy">
+          <span>獨立事件</span>
+          <div className="politics-detail-feature__image">
+            <img src={usFlag} alt="US Flag" />
+          </div>
+
+          <h2>
+            共和黨是否會贏得
+            <br />
+            下一屆美國總統大選？
+          </h2>
+
+          <div className="politics-detail-feature__actions">
+            <button type="button">YES</button>
+            <button type="button">NO</button>
+            <Link to="/markets/politics">
+              查看更多 <i className="fa-solid fa-arrow-right"></i>
+            </Link>
+          </div>
+        </div>
+
+        <div className="politics-detail-feature__stats">
+          <div>
+            <span><i className="fa-solid fa-dollar-sign"></i></span>
+            <p>總交易量</p>
+            <strong>$125,430</strong>
+          </div>
+          <div>
+            <span><i className="fa-regular fa-clock"></i></span>
+            <p>截止日期</p>
+            <strong>2026/08/31</strong>
+          </div>
+          <div>
+            <span><i className="fa-solid fa-circle"></i></span>
+            <p>狀態</p>
+            <strong className="green-text">OPEN</strong>
+          </div>
+        </div>
+      </section>
+
       <div className="trade-market-card">
         <div className="trade-card-header">
           <div>

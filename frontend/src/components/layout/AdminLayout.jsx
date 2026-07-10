@@ -33,6 +33,14 @@ export default function AdminLayout() {
   const [hiding, setHiding] = useState(null);
 
   useEffect(() => {
+    const previousTitle = document.title;
+    document.title = 'UcmarketAdmin';
+    return () => {
+      document.title = previousTitle;
+    };
+  }, []);
+
+  useEffect(() => {
     if (toast) {
       const timer = setTimeout(() => {
         setHiding(toast.id);

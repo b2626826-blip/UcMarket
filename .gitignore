@@ -30,6 +30,7 @@ backend/src/main/resources/firebase-service-account.json
 # Local planning / notes
 /.agents/
 /.codex/
+/.claude/
 eagle/
 design-qa.md
 frontend/排行榜設計語彙.md

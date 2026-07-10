@@ -1,11 +1,8 @@
 import { useState, useEffect } from 'react';
 import { getAdminUsers, suspendUser, unsuspendUser } from '../../../api/adminApi';
 import useUiStore from '../../../store/uiStore';
-
-function formatTime(val) {
-  if (!val) return '-';
-  return val.replace('T', ' ').substring(0, 16);
-}
+import StatusBadge from '../../../components/common/StatusBadge';
+import { formatTime } from '../../../utils/format';
 
 export default function AdminsPage() {
   const [allAdmins, setAllAdmins] = useState([]);
@@ -103,12 +100,12 @@ export default function AdminsPage() {
                     <td>{a.username || ''}</td>
                     <td>{a.email || ''}</td>
                     <td>
-                      {a.status === 'ACTIVE' ? <span className="status-badge status-active"><span className="status-dot"></span>正常</span>
-                       : a.status === 'BANNED' ? <span className="status-badge status-rejected"><span className="status-dot"></span>停權</span>
-                       : <span className="status-badge status-closed"><span className="status-dot"></span>{a.status}</span>}
+                      {a.status === 'ACTIVE' ? <StatusBadge status="ACTIVE" label="正常" />
+                       : a.status === 'BANNED' ? <StatusBadge status="BANNED" label="停權" />
+                       : <StatusBadge status={a.status} label={a.status} />}
                     </td>
-                    <td>{formatTime(a.lastLoginAt)}</td>
-                    <td>{formatTime(a.createdAt)}</td>
+                    <td>{formatTime(a.lastLoginAt, 16) || '-'}</td>
+                    <td>{formatTime(a.createdAt, 16) || '-'}</td>
                     <td>
                       {a.status === 'ACTIVE' && <button className="icon-btn text-danger" title="停權" onClick={() => handleSuspend(a.id)}><i className="bi bi-shield-slash"></i></button>}
                       {a.status === 'BANNED' && <button className="icon-btn text-success" title="啟用" onClick={() => handleUnsuspend(a.id)}><i className="bi bi-shield-check"></i></button>}

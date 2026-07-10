@@ -1,5 +1,5 @@
 import { matchesCurrentEventFilter } from '../config/currentEventFilters';
-import { CURRENT_EVENT_CATEGORY } from '../types/market';
+import { CURRENT_EVENT_CATEGORY, CURRENT_EVENT_CATEGORY_CODE } from '../types/market';
 import { getApi, postApi } from './client';
 
 export function getMarkets() {
@@ -25,7 +25,7 @@ export async function getCurrentEventMarkets(filters = {}) {
     .toLocaleLowerCase('zh-TW');
 
   const query = new URLSearchParams({
-    category: 'CURRENT_AFFAIRS',
+    category: CURRENT_EVENT_CATEGORY_CODE,
     page: String(page),
     size: String(size),
   });
@@ -82,7 +82,7 @@ export async function getCurrentEventMarkets(filters = {}) {
 export async function getCurrentEventMarketDetail(id) {
   const market = await getApi(`/api/markets/${id}`);
 
-  if (market.category !== 'CURRENT_AFFAIRS') {
+  if (market.category !== CURRENT_EVENT_CATEGORY_CODE) {
     return null;
   }
 
@@ -134,7 +134,5 @@ function normalizeCurrentEventMarket(market) {
     category: CURRENT_EVENT_CATEGORY,
     yesProbability,
     noProbability: 100 - yesProbability,
-    volume: null,
-    imageUrl: null,
   };
 }
