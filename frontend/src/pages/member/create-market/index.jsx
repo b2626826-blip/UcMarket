@@ -6,9 +6,9 @@ import { CURRENT_EVENT_CATEGORY_CODE } from '../../../types/market';
 import './CreateMarketPage.css';
 
 const marketTypeLabels = {
-  BINARY: '二元市場',
-  MULTIPLE: '多元市場',
-  SCALAR: '數值市場',
+  BINARY: '二元（YES/NO）',
+  COUNT_RANGE: '區間',
+  MULTIPLE_CHOICE: '多選',
 };
 
 function formatCloseAt(value) {
@@ -22,20 +22,34 @@ export default function CreateMarketPage() {
 
   function setField(k, v) { setForm((p) => ({ ...p, [k]: v })); setErrors((p) => ({ ...p, [k]: '' })); }
 
+  function validateUrl(url) {
+    if (!url.trim()) return false;
+    try { new URL(url); return true; } catch { return false; }
+  }
+
   function validate() {
     const e = {};
     if (!form.title.trim()) e.title = '請輸入標題';
     if (!form.category.trim()) e.category = '請選擇分類';
+    if (!form.description.trim()) e.description = '請輸入描述';
+    if (!form.sourceUrl.trim() || !validateUrl(form.sourceUrl)) e.sourceUrl = '請輸入有效的來源網址';
     if (!form.resolutionRule.trim()) e.resolutionRule = '請輸入裁決規則';
     if (!form.closeAt.trim()) e.closeAt = '請選擇截止時間';
+    else if (new Date(form.closeAt) <= new Date()) e.closeAt = '截止時間必須晚於現在';
     setErrors(e);
     return Object.keys(e).length === 0;
+  }
+
+  function buildBody() {
+    let closeAt = form.closeAt;
+    if (closeAt && !/\d{2}:\d{2}$/.test(closeAt)) closeAt += ':00';
+    return { ...form, closeAt, description: form.description || null, sourceUrl: form.sourceUrl || null };
   }
 
   async function handleSave() {
     if (!validate()) return;
     try {
-      await createMarket(form);
+      await createMarket(buildBody());
       showToast('success', '草稿已儲存');
     } catch (err) { showToast('danger', '儲存失敗', err.message); }
   }
@@ -43,7 +57,7 @@ export default function CreateMarketPage() {
   async function handleSubmit() {
     if (!validate()) return;
     try {
-      const market = await createMarket(form);
+      const market = await createMarket(buildBody());
       await submitMarket(market.id);
       showToast('success', '送審成功');
       setForm({ title: '', description: '', category: '', marketType: 'BINARY', sourceUrl: '', resolutionRule: '', closeAt: '' });
@@ -65,8 +79,8 @@ export default function CreateMarketPage() {
               <input className={`form-control ${errors.title ? 'is-invalid' : ''}`} placeholder="輸入市場標題" value={form.title} onChange={(e) => setField('title', e.target.value)} />
             </div>
             <div className="form-group">
-              <label className="form-label">描述</label>
-              <textarea className="form-control" rows={3} placeholder="市場描述（選填）" value={form.description} onChange={(e) => setField('description', e.target.value)} />
+              <label className="form-label">描述 *</label>
+              <textarea className={`form-control ${errors.description ? 'is-invalid' : ''}`} rows={3} placeholder="市場描述" value={form.description} onChange={(e) => setField('description', e.target.value)} />
             </div>
             <div className="form-group">
               <label className="form-label">分類 *</label>
@@ -82,17 +96,21 @@ export default function CreateMarketPage() {
             <div className="form-group">
               <label className="form-label">市場類型</label>
               <div style={{ display: 'flex', gap: 16 }}>
-                {['BINARY', 'MULTIPLE', 'SCALAR'].map((t) => (
-                  <label className="form-check" key={t}>
-                    <input type="radio" name="marketType" value={t} checked={form.marketType === t} onChange={() => setField('marketType', t)} />
-                    {t === 'BINARY' ? '二元' : t === 'MULTIPLE' ? '多元' : '數值'}
+                {[
+                  { value: 'BINARY', label: '二元（YES/NO）' },
+                  { value: 'COUNT_RANGE', label: '區間' },
+                  { value: 'MULTIPLE_CHOICE', label: '多選' },
+                ].map((t) => (
+                  <label className="form-check" key={t.value}>
+                    <input type="radio" name="marketType" value={t.value} checked={form.marketType === t.value} onChange={() => setField('marketType', t.value)} />
+                    {t.label}
                   </label>
                 ))}
               </div>
             </div>
             <div className="form-group">
-              <label className="form-label">資料來源 URL</label>
-              <input className="form-control" placeholder="https://" value={form.sourceUrl} onChange={(e) => setField('sourceUrl', e.target.value)} />
+              <label className="form-label">資料來源 URL *</label>
+              <input className={`form-control ${errors.sourceUrl ? 'is-invalid' : ''}`} placeholder="https://" value={form.sourceUrl} onChange={(e) => setField('sourceUrl', e.target.value)} />
             </div>
             <div className="form-group">
               <label className="form-label">裁決規則 *</label>
