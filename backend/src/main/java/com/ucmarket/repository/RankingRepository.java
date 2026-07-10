@@ -31,6 +31,16 @@ public interface RankingRepository extends JpaRepository<User, UUID> {
 			SELECT
 				u.id AS "userId",
 				u.username AS "username",
+				u.code AS "account",
+				(
+					SELECT m.title
+					FROM trades t
+					JOIN markets m ON m.id = t.market_id
+					WHERE t.user_id = u.id
+					GROUP BY m.id, m.title
+					ORDER BY SUM(t.amount) DESC, MAX(t.created_at) DESC, m.id ASC
+					LIMIT 1
+				) AS "primaryMarket",
 				u.avatar_url AS "avatarUrl",
 				COALESCE(p.total_payout, 0) AS "totalPayout",
 				COALESCE(sc.settled_cost, 0) AS "settledCost",
@@ -59,6 +69,16 @@ public interface RankingRepository extends JpaRepository<User, UUID> {
 			SELECT
 				u.id AS "userId",
 				u.username AS "username",
+				u.code AS "account",
+				(
+					SELECT m.title
+					FROM trades t
+					JOIN markets m ON m.id = t.market_id
+					WHERE t.user_id = u.id
+					GROUP BY m.id, m.title
+					ORDER BY SUM(t.amount) DESC, MAX(t.created_at) DESC, m.id ASC
+					LIMIT 1
+				) AS "primaryMarket",
 				u.avatar_url AS "avatarUrl",
 				COUNT(sp.market_id) AS "resolvedMarketCount",
 				COALESCE(SUM(sp.is_correct), 0) AS "correctCount",
@@ -68,7 +88,7 @@ public interface RankingRepository extends JpaRepository<User, UUID> {
 				END AS "winRate"
 			FROM users u
 			LEFT JOIN settled_predictions sp ON sp.user_id = u.id
-			GROUP BY u.id, u.username, u.avatar_url
+			GROUP BY u.id, u.username, u.code, u.avatar_url
 			ORDER BY "winRate" DESC, "resolvedMarketCount" DESC, u.username ASC
 			""", nativeQuery = true)
 	List<RankingWinRateRow> findWinRateRankings();
@@ -91,6 +111,16 @@ public interface RankingRepository extends JpaRepository<User, UUID> {
 			SELECT
 				u.id AS "userId",
 				u.username AS "username",
+				u.code AS "account",
+				(
+					SELECT m.title
+					FROM trades t
+					JOIN markets m ON m.id = t.market_id
+					WHERE t.user_id = u.id
+					GROUP BY m.id, m.title
+					ORDER BY SUM(t.amount) DESC, MAX(t.created_at) DESC, m.id ASC
+					LIMIT 1
+				) AS "primaryMarket",
 				u.avatar_url AS "avatarUrl",
 				COALESCE(w.balance, 0) AS "walletBalance",
 				COALESCE(opv.open_position_value, 0) AS "openPositionValue",

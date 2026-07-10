@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { createMarket, submitMarket } from '../../../../api/marketApi';
 import useUiStore from '../../../../store/uiStore';
+import { CURRENT_EVENT_CATEGORY_CODE } from '../../../../types/market';
 
 export default function CreateMarketPage() {
   const showToast = useUiStore((s) => s.showToast);
@@ -123,7 +124,13 @@ export default function CreateMarketPage() {
                 <label className="form-label">分類</label>
                 <select className={`form-select ${errors.category ? 'is-invalid' : ''}`} value={form.category} onChange={(e) => update('category', e.target.value)}>
                   <option value="">請選擇分類</option>
-                  {['政治', '運動', '天氣', '時事', '經濟'].map((c) => <option key={c}>{c}</option>)}
+                  {[
+                    { label: '政治', value: '政治' },
+                    { label: '運動', value: '運動' },
+                    { label: '天氣', value: '天氣' },
+                    { label: '時事', value: CURRENT_EVENT_CATEGORY_CODE },
+                    { label: '經濟', value: '經濟' },
+                  ].map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
                 {errors.category && <div className="invalid-feedback">請選擇分類</div>}
               </div>
