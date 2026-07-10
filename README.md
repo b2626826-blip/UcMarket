@@ -185,5 +185,5 @@ cd backend
 ## 前端規劃
 
 - 正式前端位置：[frontend/](frontend/)
-- 前端資料夾規劃：[frontend/前端資料夾檔案內容.md](frontend/前端資料夾檔案內容.md)
+- 前端資料夾規劃：[frontend/docs/前端資料夾檔案內容.md](frontend/docs/前端資料夾檔案內容.md)
 - 頁面架構來源：[docs/系統設計/網站架構.md](docs/系統設計/網站架構.md)

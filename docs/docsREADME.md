@@ -43,7 +43,7 @@
 | `系統設計/網站架構.md` | 頁面架構、正式前端路由、API 對應與資料流 |
 | `系統設計/網站規劃圖.svg` | 網站頁面規劃圖，可放簡報或報告 |
 | `系統設計/網站規劃圖.png` | 網站頁面規劃圖的 PNG 版本 |
-| `系統設計/圖4-3-1-UcMarket預測市場平台網站架構圖拷貝.png` | 工作計劃書使用的網站架構圖備份 |
+| `系統設計/圖4-3-1-UcMarket預測市場平台網站架構圖.png` | 工作計劃書使用的網站架構圖備份 |
 
 ### 資料庫設計
 
@@ -62,10 +62,10 @@
 | `資料庫設計/seed/mock.sql` | 開發與測試用 mock data |
 | `資料庫設計/migrations/sync-current-db-to-ddl.sql` | 將既有本機 PostgreSQL schema 對齊正式 DDL 的遷移腳本 |
 | `資料庫設計/migrations/add-code-columns.sql` | 舊資料庫補上可讀 code 欄位的修補腳本 |
+| `資料庫設計/migrations/add-oauth-support.sql` | 舊資料庫補上第三方 OAuth 支援的修補腳本 |
 | `資料庫設計/migrations/drop-wallet-transaction-user-market-columns.sql` | 舊資料庫移除 `wallet_transactions` 重複欄位的修補腳本 |
 | `資料庫設計/migrations/fix-admin-password.sql` | 本機 demo/admin 密碼修補腳本 |
 | `資料庫設計/notes/postgresql-test-troubleshooting.md` | PostgreSQL 測試與連線排錯筆記 |
-| `資料庫設計/db-backups/` | 本機資料庫整理或重建前的 SQL 備份 |
 
 ## 目前實作對齊提醒
 
