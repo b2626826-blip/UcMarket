@@ -6,7 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:int": "RUN_INTEGRATION=1 vitest --run"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
@@ -20,6 +22,8 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "latest",
-    "vite": "latest"
+    "jsdom": "^29.1.1",
+    "vite": "latest",
+    "vitest": "^4.1.10"
   }
 }
