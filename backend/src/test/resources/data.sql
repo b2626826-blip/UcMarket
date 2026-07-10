@@ -15,6 +15,8 @@ CREATE TABLE IF NOT EXISTS market_price_history (
     recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
+ALTER TABLE positions ADD COLUMN IF NOT EXISTS option_id UUID;
+
 INSERT INTO users (
     id, code, username, email, password_hash, role, status, reputation,
     last_login_at, avatar_url, bio, created_at, updated_at

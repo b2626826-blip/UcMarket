@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -113,6 +114,25 @@ class MarketControllerTest {
     }
 
     @Test
+    void listMarkets_shouldFilterByStatus() throws Exception {
+        Market market = createMarket(MarketStatus.ACTIVE);
+
+        when(marketRepository.findByStatus(
+                eq(MarketStatus.ACTIVE),
+                any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(market)));
+
+        mockMvc.perform(get("/api/markets")
+                .param("status", "ACTIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+
+        verify(marketRepository).findByStatus(
+                eq(MarketStatus.ACTIVE),
+                any(Pageable.class));
+    }
+
+    @Test
     void getMarket_shouldReturnMarket_whenFound() throws Exception {
         Market m = createMarket(MarketStatus.ACTIVE);
         UUID id = UUID.randomUUID();
@@ -138,9 +158,11 @@ class MarketControllerTest {
     @Test
     void createMarket_shouldReturn201() throws Exception {
         CreateMarketRequest request = new CreateMarketRequest(
-                "New Market", "Desc", "CURRENT_AFFAIRS", null, null, null, LocalDateTime.now().plusDays(7));
+                "New Market", "Desc", "CURRENT_AFFAIRS", null, "https://example.com/news", null,
+                LocalDateTime.now().plusDays(7));
 
-        Market saved = new Market("New Market", "Desc", "CURRENT_AFFAIRS", null, null, null, LocalDateTime.now().plusDays(7));
+        Market saved = new Market("New Market", "Desc", "CURRENT_AFFAIRS", null, "https://example.com/news", null,
+                LocalDateTime.now().plusDays(7));
         when(marketRepository.save(any())).thenReturn(saved);
 
         mockMvc.perform(post("/api/markets")
@@ -151,6 +173,7 @@ class MarketControllerTest {
         ArgumentCaptor<Market> marketCaptor = ArgumentCaptor.forClass(Market.class);
         verify(marketRepository).save(marketCaptor.capture());
         assertEquals("CURRENT_AFFAIRS", marketCaptor.getValue().getCategory());
+        assertEquals("https://example.com/news", marketCaptor.getValue().getSourceUrl());
     }
 
     @Test
@@ -161,6 +184,26 @@ class MarketControllerTest {
         mockMvc.perform(post("/api/markets")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createMarket_shouldReturn400_whenSourceUrlIsMalformed() throws Exception {
+        CreateMarketRequest request = new CreateMarketRequest(
+                "New Market", "Desc", "CURRENT_AFFAIRS", null, "not a url", null,
+                LocalDateTime.now().plusDays(7));
+
+        mockMvc.perform(post("/api/markets")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void updateMarket_shouldReturn400_whenSourceUrlIsMalformed() throws Exception {
+        mockMvc.perform(put("/api/markets/{id}", UUID.randomUUID())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"sourceUrl\":\"not a url\"}"))
                 .andExpect(status().isBadRequest());
     }
 

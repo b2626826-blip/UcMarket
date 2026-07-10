@@ -25,6 +25,8 @@ public interface MarketRepository extends JpaRepository<Market, UUID> {
 
 	List<Market> findByStatus(MarketStatus status);
 
+	Page<Market> findByStatus(MarketStatus status, Pageable pageable);
+
 	List<Market> findByStatusAndCloseAtBefore(MarketStatus status, LocalDateTime dateTime);
 
 	Optional<Market> findByCode(String code);
