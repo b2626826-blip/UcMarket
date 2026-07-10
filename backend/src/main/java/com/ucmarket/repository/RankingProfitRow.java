@@ -9,6 +9,10 @@ public interface RankingProfitRow {
 
 	String getUsername();
 
+	String getAccount();
+
+	String getPrimaryMarket();
+
 	String getAvatarUrl();
 
 	BigDecimal getTotalPayout();
