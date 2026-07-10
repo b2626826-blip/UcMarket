@@ -51,9 +51,26 @@ public class MarketController {
 	}
 
 	@GetMapping
-	public List<Market> listMarkets(@RequestParam(defaultValue = "0") int page,
-			@RequestParam(defaultValue = "20") int size) {
-		var pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1), Sort.by("createdAt").descending());
+	public List<Market> listMarkets(
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "20") int size,
+			@RequestParam(required = false) String category,
+			@RequestParam(required = false) MarketStatus status) {
+		var pageable = PageRequest.of(
+				Math.max(page, 0),
+				Math.max(size, 1),
+				Sort.by("createdAt").descending());
+
+		if (category != null && !category.isBlank()) {
+			if (status != null) {
+				return marketRepository
+						.findByCategoryAndStatus(category, status, pageable)
+						.getContent();
+			}
+
+			return marketRepository.findByCategory(category, pageable).getContent();
+		}
+
 		return marketRepository.findAll(pageable).getContent();
 	}
 
@@ -161,5 +178,4 @@ public class MarketController {
 				market.getNoPool()
 		);
 	}
-
 }
