@@ -1,5 +1,34 @@
 package com.ucmarket.controller;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Optional;
+import java.util.UUID;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.test.web.servlet.MockMvc;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ucmarket.dto.CreateMarketRequest;
 import com.ucmarket.entity.Market;
@@ -12,45 +41,30 @@ import com.ucmarket.security.JwtTokenProvider;
 import com.ucmarket.service.MarketService;
 import com.ucmarket.service.TradeQuoteService;
 import com.ucmarket.service.WalletService;
-import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.springframework.data.domain.PageImpl;
-import org.springframework.data.domain.Pageable;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.http.MediaType;
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(MarketController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class MarketControllerTest {
 
-    @Autowired private MockMvc mockMvc;
-    @Autowired private ObjectMapper objectMapper;
+    @Autowired
+    private MockMvc mockMvc;
+    @Autowired
+    private ObjectMapper objectMapper;
 
-    @MockitoBean private MarketRepository marketRepository;
-    @MockitoBean private PositionRepository positionRepository;
-    @MockitoBean private MarketService marketService;
-    @MockitoBean private WalletService walletService;
-    @MockitoBean private TradeQuoteService tradeQuoteService;
-    @MockitoBean private JwtTokenProvider jwtTokenProvider;
-    @MockitoBean private UserRepository userRepository;
+    @MockitoBean
+    private MarketRepository marketRepository;
+    @MockitoBean
+    private PositionRepository positionRepository;
+    @MockitoBean
+    private MarketService marketService;
+    @MockitoBean
+    private WalletService walletService;
+    @MockitoBean
+    private TradeQuoteService tradeQuoteService;
+    @MockitoBean
+    private JwtTokenProvider jwtTokenProvider;
+    @MockitoBean
+    private UserRepository userRepository;
 
     private static final UUID AUTH_USER_ID = UUID.randomUUID();
 
@@ -75,6 +89,25 @@ class MarketControllerTest {
         mockMvc.perform(get("/api/markets"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1));
+    }
+
+    @Test
+    void listMarkets_shouldFilterByCategory() throws Exception {
+        Market market = createMarket(MarketStatus.ACTIVE);
+
+        when(marketRepository.findByCategory(
+                eq("CURRENT_AFFAIRS"),
+                any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(market)));
+
+        mockMvc.perform(get("/api/markets")
+                .param("category", "CURRENT_AFFAIRS"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+
+        verify(marketRepository).findByCategory(
+                eq("CURRENT_AFFAIRS"),
+                any(Pageable.class));
     }
 
     @Test
@@ -130,5 +163,27 @@ class MarketControllerTest {
         ReflectionTestUtils.setField(m, "status", status);
         ReflectionTestUtils.setField(m, "creatorId", UUID.randomUUID());
         return m;
+    }
+
+    @Test
+    void listMarkets_shouldFilterByCategoryAndStatus() throws Exception {
+        Market market = createMarket(MarketStatus.ACTIVE);
+
+        when(marketRepository.findByCategoryAndStatus(
+                eq("CURRENT_AFFAIRS"),
+                eq(MarketStatus.ACTIVE),
+                any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(market)));
+
+        mockMvc.perform(get("/api/markets")
+                .param("category", "CURRENT_AFFAIRS")
+                .param("status", "ACTIVE"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.length()").value(1));
+
+        verify(marketRepository).findByCategoryAndStatus(
+                eq("CURRENT_AFFAIRS"),
+                eq(MarketStatus.ACTIVE),
+                any(Pageable.class));
     }
 }

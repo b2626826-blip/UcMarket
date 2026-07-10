@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { getCurrentEventMarkets } from '../../../api/marketApi';
+import CurrentEventMarketCard from '../../../components/market/CurrentEventMarketCard';
 import MarketCard from '../../../components/market/MarketCard';
 import MarketTrendCarousel from '../../../components/market/MarketTrendCarousel';
 import useGlowEffect from '../../../hooks/useGlowEffect';
-import CurrentEventMarketCard from '../../../components/market/CurrentEventMarketCard';
-import { getCurrentEventMarkets } from '../../../api/marketApi';
 
 const heroSlides = [
   { badge: '熱門市場', title: '預測未來', text: '透過市場價格反映真實世界機率', primary: '開始交易', secondary: '查看市場' },
@@ -30,12 +30,30 @@ export default function HomePage() {
   const [search, setSearch] = useState('');
   const [markets, setMarkets] = useState(initialMarkets);
   const [currentEventMarkets, setCurrentEventMarkets] = useState([]);
+  const [currentEventLoading, setCurrentEventLoading] = useState(true);
+  const [currentEventError, setCurrentEventError] = useState('');
 
   useEffect(() => {
-    getCurrentEventMarkets().then(({ content }) => {
-      setCurrentEventMarkets(content);
-    });
-  }, []);
+    if (category !== '時事') {
+      return;
+    }
+
+    setCurrentEventLoading(true);
+    setCurrentEventError('');
+
+    getCurrentEventMarkets()
+      .then(({ content }) => {
+        setCurrentEventMarkets(content);
+      })
+      .catch(() => {
+        setCurrentEventMarkets([]);
+        setCurrentEventError('時事市場載入失敗，請稍後再試。');
+      })
+      .finally(() => {
+        setCurrentEventLoading(false);
+      });
+  }, [category]);
+
   useGlowEffect('.chart-card, .stats-card, .market-card');
 
   useEffect(() => {
@@ -168,12 +186,29 @@ export default function HomePage() {
           <button><i className="fa-solid fa-magnifying-glass"></i></button>
         </div>
         <div className="market-grid" id="marketGrid">
+          {category === '時事' && currentEventLoading && (
+            <p>時事市場載入中...</p>
+          )}
+
           {category !== '時事' &&
             filtered.map((market) => (
               <MarketCard key={market.id} market={market} onClickTrade={handleTrade} />
             ))}
 
+          {category === '時事' && !currentEventLoading && currentEventError && (
+            <p role="alert">{currentEventError}</p>
+          )}
+
           {category === '時事' &&
+            !currentEventLoading &&
+            !currentEventError &&
+            filteredCurrentEvents.length === 0 && (
+              <p>目前沒有符合條件的時事市場。</p>
+            )}
+
+          {category === '時事' &&
+            !currentEventLoading &&
+            !currentEventError &&
             filteredCurrentEvents.map((market) => (
               <CurrentEventMarketCard key={market.id} market={market} />
             ))}
