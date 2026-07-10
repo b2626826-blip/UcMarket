@@ -10,6 +10,26 @@ import { StatusLabel } from '../../../types/market';
 import './CurrentAffairsDetailPage.css';
 import currentAffairsBanner from './current-affairs-banner.gif';
 
+function getSourceDisplay(sourceUrl) {
+  if (!sourceUrl) {
+    return { href: null, label: '尚未提供' };
+  }
+
+  try {
+    const url = new URL(sourceUrl);
+    if (!['http:', 'https:'].includes(url.protocol) || !url.hostname) {
+      return { href: null, label: sourceUrl };
+    }
+
+    return {
+      href: url.href,
+      label: url.hostname.replace(/^www\./, '')
+    };
+  } catch {
+    return { href: null, label: sourceUrl };
+  }
+}
+
 export default function CurrentAffairsDetailPage() {
   const { id } = useParams();
 
@@ -74,9 +94,7 @@ export default function CurrentAffairsDetailPage() {
   }
 
   const updatedAt = market.updatedAt ?? market.createdAt;
-  const sourceLabel = market.sourceUrl
-    ? new URL(market.sourceUrl).hostname.replace(/^www\./, '')
-    : '尚未提供';
+  const source = getSourceDisplay(market.sourceUrl);
 
   return (
 
@@ -114,13 +132,13 @@ export default function CurrentAffairsDetailPage() {
 
             <div className="current-affairs-source">
               <span>資料來源</span>
-              {market.sourceUrl ? (
-                <a href={market.sourceUrl} target="_blank" rel="noreferrer">
-                  {sourceLabel}
+              {source.href ? (
+                <a href={source.href} target="_blank" rel="noreferrer">
+                  {source.label}
                   <i className="bi bi-box-arrow-up-right" aria-hidden="true"></i>
                 </a>
               ) : (
-                <strong>{sourceLabel}</strong>
+                <strong>{source.label}</strong>
               )}
               <time dateTime={updatedAt}>
                 更新於 {new Date(updatedAt).toLocaleString('zh-TW')}

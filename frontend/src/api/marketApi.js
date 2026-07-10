@@ -134,7 +134,5 @@ function normalizeCurrentEventMarket(market) {
     category: CURRENT_EVENT_CATEGORY,
     yesProbability,
     noProbability: 100 - yesProbability,
-    volume: null,
-    imageUrl: null,
   };
 }

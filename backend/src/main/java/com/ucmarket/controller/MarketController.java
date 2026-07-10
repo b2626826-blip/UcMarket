@@ -71,6 +71,10 @@ public class MarketController {
 			return marketRepository.findByCategory(category, pageable).getContent();
 		}
 
+		if (status != null) {
+			return marketRepository.findByStatus(status, pageable).getContent();
+		}
+
 		return marketRepository.findAll(pageable).getContent();
 	}
 
@@ -114,7 +118,7 @@ public class MarketController {
 
 	@PutMapping("/{id}")
 	public Market updateMarket(@PathVariable UUID id, @AuthenticationPrincipal User user,
-			@RequestBody UpdateMarketRequest request) {
+			@Valid @RequestBody UpdateMarketRequest request) {
 		Market market = marketRepository.findById(id)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 

@@ -2,6 +2,13 @@ import { useState } from 'react';
 import { createMarket, submitMarket } from '../../../../api/marketApi';
 import useUiStore from '../../../../store/uiStore';
 import { CURRENT_EVENT_CATEGORY_CODE } from '../../../../types/market';
+import './CreateMarketPage.css';
+
+const marketTypeLabels = {
+  BINARY: '二元（YES/NO）',
+  COUNT_RANGE: '區間',
+  MULTIPLE_CHOICE: '多選',
+};
 
 export default function CreateMarketPage() {
   const showToast = useUiStore((s) => s.showToast);
@@ -105,11 +112,12 @@ export default function CreateMarketPage() {
         <span>流程：填寫資料 → 儲存草稿（DRAFT） → 送審（PENDING） → 核准上架（ACTIVE）<br /><small style={{ color: '#b0a890' }}>所有欄位皆為必填</small></span>
       </div>
 
-      <div className="block-card">
-        <div className="block-card-header"><i className="bi bi-plus-circle text-primary"></i> 事件基本資訊</div>
-        <div className="block-card-body">
-          <form onSubmit={(e) => e.preventDefault()} noValidate>
-            <div className="row g-3">
+      <div className="admin-create-market-layout">
+        <div className="block-card">
+          <div className="block-card-header"><i className="bi bi-plus-circle text-primary"></i> 事件基本資訊</div>
+          <div className="block-card-body">
+            <form onSubmit={(e) => e.preventDefault()} noValidate>
+              <div className="row g-3">
               <div className="col-12">
                 <label className="form-label">標題</label>
                 <input type="text" className={`form-control ${errors.title ? 'is-invalid' : ''}`} value={form.title} onChange={(e) => update('title', e.target.value)} placeholder="例如：比特幣會在 2026 年底前突破 20 萬美元嗎？" />
@@ -129,7 +137,7 @@ export default function CreateMarketPage() {
                     { label: '運動', value: '運動' },
                     { label: '天氣', value: '天氣' },
                     { label: '時事', value: CURRENT_EVENT_CATEGORY_CODE },
-                    { label: '經濟', value: '經濟' },
+                    { label: '金融', value: '金融' },
                   ].map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
                 </select>
                 {errors.category && <div className="invalid-feedback">請選擇分類</div>}
@@ -168,13 +176,36 @@ export default function CreateMarketPage() {
                 </div>
                 {errors.closeAt && <div className="invalid-feedback">請選擇截止時間</div>}
               </div>
-            </div>
-          </form>
+              </div>
+            </form>
+          </div>
+          <div className="p-3 d-flex gap-2 justify-content-end" style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '0 0 var(--bs-border-radius,4px) var(--bs-border-radius,4px)' }}>
+            <button type="button" className="btn btn-outline-secondary" onClick={saveDraft} disabled={submitting}><i className="bi bi-file-earmark"></i> 儲存草稿</button>
+            <button type="button" className="btn btn-primary" onClick={createAndSubmit} disabled={submitting}><i className="bi bi-send"></i> 建立並送審</button>
+          </div>
         </div>
-        <div className="p-3 d-flex gap-2 justify-content-end" style={{ background: 'rgba(0,0,0,0.2)', borderRadius: '0 0 var(--bs-border-radius,4px) var(--bs-border-radius,4px)' }}>
-          <button type="button" className="btn btn-outline-secondary" onClick={saveDraft} disabled={submitting}><i className="bi bi-file-earmark"></i> 儲存草稿</button>
-          <button type="button" className="btn btn-primary" onClick={createAndSubmit} disabled={submitting}><i className="bi bi-send"></i> 建立並送審</button>
-        </div>
+
+        <aside className="admin-market-preview" aria-label="市場即時預覽">
+          <div className="admin-market-preview__header">
+            <span>即時預覽</span>
+            <small>DRAFT</small>
+          </div>
+          <span className="admin-market-preview__category">{form.category || '未選擇分類'}</span>
+          <h2>{form.title || '你的市場標題會顯示在這裡'}</h2>
+          <p className="admin-market-preview__description">{form.description || '填寫市場描述，讓使用者快速理解預測事件。'}</p>
+
+          <div className="admin-market-preview__outcomes">
+            <div><small>YES</small><strong>50%</strong></div>
+            <div><small>NO</small><strong>50%</strong></div>
+          </div>
+
+          <dl className="admin-market-preview__details">
+            <div><dt>市場類型</dt><dd>{marketTypeLabels[form.marketType]}</dd></div>
+            <div><dt>截止時間</dt><dd>{form.closeAt ? closeAtText : '尚未設定'}</dd></div>
+            <div><dt>資料來源</dt><dd>{form.sourceUrl || '尚未提供'}</dd></div>
+            <div><dt>裁決規則</dt><dd>{form.resolutionRule || '尚未提供'}</dd></div>
+          </dl>
+        </aside>
       </div>
     </>
   );
