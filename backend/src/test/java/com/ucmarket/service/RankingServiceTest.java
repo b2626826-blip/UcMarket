@@ -46,6 +46,8 @@ class RankingServiceTest {
 
 		when(rankingProfitRow.getUserId()).thenReturn(userId);
 		when(rankingProfitRow.getUsername()).thenReturn("eagleaby");
+		when(rankingProfitRow.getAccount()).thenReturn("USR-0001");
+		when(rankingProfitRow.getPrimaryMarket()).thenReturn("Test market");
 		when(rankingProfitRow.getAvatarUrl()).thenReturn("https://example.com/avatar.png");
 		when(rankingProfitRow.getTotalPayout()).thenReturn(new BigDecimal("20.00"));
 		when(rankingProfitRow.getSettledCost()).thenReturn(new BigDecimal("12.00"));
@@ -59,6 +61,8 @@ class RankingServiceTest {
 		RankingProfitResponse ranking = rankings.get(0);
 		assertThat(ranking.userId()).isEqualTo(userId);
 		assertThat(ranking.username()).isEqualTo("eagleaby");
+		assertThat(ranking.account()).isEqualTo("USR-0001");
+		assertThat(ranking.primaryMarket()).isEqualTo("Test market");
 		assertThat(ranking.avatarUrl()).isEqualTo("https://example.com/avatar.png");
 		assertThat(ranking.totalPayout()).isEqualByComparingTo("20.00");
 		assertThat(ranking.settledCost()).isEqualByComparingTo("12.00");
@@ -73,6 +77,8 @@ class RankingServiceTest {
 
 		when(rankingWinRateRow.getUserId()).thenReturn(userId);
 		when(rankingWinRateRow.getUsername()).thenReturn("eagleaby");
+		when(rankingWinRateRow.getAccount()).thenReturn("USR-0001");
+		when(rankingWinRateRow.getPrimaryMarket()).thenReturn("Test market");
 		when(rankingWinRateRow.getAvatarUrl()).thenReturn("https://example.com/avatar.png");
 		when(rankingWinRateRow.getResolvedMarketCount()).thenReturn(4L);
 		when(rankingWinRateRow.getCorrectCount()).thenReturn(3L);
@@ -86,6 +92,8 @@ class RankingServiceTest {
 		RankingWinRateResponse ranking = rankings.get(0);
 		assertThat(ranking.userId()).isEqualTo(userId);
 		assertThat(ranking.username()).isEqualTo("eagleaby");
+		assertThat(ranking.account()).isEqualTo("USR-0001");
+		assertThat(ranking.primaryMarket()).isEqualTo("Test market");
 		assertThat(ranking.resolvedMarketCount()).isEqualTo(4L);
 		assertThat(ranking.correctCount()).isEqualTo(3L);
 		assertThat(ranking.winRate()).isEqualByComparingTo("0.7500");
@@ -99,6 +107,8 @@ class RankingServiceTest {
 
 		when(rankingAssetsRow.getUserId()).thenReturn(userId);
 		when(rankingAssetsRow.getUsername()).thenReturn("eagleaby");
+		when(rankingAssetsRow.getAccount()).thenReturn("USR-0001");
+		when(rankingAssetsRow.getPrimaryMarket()).thenReturn("Test market");
 		when(rankingAssetsRow.getAvatarUrl()).thenReturn("https://example.com/avatar.png");
 		when(rankingAssetsRow.getWalletBalance()).thenReturn(new BigDecimal("100.00"));
 		when(rankingAssetsRow.getOpenPositionValue()).thenReturn(new BigDecimal("12.50"));
@@ -112,6 +122,8 @@ class RankingServiceTest {
 		RankingAssetsResponse ranking = rankings.get(0);
 		assertThat(ranking.userId()).isEqualTo(userId);
 		assertThat(ranking.username()).isEqualTo("eagleaby");
+		assertThat(ranking.account()).isEqualTo("USR-0001");
+		assertThat(ranking.primaryMarket()).isEqualTo("Test market");
 		assertThat(ranking.avatarUrl()).isEqualTo("https://example.com/avatar.png");
 		assertThat(ranking.walletBalance()).isEqualByComparingTo("100.00");
 		assertThat(ranking.openPositionValue()).isEqualByComparingTo("12.50");

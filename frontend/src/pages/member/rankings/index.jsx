@@ -43,15 +43,13 @@ const TABS = [
 ];
 
 function MyRankingCard({ data, currentUserId }) {
-  const currentUser = currentUserId ?
-  data.find((u) => u.userId === currentUserId) : null;
+  const currentUser = data.find((u) => u.userId === currentUserId);
 
   return (
     <section className="my-ranking-card" aria-label="我的排名">
       <h2>我的排名</h2>
-      {!currentUserId ? (
-        <p>登入後可查看你的排行榜名次。</p>
-      ) : !currentUser ? (
+
+      {!currentUser ? (
         <p>目前沒有你的排行榜資料。</p>
       ) : (
         <div className="my-ranking-content">
@@ -62,6 +60,7 @@ function MyRankingCard({ data, currentUserId }) {
           <span>資產 {formatCurrency(currentUser.assets)}</span>
         </div>
       )}
+
     </section>
   );
 }
@@ -86,9 +85,8 @@ function TopRankGrid({ data }) {
         <article key={user.rank} className={`top-card top-${user.rank}`}>
           <div className="rank-medal">#{user.rank}</div>
           <h2>{user.name}</h2>
-          <p>{formatText(user.account)}</p>
-          <strong>{formatProfit(user.profit)}</strong>
-          <span>勝率 {formatPercent(user.winRate)}</span>
+          <strong className="top-card-profit">{formatProfit(user.profit)}</strong>
+          <span className="top-card-win-rate">勝率{formatPercent(user.winRate)}</span>
         </article>
       ))}
     </section>
@@ -194,7 +192,9 @@ export default function RankingsPage() {
           <h1>排行榜</h1>
           <p className="ranking-description">一直賭 一直爽。</p>
         </div>
-        <MyRankingCard data={allData} currentUserId={authUser?.id} />
+        {authUser && (
+          <MyRankingCard data={allData} currentUserId={authUser.id} />
+        )}
       </section>
 
       <div className="ranking-tabs" aria-label="排行榜類型">

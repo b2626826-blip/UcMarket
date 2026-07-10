@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { getCurrentUser, login as apiLogin, register as apiRegister, logout as apiLogout } from '../api/authApi';
 import { firebaseLogin as apiFirebaseLogin } from '../api/oauthApi';
-import { setToken } from '../api/client';
+import { setToken, getToken } from '../api/client';
 
 const useAuthStore = create((set) => ({
   user: null,
@@ -9,6 +9,10 @@ const useAuthStore = create((set) => ({
   error: null,
 
   checkAuth: async () => {
+    if (!getToken()) {
+      set({ user: null });
+      return null;
+    }
     try {
       const data = await getCurrentUser();
       const user = data.user || data;

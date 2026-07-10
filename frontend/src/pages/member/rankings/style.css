@@ -67,6 +67,18 @@ body {
   padding: 28px;
 }
 
+.top-card-profit {
+  display: block;
+  margin-top: 18px;
+  color: #00d66f;
+  font-size: 24px;
+}
+
+.top-card-win-rate {
+  display: block;
+  margin-top: 8px;
+}
+
 .top-2 {
   order: 1;
 }
@@ -105,8 +117,8 @@ body {
 
 .ranking-row {
   display: grid;
-  grid-template-columns: 80px 2fr 1fr 1fr 1fr 1fr;
-  gap: 12px;
+  grid-template-columns: 80px minmax(150px, 1.35fr) minmax(240px, 1.65fr) repeat(3, minmax(90px, 1fr));
+  gap: 20px;
   align-items: center;
   padding: 18px 22px;
   border-bottom: 1px solid rgba(255, 255, 255, .05);

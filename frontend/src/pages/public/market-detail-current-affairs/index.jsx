@@ -1,17 +1,14 @@
-import { useParams } from 'react-router-dom';
-import DetailPageTemplate from '../../../components/common/DetailPageTemplate';
 import { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
+import {
+  getCurrentEventMarketDetail,
+  getCurrentEventMarkets
+} from '../../../api/marketApi';
+import DetailPageTemplate from '../../../components/common/DetailPageTemplate';
+import CurrentEventMarketCard from '../../../components/market/CurrentEventMarketCard';
 import { StatusLabel } from '../../../types/market';
 import './CurrentAffairsDetailPage.css';
 import currentAffairsBanner from './current-affairs-banner.gif';
-import CurrentEventMarketCard from '../../../components/market/CurrentEventMarketCard';
-import CurrentAffairsMarketChart, {
-  getCurrentAffairsMarketMetrics,
-} from './CurrentAffairsMarketChart';
-import {
-  getCurrentEventMarketDetail,
-  getCurrentEventMarkets,
-} from '../../../api/marketApi';
 
 export default function CurrentAffairsDetailPage() {
   const { id } = useParams();
@@ -19,36 +16,67 @@ export default function CurrentAffairsDetailPage() {
   const [market, setMarket] = useState(null);
   const [loading, setLoading] = useState(true);
   const [otherMarkets, setOtherMarkets] = useState([]);
+  const [error, setError] = useState('');
+  const [notFoundMessage, setNotFoundMessage] = useState('');
 
   useEffect(() => {
     setLoading(true);
+    setError('');
+    setMarket(null);
+    setNotFoundMessage('');
 
-    getCurrentEventMarketDetail(id).then((data) => {
-      setMarket(data);
-      setLoading(false);
-    });
+    getCurrentEventMarketDetail(id)
+      .then((currentMarket) => {
+        if (!currentMarket) {
+          setNotFoundMessage('此市場不是時事分類，無法在時事詳情頁顯示。');
+          return;
+        }
+
+        setMarket(currentMarket);
+      })
+      .catch((apiError) => {
+        if (apiError.status === 404) {
+          setNotFoundMessage('找不到此時事市場。');
+          return;
+        }
+
+        setError('時事市場載入失敗，請稍後再試。');
+      })
+      .finally(() => {
+        setLoading(false);
+      });
   }, [id]);
 
   useEffect(() => {
-    getCurrentEventMarkets({ status: '', size: 6 }).then(({ content }) => {
-      setOtherMarkets(content.filter((item) => item.id !== id));
-    });
+    getCurrentEventMarkets({ status: 'ACTIVE', size: 6 })
+      .then(({ content }) => {
+        setOtherMarkets(content.filter((item) => item.id !== id));
+      })
+      .catch(() => {
+        setOtherMarkets([]);
+      });
   }, [id]);
 
   if (loading) {
     return <p>市場資料載入中...</p>;
   }
 
+  if (error) {
+    return <p role="alert">{error}</p>;
+  }
+
+  if (notFoundMessage) {
+    return <p>{notFoundMessage}</p>;
+  }
+
   if (!market) {
     return <p>找不到此時事市場。</p>;
   }
 
-  const metrics = getCurrentAffairsMarketMetrics(market);
   const updatedAt = market.updatedAt ?? market.createdAt;
   const sourceLabel = market.sourceUrl
     ? new URL(market.sourceUrl).hostname.replace(/^www\./, '')
     : '尚未提供';
-  const formatChange = (value) => `${value >= 0 ? '+' : ''}${value.toFixed(1)}%`;
 
   return (
 
@@ -100,25 +128,17 @@ export default function CurrentAffairsDetailPage() {
             </div>
           </section>
 
-          <section className="current-affairs-info__prices" aria-label="目前機率與 24 小時漲跌">
+          <section className="current-affairs-info__prices" aria-label="目前機率">
             <div>
               <span>YES</span>
               <strong>{market.yesProbability}%</strong>
-              <small className={metrics.yesChange24h >= 0 ? 'is-up' : 'is-down'}>
-                24H {formatChange(metrics.yesChange24h)}
-              </small>
             </div>
             <div>
               <span>NO</span>
               <strong>{market.noProbability}%</strong>
-              <small className={metrics.noChange24h >= 0 ? 'is-up' : 'is-down'}>
-                24H {formatChange(metrics.noChange24h)}
-              </small>
             </div>
           </section>
         </div>
-
-        <CurrentAffairsMarketChart market={market} />
 
         <div className="current-affairs-market-meta">
           <footer className="current-affairs-info__stats">

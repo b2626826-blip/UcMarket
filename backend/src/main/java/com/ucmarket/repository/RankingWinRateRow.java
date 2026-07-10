@@ -9,6 +9,10 @@ public interface RankingWinRateRow {
 
 	String getUsername();
 
+	String getAccount();
+
+	String getPrimaryMarket();
+
 	String getAvatarUrl();
 
 	Long getResolvedMarketCount();

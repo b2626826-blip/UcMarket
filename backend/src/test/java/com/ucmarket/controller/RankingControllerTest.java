@@ -47,6 +47,8 @@ class RankingControllerTest {
 		RankingProfitResponse ranking = new RankingProfitResponse(
 				userId,
 				"eagleaby",
+				"USR-0001",
+				"Test market",
 				"https://example.com/avatar.png",
 				new BigDecimal("20.00"),
 				new BigDecimal("12.00"),
@@ -59,6 +61,8 @@ class RankingControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$[0].userId").value(userId.toString()))
 				.andExpect(jsonPath("$[0].username").value("eagleaby"))
+				.andExpect(jsonPath("$[0].account").value("USR-0001"))
+				.andExpect(jsonPath("$[0].primaryMarket").value("Test market"))
 				.andExpect(jsonPath("$[0].avatarUrl").value("https://example.com/avatar.png"))
 				.andExpect(jsonPath("$[0].totalPayout").value(20.00))
 				.andExpect(jsonPath("$[0].settledCost").value(12.00))
@@ -74,6 +78,8 @@ class RankingControllerTest {
 		RankingWinRateResponse ranking = new RankingWinRateResponse(
 				userId,
 				"eagleaby",
+				"USR-0001",
+				"Test market",
 				"https://example.com/avatar.png",
 				4L,
 				3L,
@@ -86,6 +92,8 @@ class RankingControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$[0].userId").value(userId.toString()))
 				.andExpect(jsonPath("$[0].username").value("eagleaby"))
+				.andExpect(jsonPath("$[0].account").value("USR-0001"))
+				.andExpect(jsonPath("$[0].primaryMarket").value("Test market"))
 				.andExpect(jsonPath("$[0].resolvedMarketCount").value(4))
 				.andExpect(jsonPath("$[0].correctCount").value(3))
 				.andExpect(jsonPath("$[0].winRate").value(0.7500));
@@ -100,6 +108,8 @@ class RankingControllerTest {
 		RankingAssetsResponse ranking = new RankingAssetsResponse(
 				userId,
 				"eagleaby",
+				"USR-0001",
+				"Test market",
 				"https://example.com/avatar.png",
 				new BigDecimal("100.00"),
 				new BigDecimal("12.50"),
@@ -112,6 +122,8 @@ class RankingControllerTest {
 				.andExpect(status().isOk())
 				.andExpect(jsonPath("$[0].userId").value(userId.toString()))
 				.andExpect(jsonPath("$[0].username").value("eagleaby"))
+				.andExpect(jsonPath("$[0].account").value("USR-0001"))
+				.andExpect(jsonPath("$[0].primaryMarket").value("Test market"))
 				.andExpect(jsonPath("$[0].walletBalance").value(100.00))
 				.andExpect(jsonPath("$[0].openPositionValue").value(12.50))
 				.andExpect(jsonPath("$[0].totalAssetValue").value(112.50));
