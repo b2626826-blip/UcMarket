@@ -1,7 +1,10 @@
 package com.ucmarket.controller;
 
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -20,6 +23,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.ucmarket.dto.CreateMarketRequest;
 import com.ucmarket.dto.MarketOddsResponse;
+import com.ucmarket.dto.MarketResponse;
 import com.ucmarket.dto.TradeQuoteRequest;
 import com.ucmarket.dto.TradeQuoteResponse;
 import com.ucmarket.dto.UpdateMarketRequest;
@@ -29,6 +33,7 @@ import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.entity.User;
 import com.ucmarket.entity.UserRole;
 import com.ucmarket.repository.MarketRepository;
+import com.ucmarket.repository.TradeRepository;
 import com.ucmarket.service.MarketService;
 import com.ucmarket.service.TradeQuoteService;
 
@@ -40,18 +45,20 @@ import jakarta.validation.Valid;
 public class MarketController {
 
 	private final MarketRepository marketRepository;
+	private final TradeRepository tradeRepository;
 	private final MarketService marketService;
 	private final TradeQuoteService tradeQuoteService;
 
-	public MarketController(MarketRepository marketRepository, MarketService marketService,
+	public MarketController(MarketRepository marketRepository, TradeRepository tradeRepository, MarketService marketService,
 			TradeQuoteService tradeQuoteService) {
 		this.marketRepository = marketRepository;
+		this.tradeRepository = tradeRepository;
 		this.marketService = marketService;
 		this.tradeQuoteService = tradeQuoteService;
 	}
 
 	@GetMapping
-	public List<Market> listMarkets(
+	public List<MarketResponse> listMarkets(
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int size,
 			@RequestParam(required = false) String category,
@@ -61,33 +68,40 @@ public class MarketController {
 				Math.max(size, 1),
 				Sort.by("createdAt").descending());
 
+		List<Market> markets;
 		if (category != null && !category.isBlank()) {
 			if (status != null) {
-				return marketRepository
+				markets = marketRepository
 						.findByCategoryAndStatus(category, status, pageable)
 						.getContent();
+				return toResponses(markets);
 			}
 
-			return marketRepository.findByCategory(category, pageable).getContent();
+			markets = marketRepository.findByCategory(category, pageable).getContent();
+			return toResponses(markets);
 		}
 
 		if (status != null) {
-			return marketRepository.findByStatus(status, pageable).getContent();
+			markets = marketRepository.findByStatus(status, pageable).getContent();
+			return toResponses(markets);
 		}
 
-		return marketRepository.findAll(pageable).getContent();
+		markets = marketRepository.findAll(pageable).getContent();
+		return toResponses(markets);
 	}
 
 	@GetMapping("/{id}")
-	public Market getMarket(@PathVariable UUID id) {
-		return marketRepository.findById(id)
+	public MarketResponse getMarket(@PathVariable UUID id) {
+		Market market = marketRepository.findById(id)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+		return toResponses(List.of(market)).getFirst();
 	}
 
 	@GetMapping("/code/{code}")
-	public Market getMarketByCode(@PathVariable String code) {
-		return marketRepository.findByCode(code)
+	public MarketResponse getMarketByCode(@PathVariable String code) {
+		Market market = marketRepository.findByCode(code)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+		return toResponses(List.of(market)).getFirst();
 	}
 
 	@PostMapping
@@ -96,6 +110,7 @@ public class MarketController {
 		Market market = new Market(request.title(), request.description(), request.category(), request.marketType(),
 				request.sourceUrl(), request.resolutionRule(), request.closeAt());
 		market.setCreatorId(user.getId());
+		market.setImageUrl(request.imageUrl());
 
 		return marketRepository.save(market);
 	}
@@ -134,10 +149,29 @@ public class MarketController {
 		if (request.category() != null) market.setCategory(request.category());
 		if (request.marketType() != null) market.setMarketType(request.marketType());
 		if (request.sourceUrl() != null) market.setSourceUrl(request.sourceUrl());
+		if (request.imageUrl() != null) market.setImageUrl(request.imageUrl());
 		if (request.resolutionRule() != null) market.setResolutionRule(request.resolutionRule());
 		if (request.closeAt() != null) market.setCloseAt(request.closeAt());
 
 		return marketRepository.save(market);
+	}
+
+	private List<MarketResponse> toResponses(List<Market> markets) {
+		if (markets.isEmpty()) {
+			return List.of();
+		}
+
+		List<UUID> marketIds = markets.stream().map(Market::getId).toList();
+		Map<UUID, BigDecimal> volumes = tradeRepository
+				.findVolumesByMarketIds(marketIds)
+				.stream()
+				.collect(Collectors.toMap(
+						volume -> volume.getMarketId(),
+						volume -> volume.getVolume()));
+
+		return markets.stream()
+				.map(market -> MarketResponse.from(market, volumes.getOrDefault(market.getId(), BigDecimal.ZERO)))
+				.toList();
 	}
 
 	@PostMapping("/{id}/cancel")

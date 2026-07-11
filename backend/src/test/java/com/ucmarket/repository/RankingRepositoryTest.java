@@ -557,4 +557,34 @@ class RankingRepositoryTest {
 		assertThat(ranking.getOpenPositionValue()).isEqualByComparingTo("0.00");
 		assertThat(ranking.getTotalAssetValue()).isEqualByComparingTo("100.00");
 	}
+
+	@Test
+	void findRankingSnapshotReturnsAllMetricsFromOneQuery() {
+		UUID userId = UUID.randomUUID();
+		String suffix = userId.toString().substring(0, 8);
+
+		jdbcTemplate.update("""
+				INSERT INTO users (
+					id, code, username, email, password_hash, role, status, reputation, created_at, updated_at
+				)
+				VALUES (?, ?, ?, ?, ?, 'USER', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+				""",
+				userId,
+				"USR-" + suffix,
+				"snapshot_" + suffix,
+				"snapshot-" + suffix + "@example.com",
+				"test-password-hash"
+		);
+
+		RankingSnapshotRow ranking = rankingRepository.findRankingSnapshot("assets").stream()
+				.filter(row -> row.getUsername().equals("snapshot_" + suffix))
+				.findFirst()
+				.orElseThrow();
+
+		assertThat(ranking.getRank()).isPositive();
+		assertThat(ranking.getAsOf()).isNotNull();
+		assertThat(ranking.getRealizedProfit()).isEqualByComparingTo("0.00");
+		assertThat(ranking.getWinRate()).isEqualByComparingTo("0.0000");
+		assertThat(ranking.getTotalAssetValue()).isEqualByComparingTo("0.00");
+	}
 }

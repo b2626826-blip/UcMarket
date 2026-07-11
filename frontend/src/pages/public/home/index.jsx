@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { getCurrentEventMarkets } from '../../../api/marketApi';
+import { getPagedCurrentEventMarkets } from '../../../api/marketApi';
 import CurrentEventMarketCard from '../../../components/market/CurrentEventMarketCard';
 import MarketCard from '../../../components/market/MarketCard';
 import MarketTrendCarousel from '../../../components/market/MarketTrendCarousel';
@@ -25,6 +25,11 @@ export default function HomePage() {
   const [currentEventMarkets, setCurrentEventMarkets] = useState([]);
   const [currentEventLoading, setCurrentEventLoading] = useState(true);
   const [currentEventError, setCurrentEventError] = useState('');
+  const [currentEventPage, setCurrentEventPage] = useState(0);
+  const [currentEventPageInfo, setCurrentEventPageInfo] = useState({
+    totalPages: 0,
+    hasNext: false,
+  });
 
   useEffect(() => {
     if (category !== CURRENT_EVENT_CATEGORY) {
@@ -34,18 +39,20 @@ export default function HomePage() {
     setCurrentEventLoading(true);
     setCurrentEventError('');
 
-    getCurrentEventMarkets()
-      .then(({ content }) => {
+    getPagedCurrentEventMarkets({ page: currentEventPage })
+      .then(({ content, totalPages, hasNext }) => {
         setCurrentEventMarkets(content);
+        setCurrentEventPageInfo({ totalPages, hasNext });
       })
       .catch(() => {
         setCurrentEventMarkets([]);
+        setCurrentEventPageInfo({ totalPages: 0, hasNext: false });
         setCurrentEventError('時事市場載入失敗，請稍後再試。');
       })
       .finally(() => {
         setCurrentEventLoading(false);
       });
-  }, [category]);
+  }, [category, currentEventPage]);
 
   useGlowEffect('.chart-card, .stats-card, .market-card');
 
@@ -109,7 +116,10 @@ export default function HomePage() {
         </div>
         <div className="market-tabs">
           {categories.map((cat) => (
-            <button key={cat} className={category === cat ? 'active' : ''} onClick={() => setCategory(cat)}>
+            <button key={cat} className={category === cat ? 'active' : ''} onClick={() => {
+              setCategory(cat);
+              if (cat === CURRENT_EVENT_CATEGORY) setCurrentEventPage(0);
+            }}>
               {cat}
             </button>
           ))}
@@ -146,6 +156,29 @@ export default function HomePage() {
               <CurrentEventMarketCard key={market.id} market={market} />
             ))}
         </div>
+
+        {category === CURRENT_EVENT_CATEGORY &&
+          !currentEventLoading &&
+          !currentEventError &&
+          currentEventPageInfo.totalPages > 1 && (
+            <nav aria-label="時事市場分頁">
+              <button
+                type="button"
+                disabled={currentEventPage === 0}
+                onClick={() => setCurrentEventPage((page) => page - 1)}
+              >
+                上一頁
+              </button>
+              <span>{currentEventPage + 1} / {currentEventPageInfo.totalPages}</span>
+              <button
+                type="button"
+                disabled={!currentEventPageInfo.hasNext}
+                onClick={() => setCurrentEventPage((page) => page + 1)}
+              >
+                下一頁
+              </button>
+            </nav>
+          )}
       </section>
     </div>
   );

@@ -40,6 +40,9 @@ public class Market {
 	
 	@Column( name = "source_url", columnDefinition = "text")
 	private String sourceUrl;
+
+	@Column( name = "image_url", columnDefinition = "text")
+	private String imageUrl;
 	
 	@Column( name = "resolution_rule", columnDefinition = "text")
 	private String resolutionRule;
@@ -163,6 +166,10 @@ public class Market {
 	public String getSourceUrl() {
 	    return sourceUrl;
 	}
+
+	public String getImageUrl() {
+		return imageUrl;
+	}
 	
 	public String getResolutionRule() {
 		return resolutionRule;
@@ -232,6 +239,7 @@ public class Market {
 	public void setDescription(String description) { this.description = description; }
 	public void setCategory(String category) { this.category = category; }
 	public void setSourceUrl(String sourceUrl) { this.sourceUrl = sourceUrl; }
+	public void setImageUrl(String imageUrl) { this.imageUrl = imageUrl; }
 	public void setResolutionRule(String resolutionRule) { this.resolutionRule = resolutionRule; }
 	public void setCloseAt(LocalDateTime closeAt) { this.closeAt = closeAt; }
 

@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
@@ -17,12 +18,14 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.ucmarket.dto.RankingWinRateResponse;
-import com.ucmarket.dto.RankingProfitResponse;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.security.JwtTokenProvider;
 import com.ucmarket.service.RankingService;
 import com.ucmarket.dto.RankingAssetsResponse;
+import com.ucmarket.dto.RankingProfitResponse;
+import com.ucmarket.dto.RankingSnapshotItemResponse;
+import com.ucmarket.dto.RankingSnapshotResponse;
+import com.ucmarket.dto.RankingWinRateResponse;
 
 @WebMvcTest(RankingController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -129,5 +132,30 @@ class RankingControllerTest {
 				.andExpect(jsonPath("$[0].totalAssetValue").value(112.50));
 
 		verify(rankingService).getAssetRankings();
+	}
+	@Test
+	void getRankingSnapshotReturnsSelectedMetricAndAsOf() throws Exception {
+		UUID userId = UUID.randomUUID();
+		RankingSnapshotResponse snapshot = new RankingSnapshotResponse(
+				"assets",
+				Instant.parse("2026-07-10T08:23:41Z"),
+				List.of(new RankingSnapshotItemResponse(
+						1L, userId, "eagleaby", "USR-0001", "Test market",
+						"https://example.com/avatar.png", new BigDecimal("8.00"),
+						new BigDecimal("0.7500"), 4L, new BigDecimal("112.50")
+				))
+		);
+
+		when(rankingService.getRankingSnapshot("assets")).thenReturn(snapshot);
+
+		mockMvc.perform(get("/api/rankings").param("metric", "assets"))
+				.andExpect(status().isOk())
+				.andExpect(jsonPath("$.metric").value("assets"))
+				.andExpect(jsonPath("$.asOf").value("2026-07-10T08:23:41Z"))
+				.andExpect(jsonPath("$.items[0].rank").value(1))
+				.andExpect(jsonPath("$.items[0].userId").value(userId.toString()))
+				.andExpect(jsonPath("$.items[0].totalAssetValue").value(112.50));
+
+		verify(rankingService).getRankingSnapshot("assets");
 	}
 }

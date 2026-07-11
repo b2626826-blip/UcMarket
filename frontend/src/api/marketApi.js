@@ -79,6 +79,29 @@ export async function getCurrentEventMarkets(filters = {}) {
   };
 }
 
+export async function getPagedCurrentEventMarkets(filters = {}) {
+  const {
+    status = 'ACTIVE',
+    sort = 'popular',
+    page = 0,
+    size = 20,
+  } = filters;
+
+  const query = new URLSearchParams({
+    status,
+    sort,
+    page: String(page),
+    size: String(size),
+  });
+
+  const response = await getApi(`/api/current-affairs/markets?${query}`);
+
+  return {
+    ...response,
+    content: response.content.map(normalizeCurrentEventMarket),
+  };
+}
+
 export async function getCurrentEventMarketDetail(id) {
   const market = await getApi(`/api/markets/${id}`);
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { createMarket, submitMarket } from '../../../api/marketApi';
-import useUiStore from '../../../store/uiStore';
 import Button from '../../../components/common/Button';
+import useUiStore from '../../../store/uiStore';
 import { CURRENT_EVENT_CATEGORY_CODE } from '../../../types/market';
 import './CreateMarketPage.css';
 
@@ -55,7 +55,7 @@ export default function CreateMarketPage() {
     <div className="trade-wrapper" style={{ paddingTop: 40, paddingBottom: 90 }}>
       <div className="wallet-page-title">
         <h1>建立市場</h1>
-        <p>建立一個新的預測市場事件</p>
+        <p>賭吧! 這可是為數不多你能當到莊家的機會!</p>
       </div>
       <div className="create-market-layout">
         <div className="create-market-form-card">

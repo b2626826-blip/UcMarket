@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   getMarkets, getMarketDetail, getCurrentEventMarkets,
-  getCurrentEventMarketDetail, createMarket, rejectMarket,
+  getCurrentEventMarketDetail, getPagedCurrentEventMarkets, createMarket, rejectMarket,
 } from '../../api/marketApi';
 import { CURRENT_EVENT_CATEGORY, CURRENT_EVENT_CATEGORY_CODE } from '../../types/market';
 import { apiUrl, jsonResponse, installFetchMock } from './_helpers';
@@ -90,6 +90,22 @@ describe('marketApi.js', () => {
       const result = await getCurrentEventMarkets({ keyword: '颱風' });
       expect(result.content.map((m) => m.id)).toEqual(['hit']);
     });
+  });
+
+  it('getPagedCurrentEventMarkets 保留後端回傳的 imageUrl', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({
+      content: [rawMarket({ imageUrl: 'https://images.example.com/market.jpg' })],
+      page: 0,
+      size: 20,
+      totalPages: 1,
+      hasNext: false,
+    }));
+
+    const result = await getPagedCurrentEventMarkets();
+
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toBe(apiUrl('/api/current-affairs/markets?status=ACTIVE&sort=popular&page=0&size=20'));
+    expect(result.content[0].imageUrl).toBe('https://images.example.com/market.jpg');
   });
 
   describe('getCurrentEventMarketDetail', () => {

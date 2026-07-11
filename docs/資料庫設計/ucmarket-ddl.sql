@@ -90,6 +90,7 @@ CREATE TABLE markets (
     category VARCHAR(64),
     market_type VARCHAR(32) NOT NULL DEFAULT 'BINARY',
     source_url TEXT,
+    image_url TEXT,
     resolution_rule TEXT,
     close_at TIMESTAMP NOT NULL,
     status VARCHAR(32) NOT NULL DEFAULT 'DRAFT',
