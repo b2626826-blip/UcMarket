@@ -4,13 +4,15 @@
  */
 import { Link, NavLink } from "react-router-dom";
 import "./Navbar.css";
+import logoImg from "../../assets/logos/ucmarket-logo.png";
 
 export default function Navbar() {
   return (
     <header className="navbar">
       <div className="navbar__inner">
         <Link to="/" className="navbar__logo">
-          UCMARKET
+          <img className="navbar__logo-image" src={logoImg} alt="UCMARKET" />
+          <span>UCMARKET</span>
         </Link>
 
         <nav className="navbar__links">

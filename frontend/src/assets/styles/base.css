@@ -73,6 +73,13 @@ img{ max-width:100%; }
     border-bottom:1px solid var(--border);
 }
 .logo{ display:flex; align-items:center; gap:12px; font-weight:800; letter-spacing:.5px; }
+.logo-image{
+    width:34px;
+    height:34px;
+    border-radius:10px;
+    object-fit:cover;
+    flex-shrink:0;
+}
 .logo-icon{
     width:34px; height:34px; border-radius:10px;
     background:linear-gradient(135deg,#ff4d8d,#ff9f43,#845ef7);
@@ -110,6 +117,13 @@ img{ max-width:100%; }
     color:#777; font-size:13px;
 }
 .wallet-footer .footer-brand{ justify-self:start; display:flex; align-items:center; gap:12px; }
+.footer-logo-image{
+    width:28px;
+    height:28px;
+    border-radius:8px;
+    object-fit:cover;
+    flex-shrink:0;
+}
 .wallet-footer .footer-bottom p{ justify-self:center; }
 .wallet-footer .footer-social{ justify-self:end; display:flex; gap:22px; font-size:17px; color:#888; }
 .wallet-footer .footer-social i{ cursor:pointer; transition:.25s; }
