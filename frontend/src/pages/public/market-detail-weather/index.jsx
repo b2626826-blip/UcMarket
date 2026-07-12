@@ -8,7 +8,7 @@ import WeatherHero from './WeatherHero';
 import WeatherMarketChart from './WeatherMarketChart';
 import WeatherChartModal from './WeatherChartModal';
 import { fetchCityForecast } from './weatherApi';
-import { getMarketsByCategory, getMarketOdds } from '../../../api/marketApi';
+import { getMarketsByCategory, getMarketOdds, getMarketDetail } from '../../../api/marketApi';
 import { REGIONS, getRegionById, getRelatedRegions } from './regions';
 import './WeatherDetailPage.css';
 
@@ -27,6 +27,11 @@ function formatDateLabel(dateText) {
   if (!dateText) return '';
   const [, m, d] = dateText.split('-');
   return `${m}/${d}`;
+}
+
+function isUuid(value) {
+  if (!value) return false;
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(String(value).trim());
 }
 
 function formatMonthLabel(dateText) {
@@ -300,6 +305,7 @@ function getBadgeLabel(metric) {
 }
 
 function RelatedRegions({ region }) {
+  if (!region || !region.relatedIds) return null;
   const related = getRelatedRegions(region);
   if (related.length === 0) return null;
   return (
@@ -335,11 +341,54 @@ function RelatedRegions({ region }) {
 
 export default function WeatherDetailPage() {
   const { id } = useParams();
-  const region = getRegionById(id);
-  const isMonthlyRain = region.metric === 'monthlyRain';
+  const isUuidParam = isUuid(id);
+  const [region, setRegion] = useState(() => (isUuidParam ? null : getRegionById(id)));
+  const [uuidMarket, setUuidMarket] = useState(null);
+  const [uuidMeta, setUuidMeta] = useState(null);
+  const [uuidLoading, setUuidLoading] = useState(isUuidParam);
+  const [uuidError, setUuidError] = useState(null);
+
+  const isMonthlyRain = region?.metric === 'monthlyRain';
+  const hasWeatherMeta = isUuidParam ? !!(uuidMeta?.city && uuidMeta?.date && uuidMeta?.metric) : true;
+
+  useEffect(() => {
+    if (!isUuidParam) return;
+    setUuidLoading(true);
+    setUuidError(null);
+    let cancelled = false;
+    getMarketDetail(id)
+      .then((market) => {
+        if (cancelled) return;
+        const meta = parseMetadata(market);
+        setUuidMarket(market);
+        setUuidMeta(meta);
+        setRegion({
+          city: meta.city,
+          metric: meta.metric,
+          offset: 0,
+          dateLabel: meta.date,
+        });
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setUuidError(err.message);
+      })
+      .finally(() => {
+        if (!cancelled) setUuidLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [id, isUuidParam]);
+
+  useEffect(() => {
+    if (isUuidParam && uuidMarket && !hasWeatherMeta) {
+      setSelectedMarket(uuidMarket);
+    }
+  }, [isUuidParam, uuidMarket, hasWeatherMeta]);
 
   const [forecast, setForecast] = useState(null);
-  const [forecastLoading, setForecastLoading] = useState(!isMonthlyRain);
+  const [forecastLoading, setForecastLoading] = useState(false);
   const [forecastError, setForecastError] = useState(null);
   const [markets, setMarkets] = useState([]);
   const [marketsLoading, setMarketsLoading] = useState(true);
@@ -350,7 +399,10 @@ export default function WeatherDetailPage() {
   const [weatherChartOpen, setWeatherChartOpen] = useState(false);
 
   const fetchForecast = useCallback(async () => {
-    if (isMonthlyRain) return;
+    if (isMonthlyRain || !region?.city) {
+      setForecastLoading(false);
+      return;
+    }
     setForecastLoading(true);
     setForecastError(null);
     try {
@@ -362,7 +414,7 @@ export default function WeatherDetailPage() {
     } finally {
       setForecastLoading(false);
     }
-  }, [region.city, isMonthlyRain]);
+  }, [region?.city, isMonthlyRain]);
 
   useEffect(() => {
     fetchForecast();
@@ -373,9 +425,15 @@ export default function WeatherDetailPage() {
     setMarketsLoading(true);
     setMarketsError(null);
 
+    if (!region) {
+      setMarkets([]);
+      setMarketsLoading(false);
+      return;
+    }
+
     const targetDate = isMonthlyRain
       ? getCurrentMonthStart()
-      : forecast?.days?.[region.offset]?.date;
+      : (isUuidParam ? uuidMeta?.date : forecast?.days?.[region.offset]?.date);
 
     if (!targetDate) {
       setMarkets([]);
@@ -439,21 +497,25 @@ export default function WeatherDetailPage() {
     return () => {
       cancelled = true;
     };
-  }, [forecast, region.city, region.metric, region.offset, isMonthlyRain]);
+  }, [forecast, region, region?.city, region?.metric, region?.offset, isMonthlyRain, isUuidParam, uuidMeta?.date]);
 
   useGlowEffect('.weather-market-card, .trade-panel');
 
-  const targetDay = forecast?.days?.[region.offset] || null;
+  const targetDay = isUuidParam
+    ? (uuidMeta?.date
+        ? (forecast?.days?.find((d) => d.date === uuidMeta.date) || { date: uuidMeta.date, maxTemp: null, minTemp: null, rainProb: null })
+        : null)
+    : (forecast?.days?.[region.offset] || null);
   const subtitle = isMonthlyRain
     ? '預測本月份累積降雨量，選擇你認為會發生的結果下注'
     : '根據氣象資料預測未來天氣事件，選擇你認為會發生的結果下注';
 
-  const loading = forecastLoading || marketsLoading;
-  const error = forecastError || marketsError;
+  const loading = uuidLoading || forecastLoading || marketsLoading;
+  const error = uuidError || forecastError || marketsError;
 
   const headerTitle = isMonthlyRain
-    ? `${region.city} ${getCurrentMonthDisplay()}降雨量預測`
-    : `${targetDay?.date ? formatDateLabel(targetDay.date) + ' ' : ''}${region.city}最高溫預測`;
+    ? `${region?.city} ${getCurrentMonthDisplay()}降雨量預測`
+    : `${targetDay?.date ? formatDateLabel(targetDay.date) + ' ' : ''}${region?.city}最高溫預測`;
 
   const closeDate = isMonthlyRain
     ? getCurrentMonthClose()
@@ -463,7 +525,7 @@ export default function WeatherDetailPage() {
     <DetailPageTemplate
       id={id}
       heroLayout="left"
-      hero={<WeatherHero subtitle={subtitle} city={region.city} day={!isMonthlyRain ? targetDay : null} />}
+      hero={<WeatherHero subtitle={subtitle} city={region?.city} day={!isMonthlyRain ? targetDay : null} />}
       marketId={selectedMarket?.id || id}
       market={selectedMarket}
       tradePanel={<TradePanel marketId={selectedMarket?.id || id} market={selectedMarket} side={tradeSide} onSideChange={setTradeSide} />}
@@ -485,76 +547,97 @@ export default function WeatherDetailPage() {
 
       {!loading && !error && (
         <>
-          <div className="weather-market-card">
-            <div className="weather-market-header">
-              <div>
-                <div className="weather-market-badge">
-                  <i className={isMonthlyRain ? 'fa-solid fa-cloud-rain' : 'fa-solid fa-cloud-sun'}></i> {getBadgeLabel(region.metric)}
+          {hasWeatherMeta ? (
+            <div className="weather-market-card">
+              <div className="weather-market-header">
+                <div>
+                  <div className="weather-market-badge">
+                    <i className={isMonthlyRain ? 'fa-solid fa-cloud-rain' : 'fa-solid fa-cloud-sun'}></i> {getBadgeLabel(region?.metric)}
+                  </div>
+                  <h2>{headerTitle}</h2>
+                  <p>{isMonthlyRain
+                    ? '根據中央氣象署 C-B0025-003 月降雨量觀測資料，預測本月份累積降雨量。'
+                    : '根據中央氣象署公開資料，選擇你認為會發生的事件進行下注。'}
+                  </p>
                 </div>
-                <h2>{headerTitle}</h2>
-                <p>{isMonthlyRain
-                  ? '根據中央氣象署 C-B0025-003 月降雨量觀測資料，預測本月份累積降雨量。'
-                  : '根據中央氣象署公開資料，選擇你認為會發生的事件進行下注。'}
-                </p>
+                <div className="market-status live">
+                  <i className="fa-solid fa-circle"></i> LIVE
+                </div>
               </div>
-              <div className="market-status live">
-                <i className="fa-solid fa-circle"></i> LIVE
+
+              {markets.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>
+                  暫無該地區的預測事件，請稍後再試。
+                </div>
+              ) : (
+                <ThresholdEventList
+                  markets={markets}
+                  selectedId={selectedMarket?.id}
+                  onSelect={(m, side) => {
+                    setSelectedMarket(m);
+                    if (side) setTradeSide(side);
+                  }}
+                  onOpenChart={() => setChartOpen(true)}
+                  onOpenWeatherChart={() => setWeatherChartOpen(true)}
+                  closeDate={closeDate}
+                  showWeatherChart={!isMonthlyRain}
+                />
+              )}
+            </div>
+          ) : uuidMarket && (
+            <div className="weather-market-card">
+              <div className="weather-market-header">
+                <div>
+                  <div className="weather-market-badge">
+                    <i className="fa-solid fa-cloud-sun"></i> 天氣
+                  </div>
+                  <h2>{uuidMarket.title}</h2>
+                  {uuidMarket.description && <p>{uuidMarket.description}</p>}
+                </div>
+                <div className="market-status live">
+                  <i className="fa-solid fa-circle"></i> LIVE
+                </div>
               </div>
             </div>
-
-            {markets.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>
-                暫無該地區的預測事件，請稍後再試。
-              </div>
-            ) : (
-              <ThresholdEventList
-                markets={markets}
-                selectedId={selectedMarket?.id}
-                onSelect={(m, side) => {
-                  setSelectedMarket(m);
-                  if (side) setTradeSide(side);
-                }}
-                onOpenChart={() => setChartOpen(true)}
-                onOpenWeatherChart={() => setWeatherChartOpen(true)}
-                closeDate={closeDate}
-                showWeatherChart={!isMonthlyRain}
-              />
-            )}
-          </div>
+          )}
 
           <MarketRulesSection market={selectedMarket} />
 
-          <RelatedRegions region={region} />
+          {hasWeatherMeta && (
+            <>
+              <RelatedRegions region={region} />
 
-          <WeatherChartModal
-            open={chartOpen}
-            onClose={() => setChartOpen(false)}
-            title="預測價格走勢"
-            description="各門檻事件的 YES 機率變化"
-          >
-            <div className="weather-modal-chart">
-              <WeatherMarketChart
-                markets={markets}
-                selectedId={selectedMarket?.id}
-                metric={region.metric}
-                onSelectMarket={(m) => {
-                  setSelectedMarket(m);
-                }}
-              />
-            </div>
-          </WeatherChartModal>
+              <WeatherChartModal
+                open={chartOpen}
+                onClose={() => setChartOpen(false)}
+                title="預測價格走勢"
+                description="各門檻事件的 YES 機率變化"
+              >
+                <div className="weather-modal-chart">
+                  <WeatherMarketChart
+                    markets={markets}
+                    selectedId={selectedMarket?.id}
+                    metric={region?.metric}
+                    onSelectMarket={(m) => {
+                      setSelectedMarket(m);
+                    }}
+                  />
+                </div>
+              </WeatherChartModal>
 
-          {!isMonthlyRain && (
-            <WeatherChartModal
-              open={weatherChartOpen}
-              onClose={() => setWeatherChartOpen(false)}
-              title="天氣預報"
-              description="未來 3 天溫度與降雨機率"
-            >
-              <div className="weather-modal-chart">
-                <WeatherCharts days={forecast?.days || []} />
-              </div>
-            </WeatherChartModal>
+              {!isMonthlyRain && (
+                <WeatherChartModal
+                  open={weatherChartOpen}
+                  onClose={() => setWeatherChartOpen(false)}
+                  title="天氣預報"
+                  description="未來 3 天溫度與降雨機率"
+                >
+                  <div className="weather-modal-chart">
+                    <WeatherCharts days={forecast?.days || []} />
+                  </div>
+                </WeatherChartModal>
+              )}
+            </>
           )}
         </>
       )}
