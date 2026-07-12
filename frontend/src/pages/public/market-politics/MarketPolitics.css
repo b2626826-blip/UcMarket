@@ -522,6 +522,15 @@ ol{
         0 0 34px rgba(217,170,67,.12);
 }
 
+.market-detail-link{
+    color:inherit;
+    text-decoration:none;
+}
+
+.market-detail-link:hover{
+    color:#d9aa43;
+}
+
 /* 滑鼠跟隨暈光 */
 .glow-card{
     position:relative;

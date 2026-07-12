@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { getMarkets } from "../../../api/marketApi";
 import "./MarketPolitics.css";
 import bannerImg from "./politics-banner.jpg";
@@ -346,7 +347,11 @@ export default function MarketPolitics() {
                 <article key={market.id} className="predict-card glow-card" onMouseMove={handleGlow}>
                   <div className="card-head">
                     <div className={`market-img ${market.imgClass}`}><i className={market.icon} /></div>
-                    <h3>{market.title}</h3>
+                    <h3>
+                      <Link className="market-detail-link" to={`/markets/politics/${market.id}`}>
+                        {market.title}
+                      </Link>
+                    </h3>
                   </div>
 
                   {market.outcomes.map((outcome) => (

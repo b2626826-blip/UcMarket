@@ -130,6 +130,24 @@
     margin-bottom:34px;
 }
 
+.politics-detail-message{
+  margin:0;
+  padding:56px 24px;
+  color:#aaa;
+  text-align:center;
+}
+
+.politics-detail-message.error{
+  color:#ff6b81;
+}
+
+.politics-event-description{
+  max-width:680px;
+  margin:16px 0 0;
+  color:#aaa;
+  line-height:1.7;
+}
+
 .featured-left{
     position:relative;
     z-index:3;
