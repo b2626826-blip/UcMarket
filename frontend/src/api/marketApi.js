@@ -1,7 +1,8 @@
 import { getApi, postApi, putApi } from './client';
 
-export function getMarkets() {
-  return getApi('/api/markets');
+export function getMarkets({ page = 0, size = 20 } = {}) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return getApi('/api/markets?' + params.toString());
 }
 
 export function getMarketDetail(id) {

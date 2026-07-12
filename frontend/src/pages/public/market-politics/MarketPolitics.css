@@ -475,6 +475,18 @@ ol{
     min-width:0;
 }
 
+.market-list-message{
+    grid-column:1 / -1;
+    margin:0;
+    padding:48px 20px;
+    color:#a9a9b2;
+    text-align:center;
+}
+
+.market-list-message.error{
+    color:#ff6b81;
+}
+
 /* ==========================================
    MARKET CARD
 ========================================== */

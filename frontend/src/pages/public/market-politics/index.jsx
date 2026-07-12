@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { getMarkets } from "../../../api/marketApi";
 import "./MarketPolitics.css";
 import bannerImg from "./politics-banner.jpg";
 
@@ -105,10 +106,71 @@ const categories = [
 
 const sortOptions = ["預設排序", "交易量最高", "最高價格", "最新市場"];
 
+const categoryKeywords = {
+  election: ["選舉", "大選", "總統", "市長", "立委"],
+  poll: ["民調", "支持率"],
+  policy: ["政策", "法案", "立法", "降息"],
+  international: ["國際", "外交", "G7", "峰會", "制裁"],
+  congress: ["國會", "立法院", "參議院", "眾議院"],
+  taiwan: ["台灣", "臺灣"],
+  usa: ["美國", "川普", "特朗普", "Fed", "聯準會"],
+};
+
+function toPoliticsMarket(market) {
+  const yesPool = Number(market.yesPool) || 0;
+  const noPool = Number(market.noPool) || 0;
+  const totalPool = yesPool + noPool;
+  const yesPrice = totalPool > 0 ? noPool / totalPool : 0.5;
+  const noPrice = totalPool > 0 ? yesPool / totalPool : 0.5;
+  const searchableText = `${market.title || ""} ${market.description || ""}`;
+  const matchedCategories = Object.entries(categoryKeywords)
+    .filter(([, keywords]) => keywords.some((keyword) => searchableText.includes(keyword)))
+    .map(([category]) => category);
+
+  return {
+    id: market.id,
+    categories: matchedCategories.join(" "),
+    icon: "fa-solid fa-landmark",
+    imgClass: "",
+    title: market.title,
+    outcomes: [{
+      label: "市場機率",
+      percent: `${Math.round(yesPrice * 100)}%`,
+      yesMarket: market.title,
+      yesPrice,
+      noMarket: market.title,
+      noPrice,
+    }],
+    volume: `${formatCurrency(totalPool)} 流動池`,
+    volumeValue: totalPool,
+    cycle: formatCloseAt(market.closeAt),
+    closeAt: market.closeAt,
+    createdAt: market.createdAt,
+  };
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat("zh-TW", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  }).format(value);
+}
+
+function formatCloseAt(value) {
+  if (!value) return "未設定截止時間";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "未設定截止時間";
+  return `${date.toLocaleDateString("zh-TW")} 截止`;
+}
+
 export default function MarketPolitics() {
-  const [currentPrice, setCurrentPrice] = useState(0.64);
+  const [apiMarkets, setApiMarkets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [currentPrice, setCurrentPrice] = useState(0.5);
   const [currentSide, setCurrentSide] = useState("YES");
-  const [selectedMarket, setSelectedMarket] = useState("2028 美國總統大選，共和黨會勝選嗎？");
+  const [selectedMarket, setSelectedMarket] = useState("尚未選擇市場");
   const [amount, setAmount] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [activeSearch, setActiveSearch] = useState("");
@@ -118,8 +180,36 @@ export default function MarketPolitics() {
   const [toastShow, setToastShow] = useState(false);
   const [submitError, setSubmitError] = useState(false);
 
+  useEffect(() => {
+    let active = true;
+
+    getMarkets({ size: 100 })
+      .then((data) => {
+        if (!active) return;
+        const politicsMarkets = (Array.isArray(data) ? data : [])
+          .filter((market) => ["政治", "politics"].includes(String(market.category).toLowerCase()))
+          .filter((market) => market.status === "ACTIVE")
+          .map(toPoliticsMarket);
+        setApiMarkets(politicsMarkets);
+        if (politicsMarkets[0]) {
+          setSelectedMarket(politicsMarkets[0].title);
+          setCurrentPrice(politicsMarkets[0].outcomes[0].yesPrice);
+        }
+      })
+      .catch((error) => {
+        if (active) setLoadError(error.message || "政治市場載入失敗");
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
   const filteredMarkets = useMemo(() => {
-    let result = markets.filter((market) => {
+    let result = apiMarkets.filter((market) => {
       const matchCategory = activeCategory === "all" || market.categories.includes(activeCategory);
       const text = `${market.title} ${market.volume} ${market.cycle}`.toLowerCase();
       const matchSearch = activeSearch === "" || text.includes(activeSearch.toLowerCase());
@@ -130,10 +220,12 @@ export default function MarketPolitics() {
     if (activeSort === "最高價格") {
       result = [...result].sort((a, b) => getHighestPrice(b) - getHighestPrice(a));
     }
-    if (activeSort === "最新市場") result = [...result].reverse();
+    if (activeSort === "最新市場") {
+      result = [...result].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+    }
 
     return result;
-  }, [activeCategory, activeSearch, activeSort]);
+  }, [apiMarkets, activeCategory, activeSearch, activeSort]);
 
   const totalPages = Math.max(1, Math.ceil(filteredMarkets.length / PAGE_SIZE));
   const safePage = Math.min(currentPage, totalPages);
@@ -185,27 +277,7 @@ export default function MarketPolitics() {
 
   return (
     <>
-      <header className="navbar">
-        <div className="logo">
-          <div className="logo-icon"><i className="fa-solid fa-chart-simple" /></div>
-          <span>UCMARKET</span>
-        </div>
-
-        <nav className="nav-menu">
-          <a href="/">市場</a>
-          <a href="/create-market">建立市場</a>
-          <a href="/wallet">錢包</a>
-          <a href="/ranking">排行榜</a>
-          <a href="/settlement">交易紀錄</a>
-        </nav>
-
-        <div className="nav-right">
-          <a href="/">繁體</a>
-          <a href="/how-to-play">遊戲玩法</a>
-          <a href="/login">登入</a>
-          <button className="register-btn">註冊</button>
-        </div>
-      </header>
+    
 
       <main className="market-page">
         <section className="politics-banner">
@@ -265,6 +337,11 @@ export default function MarketPolitics() {
         <div className="politics-layout">
           <div className="market-left">
             <section className="market-card-grid">
+              {loading && <p className="market-list-message">政治市場載入中...</p>}
+              {!loading && loadError && <p className="market-list-message error">載入失敗：{loadError}</p>}
+              {!loading && !loadError && visibleMarkets.length === 0 && (
+                <p className="market-list-message">目前沒有符合條件的政治市場</p>
+              )}
               {visibleMarkets.map((market) => (
                 <article key={market.id} className="predict-card glow-card" onMouseMove={handleGlow}>
                   <div className="card-head">
@@ -362,23 +439,7 @@ export default function MarketPolitics() {
         </div>
       </main>
 
-      <footer className="wallet-footer">
-        <div className="footer-grid">
-          <div><h4>平台</h4><a href="/market">市場</a><a href="/politics">政治</a><a href="/ranking">排行榜</a></div>
-          <div><h4>資源</h4><a href="/how-to-play">玩法介紹</a><a href="/whitepaper">白皮書</a><a href="/api-docs">API 文件</a></div>
-          <div><h4>公司</h4><a href="/about">關於我們</a><a href="/blog">部落格</a><a href="/jobs">徵才</a></div>
-          <div><h4>法律</h4><a href="/terms">服務條款</a><a href="/privacy">隱私政策</a><a href="/risk">風險聲明</a></div>
-        </div>
-
-        <div className="footer-bottom">
-          <div className="footer-brand">
-            <div className="logo"><div className="logo-icon"><i className="fa-solid fa-chart-simple" /></div><strong>UCMARKET</strong></div>
-          </div>
-          <p>© 2026 UCMARKET. All rights reserved.</p>
-          <div className="footer-social"><i className="fa-brands fa-x-twitter" /><i className="fa-brands fa-discord" /><i className="fa-brands fa-telegram" /><i className="fa-brands fa-github" /></div>
-        </div>
-      </footer>
-
+  
       <div className={`bet-toast ${toastShow ? "show" : ""}`}>
         <i className="fa-solid fa-check" /> 下注成功
       </div>

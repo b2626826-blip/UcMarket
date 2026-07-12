@@ -41,7 +41,7 @@ const router = createBrowserRouter([
       { path: "markets", element: <HomePage /> },
       { path: "markets/:id", element: <MarketDetailPage /> },
       // here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-      { path: "markets/weather/:id", element: <WeatherDetailPageㄙㄣ /> },
+      { path: "markets/weather/:id", element: <WeatherDetailPage/> },
       { path: "markets/politics", element: <PoliticsListPage /> },
       // here!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
       { path: "markets/politics/:id", element: <PoliticsDetailPage /> },
