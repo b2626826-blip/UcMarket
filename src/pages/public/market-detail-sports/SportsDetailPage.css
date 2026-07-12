@@ -1,0 +1,55 @@
+/* SportsDetailPage — 只放本頁專屬的「最近新聞」額外區塊樣式。
+   其餘版面沿用 base.css 共用的 .trade-market-card 等 class。 */
+
+.news-head { font-size: 18px; margin-bottom: 4px; display: flex; align-items: center; gap: 8px; }
+.news-head i { color: var(--gold); }
+.news-sub { color: #8f8f8f; font-size: 13px; margin-bottom: 18px; }
+.news-status { color: #8f8f8f; }
+
+.news-list { display: flex; flex-direction: column; }
+
+.news-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  padding: 14px 4px; border-bottom: 1px solid var(--border);
+  color: #fff; text-decoration: none; transition: 0.18s;
+}
+.news-item:last-child { border-bottom: none; }
+.news-item:hover { color: var(--gold); }
+
+.news-title { font-size: 15px; line-height: 1.5; }
+.news-meta { flex-shrink: 0; text-align: right; color: #8f8f8f; font-size: 12px; white-space: nowrap; }
+.news-meta .news-source { display: block; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+
+/* YouTube 影片卡：縮圖 16:9 + 播放鈕 overlay，hover 放大 */
+.video-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 18px; }
+.video-card { display: flex; flex-direction: column; gap: 6px; text-decoration: none; color: #fff; }
+.video-thumb {
+  position: relative; aspect-ratio: 16 / 9; border-radius: 10px; overflow: hidden;
+  background: #0d0d0d; border: 1px solid var(--border);
+}
+.video-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; transition: 0.25s; }
+.video-card:hover .video-thumb img { transform: scale(1.06); }
+.video-play {
+  position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 22px; background: rgba(0, 0, 0, 0.25); opacity: 0.85; transition: 0.2s;
+}
+.video-card:hover .video-play { opacity: 1; color: var(--gold); }
+.video-title {
+  font-size: 13px; line-height: 1.4; display: -webkit-box;
+  -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.video-card:hover .video-title { color: var(--gold); }
+.video-uploader { font-size: 11px; color: #8f8f8f; }
+
+/* 保底搜尋按鈕：永遠顯示，代理全掛也不破版 */
+.news-actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 18px; }
+.news-actions a {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 10px 16px; border-radius: 999px; border: 1px solid var(--border);
+  color: #d0d0d0; text-decoration: none; font-size: 13px; font-weight: 600; transition: 0.18s;
+}
+.news-actions a:hover { border-color: var(--gold); color: var(--gold); }
+
+@media (max-width: 640px) {
+  .video-grid { grid-template-columns: repeat(2, 1fr); }
+}
