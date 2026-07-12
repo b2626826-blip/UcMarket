@@ -1,6 +1,16 @@
--- UcMarket consolidated PostgreSQL DDL
--- Sources: docs/*, backend entities, and 個人er/*.xlsx.
--- Design goal: one canonical table per concept; ranking is computed by views.
+-- UcMarket current PostgreSQL schema
+-- Baseline: branch eagle, aligned with backend entities and native repository queries.
+-- Hibernate does not create production tables (spring.jpa.hibernate.ddl-auto=none).
+-- The executable initial baseline is backend/src/main/resources/db/migration/V1__initial_schema.sql.
+-- Apply future schema changes as new Flyway migrations, then keep this reference in sync.
+-- This DDL consolidates the target schema from the historical scripts in
+-- migrations/: code columns, market image URL, OAuth support, wallet transaction
+-- column cleanup, and the current-schema synchronization. Those scripts are
+-- retained only as historical references and must not be executed on new databases.
+-- fix-admin-password.sql is a one-off data repair, not DDL, so it is intentionally
+-- excluded from this schema definition.
+-- Future-only concepts such as market_options, notifications and portfolio snapshots
+-- intentionally do not belong in this current-version DDL.
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
