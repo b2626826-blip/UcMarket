@@ -97,6 +97,7 @@ CREATE TABLE markets (
     result_value NUMERIC(18, 2),
     yes_pool NUMERIC(18, 2) NOT NULL DEFAULT 100,
     no_pool NUMERIC(18, 2) NOT NULL DEFAULT 100,
+    metadata JSONB,
     approved_at TIMESTAMP,
     approved_by UUID,
     resolved_at TIMESTAMP,
