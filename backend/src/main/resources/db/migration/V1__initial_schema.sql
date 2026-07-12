@@ -1,16 +1,6 @@
--- UcMarket current PostgreSQL schema
--- Baseline: branch eagle, aligned with backend entities and native repository queries.
--- Hibernate does not create production tables (spring.jpa.hibernate.ddl-auto=none).
--- The executable initial baseline is backend/src/main/resources/db/migration/V1__initial_schema.sql.
--- Apply future schema changes as new Flyway migrations, then keep this reference in sync.
--- This DDL consolidates the target schema from the historical scripts in
--- migrations/: code columns, market image URL, OAuth support, wallet transaction
--- column cleanup, and the current-schema synchronization. Those scripts are
--- retained only as historical references and must not be executed on new databases.
--- fix-admin-password.sql is a one-off data repair, not DDL, so it is intentionally
--- excluded from this schema definition.
--- Future-only concepts such as market_options, notifications and portfolio snapshots
--- intentionally do not belong in this current-version DDL.
+-- UcMarket initial PostgreSQL schema.
+-- Keep this migration immutable after it has been applied. Add later changes
+-- as a new V<version>__<description>.sql file in this directory.
 
 CREATE EXTENSION IF NOT EXISTS pgcrypto;
 
@@ -180,9 +170,6 @@ CREATE TABLE positions (
     CONSTRAINT ck_positions_status CHECK (status IN ('OPEN', 'SETTLED', 'CANCELED'))
 );
 
--- There is no JPA entity for this read-model table. RankingRepository queries it
--- directly to value open positions. option_id remains as the current query's
--- binary-market discriminator; no market_options table is implemented yet.
 CREATE TABLE market_price_history (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     market_id UUID NOT NULL,
@@ -234,7 +221,6 @@ CREATE UNIQUE INDEX uk_wallet_transactions_idempotency_key
     ON wallet_transactions (idempotency_key)
     WHERE idempotency_key IS NOT NULL;
 
--- PositionRepository native upserts use this exact conflict target.
 CREATE UNIQUE INDEX uk_positions_user_market_binary
     ON positions (user_id, market_id)
     WHERE option_id IS NULL;
