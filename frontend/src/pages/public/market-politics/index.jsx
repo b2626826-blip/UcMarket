@@ -1,90 +1,10 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { getMarkets } from '../../../api/marketApi';
 import './MarketPolitics.css';
 import bannerImg from './politics-banner.jpg';
 
 const PAGE_SIZE = 6;
-
-const markets = [
-  {
-    id: 1,
-    categories: 'election usa',
-    icon: 'fa-solid fa-landmark',
-    title: '2028 美國總統大選，共和黨會勝選嗎？',
-    outcomes: [
-      { label: 'YES 勝選', percent: '64%', price: 0.64 },
-      { label: 'NO 未勝選', percent: '36%', price: 0.36 },
-    ],
-    volume: '$12M 交易量',
-    volumeValue: 12000000,
-    cycle: '每週',
-  },
-  {
-    id: 2,
-    categories: 'policy usa',
-    icon: 'fa-solid fa-flag-usa',
-    title: '聯儲局今年會降息幾次？',
-    outcomes: [
-      { label: '0 次', percent: '28%', price: 0.28 },
-      { label: '1 次以上', percent: '72%', price: 0.72 },
-    ],
-    volume: '$40M 交易量',
-    volumeValue: 40000000,
-    cycle: '每月',
-  },
-  {
-    id: 3,
-    categories: 'election taiwan',
-    icon: 'fa-solid fa-building-columns',
-    title: '台灣 2028 總統大選，執政黨會連任嗎？',
-    outcomes: [
-      { label: '會連任', percent: '57%', price: 0.57 },
-      { label: '不會連任', percent: '43%', price: 0.43 },
-    ],
-    volume: '$8M 交易量',
-    volumeValue: 8000000,
-    cycle: '每週',
-  },
-  {
-    id: 4,
-    categories: 'international policy',
-    icon: 'fa-solid fa-earth-asia',
-    title: 'G7 峰會是否會發布新的共同制裁聲明？',
-    outcomes: [
-      { label: '會發布', percent: '61%', price: 0.61 },
-      { label: '不會發布', percent: '39%', price: 0.39 },
-    ],
-    volume: '$3M 交易量',
-    volumeValue: 3000000,
-    cycle: '每日',
-  },
-  {
-    id: 5,
-    categories: 'congress policy usa',
-    icon: 'fa-solid fa-scale-balanced',
-    title: '美國最高法院今年是否會推翻重大政策？',
-    outcomes: [
-      { label: '會', percent: '48%', price: 0.48 },
-      { label: '不會', percent: '52%', price: 0.52 },
-    ],
-    volume: '$6M 交易量',
-    volumeValue: 6000000,
-    cycle: '每月',
-  },
-  {
-    id: 6,
-    categories: 'poll election',
-    icon: 'fa-solid fa-newspaper',
-    title: '下次總統辯論是否會出現民調大幅反轉？',
-    outcomes: [
-      { label: '會反轉', percent: '33%', price: 0.33 },
-      { label: '不會反轉', percent: '67%', price: 0.67 },
-    ],
-    volume: '$980K 交易量',
-    volumeValue: 980000,
-    cycle: '每日',
-  },
-];
 
 const categories = [
   ['all', '全部'],
@@ -97,13 +17,50 @@ const categories = [
   ['usa', '美國'],
 ];
 
+const categoryKeywords = {
+  election: ['選舉', '大選', '總統', '市長', '立委'],
+  poll: ['民調', '支持率'],
+  policy: ['政策', '法案', '立法', '降息'],
+  international: ['國際', '外交', 'G7', '峰會', '制裁'],
+  congress: ['國會', '立法院', '參議院', '眾議院'],
+  taiwan: ['台灣', '臺灣'],
+  usa: ['美國', '川普', '特朗普', 'Fed', '聯準會'],
+};
+
 const sortOptions = ['預設排序', '交易量最高', '最高價格', '最新市場'];
 
 export default function MarketPolitics() {
+  const [markets, setMarkets] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [activeCategory, setActiveCategory] = useState('all');
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState('預設排序');
   const [page, setPage] = useState(1);
+
+  useEffect(() => {
+    let active = true;
+
+    getMarkets({ size: 100 })
+      .then((data) => {
+        if (!active) return;
+        const politicsMarkets = (Array.isArray(data) ? data : [])
+          .filter((market) => ['政治', 'politics'].includes(String(market.category).toLowerCase()))
+          .filter((market) => market.status === 'ACTIVE')
+          .map(toPoliticsMarket);
+        setMarkets(politicsMarkets);
+      })
+      .catch((error) => {
+        if (active) setLoadError(error.message || '政治市場載入失敗');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   const filteredMarkets = useMemo(() => {
     let result = markets.filter((market) => {
@@ -113,19 +70,15 @@ export default function MarketPolitics() {
     });
 
     if (sort === '交易量最高') result = [...result].sort((a, b) => b.volumeValue - a.volumeValue);
-    if (sort === '最高價格') {
-      result = [...result].sort((a, b) => getHighestPrice(b) - getHighestPrice(a));
-    }
-    if (sort === '最新市場') result = [...result].reverse();
-
+    if (sort === '最高價格') result = [...result].sort((a, b) => getHighestPrice(b) - getHighestPrice(a));
+    if (sort === '最新市場') result = [...result].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     return result;
-  }, [activeCategory, search, sort]);
+  }, [markets, activeCategory, search, sort]);
 
   const totalPages = Math.max(1, Math.ceil(filteredMarkets.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
   const visibleMarkets = filteredMarkets.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
-  const selectedMarket = visibleMarkets[0] ?? markets[0];
-  const selectedPrice = selectedMarket.outcomes[0].price;
+  const selectedMarket = visibleMarkets[0] ?? filteredMarkets[0] ?? null;
 
   function selectCategory(category) {
     setActiveCategory(category);
@@ -146,12 +99,7 @@ export default function MarketPolitics() {
       <div className="politics-page__filters">
         <div className="politics-page__tabs" aria-label="政治市場分類">
           {categories.map(([value, label]) => (
-            <button
-              key={value}
-              type="button"
-              className={activeCategory === value ? 'active' : ''}
-              onClick={() => selectCategory(value)}
-            >
+            <button key={value} type="button" className={activeCategory === value ? 'active' : ''} onClick={() => selectCategory(value)}>
               {label}
             </button>
           ))}
@@ -160,21 +108,10 @@ export default function MarketPolitics() {
         <div className="politics-page__tools">
           <label className="politics-page__search">
             <i className="fa-solid fa-magnifying-glass"></i>
-            <input
-              type="search"
-              value={search}
-              placeholder="搜尋政治盤口"
-              onChange={(event) => {
-                setSearch(event.target.value);
-                setPage(1);
-              }}
-            />
+            <input type="search" value={search} placeholder="搜尋政治盤口" onChange={(event) => { setSearch(event.target.value); setPage(1); }} />
           </label>
-
           <select value={sort} onChange={(event) => setSort(event.target.value)}>
-            {sortOptions.map((option) => (
-              <option key={option} value={option}>{option}</option>
-            ))}
+            {sortOptions.map((option) => <option key={option} value={option}>{option}</option>)}
           </select>
         </div>
       </div>
@@ -182,13 +119,15 @@ export default function MarketPolitics() {
       <div className="politics-page__layout">
         <div>
           <div className="politics-page__grid">
+            {loading && <p className="politics-page__message">政治市場載入中...</p>}
+            {!loading && loadError && <p className="politics-page__message error">載入失敗：{loadError}</p>}
+            {!loading && !loadError && visibleMarkets.length === 0 && <p className="politics-page__message">目前沒有符合條件的政治市場</p>}
             {visibleMarkets.map((market) => (
               <article key={market.id} className="politics-card">
                 <div className="politics-card__header">
                   <span><i className={market.icon}></i></span>
                   <h2>{market.title}</h2>
                 </div>
-
                 <div className="politics-card__outcomes">
                   {market.outcomes.map((outcome) => (
                     <div key={outcome.label}>
@@ -198,7 +137,6 @@ export default function MarketPolitics() {
                     </div>
                   ))}
                 </div>
-
                 <footer className="politics-card__footer">
                   <span>{market.volume}</span>
                   <span><i className="fa-solid fa-repeat"></i> {market.cycle}</span>
@@ -209,36 +147,67 @@ export default function MarketPolitics() {
           </div>
 
           <div className="politics-page__pagination">
-            <button type="button" disabled={safePage === 1} onClick={() => setPage(safePage - 1)}>
-              上一頁
-            </button>
+            <button type="button" disabled={safePage === 1} onClick={() => setPage(safePage - 1)}>上一頁</button>
             <span>{safePage} / {totalPages}</span>
-            <button type="button" disabled={safePage === totalPages} onClick={() => setPage(safePage + 1)}>
-              下一頁
-            </button>
+            <button type="button" disabled={safePage === totalPages} onClick={() => setPage(safePage + 1)}>下一頁</button>
           </div>
         </div>
 
         <aside className="politics-page__trade">
           <span>目前焦點</span>
-          <h2>{selectedMarket.title}</h2>
-          <div className="politics-page__trade-prices">
-            <div>
-              <small>YES</small>
-              <strong>${selectedPrice.toFixed(2)}</strong>
-            </div>
-            <div>
-              <small>NO</small>
-              <strong>${(1 - selectedPrice).toFixed(2)}</strong>
-            </div>
-          </div>
-          <Link to={`/markets/politics/${selectedMarket.id}`}>
-            進入交易頁 <i className="fa-solid fa-arrow-right"></i>
-          </Link>
+          {selectedMarket ? (
+            <>
+              <h2>{selectedMarket.title}</h2>
+              <div className="politics-page__trade-prices">
+                <div><small>YES</small><strong>${selectedMarket.outcomes[0].price.toFixed(2)}</strong></div>
+                <div><small>NO</small><strong>${selectedMarket.outcomes[1].price.toFixed(2)}</strong></div>
+              </div>
+              <Link to={`/markets/politics/${selectedMarket.id}`}>進入交易頁 <i className="fa-solid fa-arrow-right"></i></Link>
+            </>
+          ) : (
+            <p>尚無可顯示的政治市場</p>
+          )}
         </aside>
       </div>
     </section>
   );
+}
+
+function toPoliticsMarket(market) {
+  const yesPool = Number(market.yesPool) || 0;
+  const noPool = Number(market.noPool) || 0;
+  const totalPool = yesPool + noPool;
+  const yesPrice = totalPool > 0 ? yesPool / totalPool : 0.5;
+  const noPrice = 1 - yesPrice;
+  const searchableText = `${market.title || ''} ${market.description || ''}`;
+  const matchedCategories = Object.entries(categoryKeywords)
+    .filter(([, keywords]) => keywords.some((keyword) => searchableText.includes(keyword)))
+    .map(([category]) => category);
+
+  return {
+    id: market.id,
+    categories: matchedCategories.join(' '),
+    icon: 'fa-solid fa-landmark',
+    title: market.title,
+    outcomes: [
+      { label: 'YES', percent: `${Math.round(yesPrice * 100)}%`, price: yesPrice },
+      { label: 'NO', percent: `${Math.round(noPrice * 100)}%`, price: noPrice },
+    ],
+    volume: `${formatCurrency(totalPool)} 流動池`,
+    volumeValue: totalPool,
+    cycle: formatCloseAt(market.closeAt),
+    createdAt: market.createdAt,
+  };
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat('zh-TW', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+}
+
+function formatCloseAt(value) {
+  if (!value) return '未設定截止時間';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '未設定截止時間' : `${date.toLocaleDateString('zh-TW')} 截止`;
 }
 
 function getHighestPrice(market) {
