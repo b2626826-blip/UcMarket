@@ -1,5 +1,7 @@
 # 前端測試說明
 
+> 本文件依目前 `src/test/ApiTest` 整理。單元測試與 build 可本機獨立驗證；integration 需要正在執行的後端，且會寫入拋棄式帳號，不能與純單元測試混為同一驗證結果。
+
 ## 概述
 
 - **Runner**：Vitest（共用 `vite.config.js`，`environment: jsdom`）

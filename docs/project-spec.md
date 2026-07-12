@@ -1,5 +1,7 @@
 # UcMarket 專題規格書
 
+> 文件定位：產品規格與未來方向。已完成範圍、實際 API、路由與資料表請以 [current-implementation.md](current-implementation.md) 為準；本文件標示「進階版」的內容不在目前程式碼或 DDL。
+
 ## 1. 專題名稱
 
 UcMarket：使用者生成預測市場平台
@@ -175,7 +177,7 @@ no_price = yes_pool / (yes_pool + no_pool)
 | id | uuid | 使用者 ID |
 | username | varchar | 使用者名稱 |
 | email | varchar | Email |
-| password_hash | varchar | 密碼雜湊 |
+| password_hash | varchar | 密碼雜湊；OAuth 使用者可為 null |
 | role | enum | user / admin |
 | reputation | integer | 聲望值 |
 | created_at | timestamp | 建立時間 |
@@ -200,6 +202,7 @@ no_price = yes_pool / (yes_pool + no_pool)
 | category | varchar | 分類 |
 | market_type | enum | binary / count_range / multiple_choice |
 | source_url | text | 結算資料來源 |
+| image_url | text | 市場圖片網址，可為 null |
 | resolution_rule | text | 結算規則 |
 | close_at | timestamp | 停止交易時間 |
 | status | enum | draft / pending / active / closed / resolved / rejected / canceled |
@@ -209,9 +212,9 @@ no_price = yes_pool / (yes_pool + no_pool)
 | no_pool | numeric | No 流動池；MVP 二元市場使用 |
 | created_at | timestamp | 建立時間 |
 
-### market_options
+### market_options（進階規劃，尚未實作）
 
-進階版支援次數型 / 多選項市場時使用。MVP 階段可先不實作。
+進階版支援次數型 / 多選項市場時使用。目前 entity、repository 與 canonical DDL 都沒有此表。
 
 | 欄位 | 型別 | 說明 |
 | --- | --- | --- |
@@ -243,8 +246,7 @@ no_price = yes_pool / (yes_pool + no_pool)
 | user_id | uuid | 使用者 ID |
 | market_id | uuid | 市場 ID |
 | side | enum | yes / no；MVP 二元市場使用 |
-| option_id | uuid | 市場選項 ID；進階多選項市場使用 |
-| action | enum | buy / sell |
+| action | enum | 目前只支援 buy；sell 為進階規劃 |
 | amount | numeric | 花費點數 |
 | shares | numeric | 取得份額 |
 | price | numeric | 成交價格 |
@@ -257,9 +259,12 @@ no_price = yes_pool / (yes_pool + no_pool)
 | id | uuid | 持倉 ID |
 | user_id | uuid | 使用者 ID |
 | market_id | uuid | 市場 ID |
-| option_id | uuid | 市場選項 ID；進階多選項市場使用 |
+| option_id | uuid | Repository native SQL 使用的 binary discriminator；目前應為 null，尚無多選項寫入流程 |
 | yes_shares | numeric | Yes 份額；MVP 二元市場使用 |
 | no_shares | numeric | No 份額；MVP 二元市場使用 |
+| yes_cost | numeric | Yes 累計成本 |
+| no_cost | numeric | No 累計成本 |
+| status | enum | open / settled / canceled |
 | updated_at | timestamp | 更新時間 |
 
 ### market_price_history
@@ -268,14 +273,15 @@ no_price = yes_pool / (yes_pool + no_pool)
 | --- | --- | --- |
 | id | uuid | 紀錄 ID |
 | market_id | uuid | 市場 ID |
-| option_id | uuid | 市場選項 ID；進階多選項市場使用 |
+| option_id | uuid | 目前 repository 用來篩選 binary row；現值為 null |
 | yes_price | numeric | Yes 價格；MVP 二元市場使用 |
 | no_price | numeric | No 價格；MVP 二元市場使用 |
-| option_price | numeric | 選項價格；進階多選項市場使用 |
-| volume | numeric | 成交量 |
+| trade_volume | numeric | 成交量 |
 | recorded_at | timestamp | 紀錄時間 |
 
-## 10. API 規劃
+## 10. API
+
+以下列出目前主要端點；完整基準與權限請見 `current-implementation.md`。
 
 ### Auth
 
@@ -283,28 +289,34 @@ no_price = yes_pool / (yes_pool + no_pool)
 - `POST /api/auth/login`：登入
 - `POST /api/auth/logout`：登出
 - `GET /api/auth/me`：取得目前使用者
+- `POST /api/auth/oauth/firebase`：Firebase OAuth
+- `POST /api/auth/refresh`：更新 token
+- `PUT /api/auth/profile`：更新個人資料
+- `POST /api/auth/change-password`：修改密碼
 
 ### Markets
 
 - `GET /api/markets`：市場列表
 - `GET /api/markets/{id}`：市場詳情
 - `POST /api/markets`：提交市場
-- `GET /api/markets/{id}/options`：取得市場選項；進階次數型 / 多選項市場使用
-- `GET /api/markets/{id}/prices`：價格歷史
-- `GET /api/markets/{id}/trades`：市場交易紀錄
+- `PUT /api/markets/{id}`：編輯 DRAFT 市場
+- `POST /api/markets/{id}/submit`：送審
+- `GET /api/current-affairs/markets`：時事市場分頁列表
 
 ### Trading
 
-- `POST /api/markets/{id}/trades/quote`：交易試算
-- `POST /api/markets/{id}/trades`：建立交易
-- `GET /api/me/positions`：我的持倉
-- `GET /api/me/trades`：我的交易紀錄
+- `POST /api/trades`：建立 BUY 交易
+- `GET /api/positions/me`：我的持倉
+- `GET /api/positions/me/open`：我的未結算持倉
+- `GET /api/wallets/me/balance`：錢包餘額
+- `GET /api/wallets/me/transactions`：錢包流水
 
 ### Admin
 
-- `GET /api/admin/markets/pending`：待審核市場
+- `GET /api/admin/markets`：市場摘要與管理列表
 - `POST /api/admin/markets/{id}/approve`：通過市場
 - `POST /api/admin/markets/{id}/reject`：拒絕市場
+- `POST /api/admin/markets/{id}/request-changes`：要求修改
 - `POST /api/admin/markets/{id}/resolve`：結算市場
 
 ### Ranking
@@ -312,6 +324,7 @@ no_price = yes_pool / (yes_pool + no_pool)
 - `GET /api/rankings/profit`：盈虧排行榜
 - `GET /api/rankings/win-rate`：勝率排行榜
 - `GET /api/rankings/assets`：資產排行榜，錢包餘額加上 OPEN 持倉依 `market_price_history` 最新價格估值
+- `GET /api/rankings?metric=profit|win-rate|assets`：前端使用的合併排行榜 snapshot
 
 ## 11. 前端頁面規劃
 

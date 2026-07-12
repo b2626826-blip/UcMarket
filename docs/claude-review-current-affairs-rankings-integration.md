@@ -1,5 +1,7 @@
 # Claude 審查交接：時事市場與排行榜 API 串接
 
+> 歷史交接紀錄：下列 findings 對應當時 commit／工作樹，不是目前規格。現行時事與排行榜契約請見 `current-implementation.md`，是否仍有問題需以目前測試與程式碼重驗。
+
 ## 給 Claude 的審查指令
 
 請用 code review 角度審查本 repo 的 `eagle` 分支最新 commit：

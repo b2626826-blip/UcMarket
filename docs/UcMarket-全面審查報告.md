@@ -1,5 +1,7 @@
 # UcMarket 專案全面審查報告
 
+> 歷史審查快照：本報告保留當時 findings，不代表目前仍成立。現行契約與完成狀態請見 `current-implementation.md`；要重新判斷問題是否存在，必須重跑目前測試並檢查當前程式碼。
+
 - **審查日期**：2026-07-08
 - **審查分支**：`eagle`（最新 commit：`c581274` 時事頁更新 暫不呼叫firebase初始化 第三方登入按紐也先停用 新增ddl欄位）
 - **審查範圍**：全專案原始碼與文件 —— `backend/`（Spring Boot 3.5 / Java 21）、`frontend/`（React + Vite）、`docs/資料庫設計/`（PostgreSQL DDL + migrations）、系統設計文件、整合面（OAuth/Firebase、TradingView、天氣 API、n8n、CI/CD）

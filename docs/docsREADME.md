@@ -2,22 +2,26 @@
 
 這份文件是 `docs/` 的入口，幫助後續開發時快速判斷每份文件的用途與閱讀順序。
 
+文件分成「目前實作」、「產品／設計規劃」與「歷史審查」三類。只有 `current-implementation.md`、目前程式碼、測試與 canonical DDL 可用來判斷現行契約。
+
 ## 建議閱讀順序
 
-1. `../README.md`
+1. `current-implementation.md`
+   - 目前技術、功能、API、前端路由、資料表與驗證指令。
+2. `../README.md`
    - 專案定位、技術架構、MVP 功能與主要文件入口。
-2. `project-spec.md`
+3. `project-spec.md`
    - 產品規格、角色、核心流程、API 規劃與展示重點。
-3. `工作計劃書/UcMarket工作計劃.md`
+4. `工作計劃書/UcMarket工作計劃.md`
    - 課程專題工作計劃書與書面報告內容。
-4. `系統設計/技術架構.md`
+5. `系統設計/技術架構.md`
    - 前後端分離、後端分層、核心模組與建議目錄。
-5. `系統設計/網站架構.md`
+6. `系統設計/網站架構.md`
    - 網站頁面、正式前端路由、API 串接與目前實作狀態。
-6. `資料庫設計/ucmarket-er-diagram.md`
+7. `資料庫設計/ucmarket-er-diagram.md`
    - ER 圖、資料表關係與整併決策。
-7. `資料庫設計/ucmarket-ddl.sql`
-   - PostgreSQL DDL、索引、view 與約束。
+8. `資料庫設計/ucmarket-ddl.sql`
+   - 目前 PostgreSQL DDL、索引與約束；排行榜不使用 view。
 
 ## 文件分區
 
@@ -26,13 +30,14 @@
 | 文件 | 用途 |
 | --- | --- |
 | `project-spec.md` | 產品規格、MVP 範圍、市場規則、API 與里程碑 |
+| `current-implementation.md` | 目前程式碼契約與驗證基準 |
 
 ### 工作計劃書
 
 | 文件 | 用途 |
 | --- | --- |
 | `工作計劃書/UcMarket工作計劃.md` | 主要 Markdown 工作計劃書 |
-| `工作計劃書/UcMarket工作計劃.docx` | Word 版本工作計劃書 |
+| `工作計劃書/UcMarket工作計劃.docx` | 歷史 Word 匯出；現況註記以同名 Markdown 為準 |
 | `工作計劃書/圖4-3-1-UcMarket預測市場平台網站架構圖.png` | 工作計劃書引用的網站架構圖 |
 
 ### 系統設計
@@ -50,7 +55,7 @@
 | 文件 | 用途 |
 | --- | --- |
 | `資料庫設計/ucmarket-er-diagram.md` | 可閱讀版 ERD 與資料表說明 |
-| `資料庫設計/ucmarket-ddl.sql` | PostgreSQL schema、索引與排行榜/reporting views |
+| `資料庫設計/ucmarket-ddl.sql` | 目前 PostgreSQL schema、索引與約束 |
 
 ### 資料庫設計子資料夾
 
@@ -65,14 +70,14 @@
 | `資料庫設計/migrations/drop-wallet-transaction-user-market-columns.sql` | 舊資料庫移除 `wallet_transactions` 重複欄位的修補腳本 |
 | `資料庫設計/migrations/fix-admin-password.sql` | 本機 demo/admin 密碼修補腳本 |
 | `資料庫設計/notes/postgresql-test-troubleshooting.md` | PostgreSQL 測試與連線排錯筆記 |
-| `資料庫設計/db-backups/` | 本機資料庫整理或重建前的 SQL 備份 |
 
 ## 目前實作對齊提醒
 
 - `frontend/` 是正式前端實作位置，目前已建立 `src/pages`、`components`、`api`、`router`、`store`、`types`、`assets` 骨架。
 - 目前根目錄沒有 `公版/` 或 `front/`；若未來重新加入靜態 prototype，應只作為畫面參考，不直接混入正式前端。
 - `backend/` 已有 Spring Boot API 與測試；文件整理時以目前 controller、service、repository 與 `./mvnw test` 通過結果作為後端實作現況。
-- Ranking 排行榜目前以既有資料表查詢或 view 計算，不建立獨立排行榜資料表；資產榜使用 `market_price_history` 最新價格估算 OPEN 持倉價值。
+- Ranking 目前由 `RankingRepository` native SQL 直接計算，不建立獨立排行榜資料表或 view；資產榜使用 `market_price_history` 最新價格估算 OPEN 持倉價值。
+- `market_options`、`notifications`、`user_portfolio_snapshots` 只屬未來規劃，不在目前 DDL。
 - 結算與錢包異動以 `wallet_transactions` 追蹤，MVP 不另建 `resolution_payouts`。
 
 ## 維護原則
