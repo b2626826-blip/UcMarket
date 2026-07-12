@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  getMarkets, getMarketDetail, getCurrentEventMarkets,
+  getMarkets, getMarketDetail, getCurrentEventMarkets, getPagedCurrentEventMarkets,
   getCurrentEventMarketDetail, createMarket, rejectMarket,
 } from '../../api/marketApi';
 import { CURRENT_EVENT_CATEGORY, CURRENT_EVENT_CATEGORY_CODE } from '../../types/market';
@@ -90,6 +90,28 @@ describe('marketApi.js', () => {
       const result = await getCurrentEventMarkets({ keyword: '颱風' });
       expect(result.content.map((m) => m.id)).toEqual(['hit']);
     });
+  });
+
+  it('getPagedCurrentEventMarkets 使用時事分頁 endpoint 並保留分頁資訊', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse({
+      content: [rawMarket()],
+      page: 0,
+      size: 20,
+      totalElements: 1,
+      totalPages: 1,
+      first: true,
+      last: true,
+      hasNext: false,
+    }));
+
+    const result = await getPagedCurrentEventMarkets({ page: 0, size: 20 });
+
+    expect(fetchMock).toHaveBeenLastCalledWith(
+      apiUrl('/api/current-affairs/markets?status=ACTIVE&sort=popular&page=0&size=20'),
+      expect.any(Object),
+    );
+    expect(result.content[0].category).toBe(CURRENT_EVENT_CATEGORY);
+    expect(result.totalPages).toBe(1);
   });
 
   describe('getCurrentEventMarketDetail', () => {

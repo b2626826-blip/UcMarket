@@ -5,12 +5,11 @@ import { jsonResponse, installFetchMock } from './_helpers';
 describe('rankingApi.js', () => {
   let fetchMock;
 
-  // 依 URL 尾段回不同資料
-  function routeFetch({ profit = [], winRate = [], assets = [] }) {
+  function routeFetch(snapshot) {
     fetchMock.mockImplementation((url) => {
-      if (url.endsWith(rankingApiEndpoints.profit)) return Promise.resolve(jsonResponse(profit));
-      if (url.endsWith(rankingApiEndpoints['win-rate'])) return Promise.resolve(jsonResponse(winRate));
-      if (url.endsWith(rankingApiEndpoints.assets)) return Promise.resolve(jsonResponse(assets));
+      if (url.endsWith(`${rankingApiEndpoints.snapshot}?metric=profit`)) return Promise.resolve(jsonResponse(snapshot));
+      if (url.endsWith(`${rankingApiEndpoints.snapshot}?metric=win-rate`)) return Promise.resolve(jsonResponse(snapshot));
+      if (url.endsWith(`${rankingApiEndpoints.snapshot}?metric=assets`)) return Promise.resolve(jsonResponse(snapshot));
       return Promise.reject(new Error('unexpected url ' + url));
     });
   }
@@ -19,16 +18,24 @@ describe('rankingApi.js', () => {
     fetchMock = installFetchMock();
   });
 
-  it('打三個 ranking endpoint 並合併同一 userId', async () => {
+  it('只打單一 snapshot endpoint，採用後端 rank', async () => {
     routeFetch({
-      profit: [{ userId: 'u1', username: 'Alice', realizedProfit: '100' }],
-      winRate: [{ userId: 'u1', username: 'Alice', winRate: '0.5', resolvedMarketCount: '3' }],
-      assets: [{ userId: 'u1', username: 'Alice', totalAssetValue: '250' }],
+      metric: 'profit',
+      asOf: '2026-07-10T08:23:41Z',
+      items: [{
+        rank: 7,
+        userId: 'u1',
+        username: 'Alice',
+        realizedProfit: '100',
+        winRate: '0.5',
+        resolvedMarketCount: '3',
+        totalAssetValue: '250',
+      }],
     });
 
     const rows = await fetchRankings('profit');
 
-    expect(fetchMock).toHaveBeenCalledTimes(3);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({
       userId: 'u1',
@@ -37,37 +44,26 @@ describe('rankingApi.js', () => {
       winRate: 50, // 乘 100
       resolvedMarketCount: 3,
       assets: 250,
-      rank: 1,
+      rank: 7,
     });
   });
 
-  it("依 type='profit' 由高到低排序並標 rank", async () => {
+  it("依 type='assets' 傳送 metric query parameter", async () => {
     routeFetch({
-      profit: [
-        { userId: 'low', username: 'Low', realizedProfit: '10' },
-        { userId: 'high', username: 'High', realizedProfit: '90' },
-      ],
+      metric: 'assets',
+      asOf: '2026-07-10T08:23:41Z',
+      items: [],
     });
 
-    const rows = await fetchRankings('profit');
-    expect(rows.map((r) => r.userId)).toEqual(['high', 'low']);
-    expect(rows.map((r) => r.rank)).toEqual([1, 2]);
-  });
-
-  it('有值者排在無值(null)者之前', async () => {
-    routeFetch({
-      profit: [
-        { userId: 'none', username: 'None', realizedProfit: null },
-        { userId: 'some', username: 'Some', realizedProfit: '5' },
-      ],
-    });
-
-    const rows = await fetchRankings('profit');
-    expect(rows.map((r) => r.userId)).toEqual(['some', 'none']);
+    await fetchRankings('assets');
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining(`${rankingApiEndpoints.snapshot}?metric=assets`),
+      expect.anything(),
+    );
   });
 
   it('相同 type 併發呼叫共用同一個 in-flight Promise', () => {
-    routeFetch({ profit: [] });
+    routeFetch({ metric: 'profit', asOf: '2026-07-10T08:23:41Z', items: [] });
     const p1 = fetchRankings('profit');
     const p2 = fetchRankings('profit');
     expect(p1).toBe(p2);
@@ -75,7 +71,7 @@ describe('rankingApi.js', () => {
   });
 
   it('resolve 後可再次發起新的請求', async () => {
-    routeFetch({ profit: [] });
+    routeFetch({ metric: 'profit', asOf: '2026-07-10T08:23:41Z', items: [] });
     const p1 = fetchRankings('profit');
     await p1;
     const p2 = fetchRankings('profit');

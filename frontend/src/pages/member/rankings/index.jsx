@@ -36,6 +36,28 @@ function formatText(value) {
   return value;
 }
 
+export function getRankingMetric(type, user) {
+  if (type === "win-rate") {
+    return {
+      label: "勝率",
+      value: formatPercent(user.winRate),
+      secondaryLabel: "收益",
+      secondaryValue: formatProfit(user.profit),
+    };
+  }
+
+  if (type === "assets") {
+    return { label: "資產", value: formatCurrency(user.assets) };
+  }
+
+  return {
+    label: "收益",
+    value: formatProfit(user.profit),
+    secondaryLabel: "勝率",
+    secondaryValue: formatPercent(user.winRate),
+  };
+}
+
 const TABS = [
   { type: "profit", label: "盈虧榜" },
   { type: "win-rate", label: "勝率榜" },
@@ -65,7 +87,7 @@ function MyRankingCard({ data, currentUserId }) {
   );
 }
 
-function TopRankGrid({ data }) {
+function TopRankGrid({ data, type }) {
   const topThree = data.slice(0, 3);
 
   if (!topThree.length) {
@@ -81,14 +103,22 @@ function TopRankGrid({ data }) {
 
   return (
     <section className="top-rank-grid" aria-label="前三名排行榜">
-      {topThree.map((user) => (
-        <article key={user.rank} className={`top-card top-${user.rank}`}>
-          <div className="rank-medal">#{user.rank}</div>
-          <h2>{user.name}</h2>
-          <strong className="top-card-profit">{formatProfit(user.profit)}</strong>
-          <span className="top-card-win-rate">勝率{formatPercent(user.winRate)}</span>
-        </article>
-      ))}
+      {topThree.map((user) => {
+        const metric = getRankingMetric(type, user);
+
+        return (
+          <article key={user.rank} className={`top-card top-${user.rank}`}>
+            <div className="rank-medal">#{user.rank}</div>
+            <h2>{user.name}</h2>
+            <strong className="top-card-profit">{metric.label} {metric.value}</strong>
+            {metric.secondaryLabel && (
+              <span className="top-card-win-rate">
+                {metric.secondaryLabel}{metric.secondaryValue}
+              </span>
+            )}
+          </article>
+        );
+      })}
     </section>
   );
 }
@@ -232,7 +262,7 @@ export default function RankingsPage() {
         </section>
       ) : (
         <>
-          <TopRankGrid data={filtered} />
+          <TopRankGrid data={filtered} type={activeTab} />
           <RankingTable data={filtered} />
         </>
       )}

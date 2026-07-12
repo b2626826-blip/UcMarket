@@ -96,6 +96,7 @@ public class MarketController {
 		Market market = new Market(request.title(), request.description(), request.category(), request.marketType(),
 				request.sourceUrl(), request.resolutionRule(), request.closeAt());
 		market.setCreatorId(user.getId());
+		market.setImageUrl(request.imageUrl());
 
 		return marketRepository.save(market);
 	}
@@ -134,6 +135,7 @@ public class MarketController {
 		if (request.category() != null) market.setCategory(request.category());
 		if (request.marketType() != null) market.setMarketType(request.marketType());
 		if (request.sourceUrl() != null) market.setSourceUrl(request.sourceUrl());
+		if (request.imageUrl() != null) market.setImageUrl(request.imageUrl());
 		if (request.resolutionRule() != null) market.setResolutionRule(request.resolutionRule());
 		if (request.closeAt() != null) market.setCloseAt(request.closeAt());
 

@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   currentEventFilters,
@@ -27,7 +28,9 @@ function formatCloseAt(value) {
 }
 
 export default function CurrentEventMarketCard({ market }) {
-  const matchedFilters = currentEventFilters.filter(
+	const [imageFailed, setImageFailed] = useState(false);
+	const imageUrl = market.imageUrl?.trim();
+	const matchedFilters = currentEventFilters.filter(
     (filter) =>
       filter.id !== 'all' &&
       matchesCurrentEventFilter(market, filter.id)
@@ -41,8 +44,8 @@ export default function CurrentEventMarketCard({ market }) {
       <article>
         <div className="current-event-market-card__heading">
           <div className="current-event-market-card__media">
-            {market.imageUrl ? (
-              <img src={market.imageUrl} alt="" />
+			{imageUrl && !imageFailed ? (
+				<img src={imageUrl} alt="" onError={() => setImageFailed(true)} />
             ) : (
               <span aria-hidden="true">
                 <i className="fa-solid fa-newspaper"></i>

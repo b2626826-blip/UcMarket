@@ -11,5 +11,6 @@ public record UpdateMarketRequest(
     String marketType,
     @URL(regexp = "^$|(?i:https?)://.+$", message = "sourceUrl must be a valid HTTP(S) URL") String sourceUrl,
     String resolutionRule,
-    LocalDateTime closeAt
+    LocalDateTime closeAt,
+    @URL(regexp = "^$|(?i:https?)://.+$", message = "imageUrl must be a valid HTTP(S) URL") String imageUrl
 ) {}

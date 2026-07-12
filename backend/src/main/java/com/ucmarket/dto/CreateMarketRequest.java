@@ -14,6 +14,17 @@ public record CreateMarketRequest(
 	String marketType,
 	@URL(regexp = "^$|(?i:https?)://.+$", message = "sourceUrl must be a valid HTTP(S) URL") String sourceUrl,
 	String resolutionRule,
-	@NotNull LocalDateTime closeAt
+	@NotNull LocalDateTime closeAt,
+	@URL(regexp = "^$|(?i:https?)://.+$", message = "imageUrl must be a valid HTTP(S) URL") String imageUrl
 ) {
+	public CreateMarketRequest(
+			String title,
+			String description,
+			String category,
+			String marketType,
+			String sourceUrl,
+			String resolutionRule,
+			LocalDateTime closeAt) {
+		this(title, description, category, marketType, sourceUrl, resolutionRule, closeAt, null);
+	}
 }

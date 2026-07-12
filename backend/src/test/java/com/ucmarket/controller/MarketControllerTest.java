@@ -159,7 +159,7 @@ class MarketControllerTest {
     void createMarket_shouldReturn201() throws Exception {
         CreateMarketRequest request = new CreateMarketRequest(
                 "New Market", "Desc", "CURRENT_AFFAIRS", null, "https://example.com/news", null,
-                LocalDateTime.now().plusDays(7));
+                LocalDateTime.now().plusDays(7), "https://example.com/news-image.jpg");
 
         Market saved = new Market("New Market", "Desc", "CURRENT_AFFAIRS", null, "https://example.com/news", null,
                 LocalDateTime.now().plusDays(7));
@@ -174,6 +174,7 @@ class MarketControllerTest {
         verify(marketRepository).save(marketCaptor.capture());
         assertEquals("CURRENT_AFFAIRS", marketCaptor.getValue().getCategory());
         assertEquals("https://example.com/news", marketCaptor.getValue().getSourceUrl());
+        assertEquals("https://example.com/news-image.jpg", marketCaptor.getValue().getImageUrl());
     }
 
     @Test
@@ -192,6 +193,18 @@ class MarketControllerTest {
         CreateMarketRequest request = new CreateMarketRequest(
                 "New Market", "Desc", "CURRENT_AFFAIRS", null, "not a url", null,
                 LocalDateTime.now().plusDays(7));
+
+        mockMvc.perform(post("/api/markets")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createMarket_shouldReturn400_whenImageUrlIsMalformed() throws Exception {
+        CreateMarketRequest request = new CreateMarketRequest(
+                "New Market", "Desc", "CURRENT_AFFAIRS", null, "https://example.com/news", null,
+                LocalDateTime.now().plusDays(7), "not a url");
 
         mockMvc.perform(post("/api/markets")
                 .contentType(MediaType.APPLICATION_JSON)
