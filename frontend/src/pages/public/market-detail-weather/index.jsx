@@ -4,60 +4,58 @@ import Chart from 'chart.js/auto';
 import DetailPageTemplate from '../../../components/common/DetailPageTemplate';
 import useGlowEffect from '../../../hooks/useGlowEffect';
 import TradePanel from '../../../components/market/TradePanel';
+import WeatherHero from './WeatherHero';
 import WeatherMarketChart from './WeatherMarketChart';
 import WeatherChartModal from './WeatherChartModal';
 import { fetchCityForecast } from './weatherApi';
+import { getMarketsByCategory, getMarketOdds } from '../../../api/marketApi';
 import { REGIONS, getRegionById, getRelatedRegions } from './regions';
 import './WeatherDetailPage.css';
 
 // ---- helpers ----
 
-function generateMaxTempThresholds(base) {
-  const list = [];
-  for (let i = -2; i <= 2; i++) {
-    list.push(base + i);
+function parseMetadata(market) {
+  if (!market.metadata) return {};
+  try {
+    return typeof market.metadata === 'string' ? JSON.parse(market.metadata) : market.metadata;
+  } catch {
+    return {};
   }
-  return list;
 }
 
-function generateRainThresholds() {
-  return [30, 50, 70];
+function formatDateLabel(dateText) {
+  if (!dateText) return '';
+  const [, m, d] = dateText.split('-');
+  return `${m}/${d}`;
 }
 
-function computeYesPrice(threshold, base) {
-  const diff = base - threshold;
-  const raw = 0.5 + diff * 0.15;
-  return +Math.max(0.05, Math.min(0.95, raw)).toFixed(2);
+function formatMonthLabel(dateText) {
+  if (!dateText) return '';
+  const [y, m] = dateText.split('-');
+  return `${y}/${m}`;
 }
 
-// ---- Current weather card ----
+function getCurrentMonthStart() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}-01`;
+}
 
-function CurrentWeatherCard({ day, city }) {
-  if (!day) return null;
-  const temp = day.maxTemp != null ? day.maxTemp : 28;
-  const dateLabel = day.date
-    ? (() => {
-        const [, m, d] = day.date.split('-');
-        return `${m}/${d}`;
-      })()
-    : '';
-  return (
-    <div className="weather-current-card">
-      <div className="weather-current-main">
-        <i className="fa-solid fa-cloud-sun weather-icon"></i>
-        <div>
-          <span className="weather-current-date">{dateLabel} {city}</span>
-          <span className="weather-temp">{temp}°C</span>
-          <span className="weather-condition">{day.condition}</span>
-        </div>
-      </div>
-    </div>
-  );
+function getCurrentMonthClose() {
+  const now = new Date();
+  const y = now.getFullYear();
+  const m = String(now.getMonth() + 1).padStart(2, '0');
+  return `${y}-${m}-28`;
+}
+
+function getCurrentMonthDisplay() {
+  return `${new Date().getMonth() + 1}月`;
 }
 
 // ---- Threshold event list ----
 
-function ThresholdEventList({ markets, selectedId, onSelect, onOpenChart, onOpenWeatherChart, closeDate }) {
+function ThresholdEventList({ markets, selectedId, onSelect, onOpenChart, onOpenWeatherChart, closeDate, showWeatherChart }) {
   return (
     <div className="weather-event-section">
       <div className="weather-event-section-header">
@@ -73,13 +71,15 @@ function ThresholdEventList({ markets, selectedId, onSelect, onOpenChart, onOpen
           >
             <i className="fa-solid fa-chart-line"></i> 查看價格走勢
           </button>
-          <button
-            className="weather-chart-toggle"
-            onClick={onOpenWeatherChart}
-            type="button"
-          >
-            <i className="fa-solid fa-cloud-sun"></i> 查看天氣預報
-          </button>
+          {showWeatherChart && (
+            <button
+              className="weather-chart-toggle"
+              onClick={onOpenWeatherChart}
+              type="button"
+            >
+              <i className="fa-solid fa-cloud-sun"></i> 查看天氣預報
+            </button>
+          )}
         </div>
       </div>
       <div className="weather-event-list">
@@ -287,6 +287,18 @@ function formatDateFromOffset(offset) {
   return `${m}/${day}`;
 }
 
+function getMetricLabel(metric) {
+  if (metric === 'maxTemp') return '最高溫預測';
+  if (metric === 'monthlyRain') return '月降雨量預測';
+  return '降雨機率預測';
+}
+
+function getBadgeLabel(metric) {
+  if (metric === 'maxTemp') return '溫度預測';
+  if (metric === 'monthlyRain') return '月降雨量預測';
+  return '降雨預測';
+}
+
 function RelatedRegions({ region }) {
   const related = getRelatedRegions(region);
   if (related.length === 0) return null;
@@ -298,7 +310,9 @@ function RelatedRegions({ region }) {
       </div>
       <div className="weather-related-grid">
         {related.map((r) => {
-          const dateLabel = formatDateFromOffset(r.offset);
+          const dateLabel = r.metric === 'monthlyRain'
+            ? getCurrentMonthDisplay()
+            : formatDateFromOffset(r.offset);
           return (
             <Link
               key={r.id}
@@ -306,7 +320,7 @@ function RelatedRegions({ region }) {
               className="weather-related-card"
             >
               <div className="weather-related-card-main">
-                <h4>{dateLabel} {r.city}{r.metric === 'maxTemp' ? '最高溫預測' : '降雨機率預測'}</h4>
+                <h4>{dateLabel} {r.city}{getMetricLabel(r.metric)}</h4>
                 <span className="weather-related-view">查看</span>
               </div>
             </Link>
@@ -322,122 +336,149 @@ function RelatedRegions({ region }) {
 export default function WeatherDetailPage() {
   const { id } = useParams();
   const region = getRegionById(id);
-
-  useEffect(() => {
-    const handleMouseMove = (e) => {
-      const x = (e.clientX / window.innerWidth - 0.5) * 16;
-      const y = (e.clientY / window.innerHeight - 0.5) * 16;
-      document.documentElement.style.setProperty('--weather-hero-x', `${x}px`);
-      document.documentElement.style.setProperty('--weather-hero-y', `${y}px`);
-    };
-    window.addEventListener('mousemove', handleMouseMove);
-    return () => window.removeEventListener('mousemove', handleMouseMove);
-  }, []);
+  const isMonthlyRain = region.metric === 'monthlyRain';
 
   const [forecast, setForecast] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [forecastLoading, setForecastLoading] = useState(!isMonthlyRain);
+  const [forecastError, setForecastError] = useState(null);
   const [markets, setMarkets] = useState([]);
+  const [marketsLoading, setMarketsLoading] = useState(true);
+  const [marketsError, setMarketsError] = useState(null);
   const [selectedMarket, setSelectedMarket] = useState(null);
   const [tradeSide, setTradeSide] = useState('YES');
   const [chartOpen, setChartOpen] = useState(false);
   const [weatherChartOpen, setWeatherChartOpen] = useState(false);
 
   const fetchForecast = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+    if (isMonthlyRain) return;
+    setForecastLoading(true);
+    setForecastError(null);
     try {
       const data = await fetchCityForecast(region.city);
       setForecast(data);
     } catch (err) {
-      setError(err.message);
+      setForecastError(err.message);
       setForecast(null);
     } finally {
-      setLoading(false);
+      setForecastLoading(false);
     }
-  }, [region.city]);
+  }, [region.city, isMonthlyRain]);
 
   useEffect(() => {
     fetchForecast();
   }, [fetchForecast]);
 
   useEffect(() => {
-    if (!forecast || !forecast.days) return;
-    const day = forecast.days[region.offset];
-    if (!day) {
+    let cancelled = false;
+    setMarketsLoading(true);
+    setMarketsError(null);
+
+    const targetDate = isMonthlyRain
+      ? getCurrentMonthStart()
+      : forecast?.days?.[region.offset]?.date;
+
+    if (!targetDate) {
       setMarkets([]);
+      setMarketsLoading(false);
       return;
     }
 
-    let thresholds;
-    if (region.metric === 'rainProb') {
-      thresholds = generateRainThresholds();
-    } else {
-      const base = day.maxTemp ?? 30;
-      thresholds = generateMaxTempThresholds(base);
-    }
+    getMarketsByCategory('WEATHER')
+      .then(async (allWeatherMarkets) => {
+        if (cancelled) return;
 
-    const baseValue = region.metric === 'rainProb' ? day.rainProb : day.maxTemp;
-    const metricLabel = region.metric === 'maxTemp' ? '最高氣溫' : '降雨機率';
-    const unit = region.metric === 'maxTemp' ? '°C' : '%';
-    const operator = region.metric === 'maxTemp' ? '超過' : '達到';
-    const dateText = day.date
-      ? (() => {
-          const [, m, d] = day.date.split('-');
-          return `${m}/${d}`;
-        })()
-      : region.dateLabel;
-    const list = thresholds.map((t, idx) => {
-      const yesPrice = computeYesPrice(t, baseValue);
-      const volumeRaw = Math.random() * 1.95 + 0.05; // $50K ~ $2M
-      return {
-        id: `${region.id}-${idx}`,
-        threshold: t,
-        title: region.metric === 'maxTemp'
-          ? `${dateText} ${region.city}最高溫會超過 ${t}°C 嗎？`
-          : `${dateText} ${region.city}降雨機率會超過 ${t}% 嗎？`,
-        description: `此市場預測 ${day.date} ${region.city}地區的${metricLabel}是否會${operator} ${t}${unit}。`,
-        resolutionRule: `以交通部中央氣象署（CWA）公布的 ${day.date} ${region.city}地區觀測資料為準。若當日${metricLabel}大於或等於 ${t}${unit}，則結算為 YES；否則結算為 NO。`,
-        sourceUrl: 'https://www.cwa.gov.tw/',
-        sourceName: '交通部中央氣象署',
-        yesPrice,
-        noPrice: +(1 - yesPrice).toFixed(2),
-        volume: `$${volumeRaw.toFixed(1)}M`,
-      };
-    });
-    setMarkets(list);
-    setSelectedMarket(list[0] || null);
-  }, [forecast, region]);
+        const filtered = allWeatherMarkets.filter((m) => {
+          const meta = parseMetadata(m);
+          return meta.city === region.city
+            && meta.date === targetDate
+            && meta.metric === region.metric;
+        });
+
+        const withOdds = await Promise.all(
+          filtered.map(async (m) => {
+            try {
+              const odds = await getMarketOdds(m.id);
+              const meta = parseMetadata(m);
+              const totalVolume = Number(odds.totalVolume) || 0;
+              const volumeText = totalVolume >= 1000000
+                ? `$${(totalVolume / 1000000).toFixed(1)}M`
+                : totalVolume >= 1000
+                  ? `$${(totalVolume / 1000).toFixed(1)}K`
+                  : `$${totalVolume.toFixed(0)}`;
+              return {
+                ...m,
+                threshold: meta.threshold,
+                yesPrice: Number(odds.yesOdds) ? 1 / Number(odds.yesOdds) : 0.5,
+                noPrice: Number(odds.noOdds) ? 1 / Number(odds.noOdds) : 0.5,
+                volume: volumeText,
+              };
+            } catch {
+              const meta = parseMetadata(m);
+              return {
+                ...m,
+                threshold: meta.threshold,
+                yesPrice: 0.5,
+                noPrice: 0.5,
+                volume: '$0',
+              };
+            }
+          })
+        );
+
+        const sorted = withOdds.sort((a, b) => (a.threshold || 0) - (b.threshold || 0));
+        setMarkets(sorted);
+        setSelectedMarket(sorted[0] || null);
+        setMarketsLoading(false);
+      })
+      .catch((err) => {
+        if (cancelled) return;
+        setMarketsError(err.message);
+        setMarketsLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [forecast, region.city, region.metric, region.offset, isMonthlyRain]);
 
   useGlowEffect('.weather-market-card, .trade-panel');
 
   const targetDay = forecast?.days?.[region.offset] || null;
-  const category = '天氣';
-  const subtitle = '根據氣象資料預測未來天氣事件，選擇你認為會發生的結果下注';
+  const subtitle = isMonthlyRain
+    ? '預測本月份累積降雨量，選擇你認為會發生的結果下注'
+    : '根據氣象資料預測未來天氣事件，選擇你認為會發生的結果下注';
+
+  const loading = forecastLoading || marketsLoading;
+  const error = forecastError || marketsError;
+
+  const headerTitle = isMonthlyRain
+    ? `${region.city} ${getCurrentMonthDisplay()}降雨量預測`
+    : `${targetDay?.date ? formatDateLabel(targetDay.date) + ' ' : ''}${region.city}最高溫預測`;
+
+  const closeDate = isMonthlyRain
+    ? getCurrentMonthClose()
+    : (targetDay?.date || '');
 
   return (
-    <div className="weather-page">
-      <DetailPageTemplate
-        id={id}
-      subtitle={subtitle}
-      category={category}
+    <DetailPageTemplate
+      id={id}
       heroLayout="left"
-      heroExtras={!loading && !error ? <CurrentWeatherCard day={targetDay} city={region.city} /> : null}
-      marketId={id}
+      hero={<WeatherHero subtitle={subtitle} city={region.city} day={!isMonthlyRain ? targetDay : null} />}
+      marketId={selectedMarket?.id || id}
       market={selectedMarket}
-      tradePanel={<TradePanel marketId={id} market={selectedMarket} side={tradeSide} onSideChange={setTradeSide} />}
+      tradePanel={<TradePanel marketId={selectedMarket?.id || id} market={selectedMarket} side={tradeSide} onSideChange={setTradeSide} />}
     >
       {loading && (
         <div className="trade-market-card" style={{ textAlign: 'center', padding: 60 }}>
           <i className="fa-solid fa-spinner fa-spin" style={{ fontSize: 32, color: '#d9aa43' }}></i>
-          <p style={{ marginTop: 16, color: '#8f8f8f' }}>載入天氣資料中...</p>
+          <p style={{ marginTop: 16, color: '#8f8f8f' }}>載入中...</p>
         </div>
       )}
 
       {error && (
         <div className="trade-market-card" style={{ textAlign: 'center', padding: 60 }}>
           <i className="fa-solid fa-triangle-exclamation" style={{ fontSize: 32, color: '#ff476d' }}></i>
-          <p style={{ marginTop: 16, color: '#ff476d' }}>無法載入天氣資料</p>
+          <p style={{ marginTop: 16, color: '#ff476d' }}>載入失敗</p>
           <p style={{ color: '#888' }}>{error}</p>
         </div>
       )}
@@ -448,41 +489,37 @@ export default function WeatherDetailPage() {
             <div className="weather-market-header">
               <div>
                 <div className="weather-market-badge">
-                  <i className="fa-solid fa-cloud-sun"></i> {region.metric === 'maxTemp' ? '溫度預測' : '降雨預測'}
+                  <i className={isMonthlyRain ? 'fa-solid fa-cloud-rain' : 'fa-solid fa-cloud-sun'}></i> {getBadgeLabel(region.metric)}
                 </div>
-                <h2>
-                  {targetDay?.date
-                    ? (() => {
-                        const [, m, d] = targetDay.date.split('-');
-                        return `${m}/${d}`;
-                      })() + ' '
-                    : ''}
-                  {region.city}
-                  {region.metric === 'maxTemp' ? '最高溫預測' : '降雨機率預測'}
-                </h2>
-                <p>根據中央氣象署公開資料，選擇你認為會發生的事件進行下注。</p>
+                <h2>{headerTitle}</h2>
+                <p>{isMonthlyRain
+                  ? '根據中央氣象署 C-B0025-003 月降雨量觀測資料，預測本月份累積降雨量。'
+                  : '根據中央氣象署公開資料，選擇你認為會發生的事件進行下注。'}
+                </p>
               </div>
               <div className="market-status live">
                 <i className="fa-solid fa-circle"></i> LIVE
               </div>
             </div>
 
-            <ThresholdEventList
-              markets={markets}
-              selectedId={selectedMarket?.id}
-              onSelect={(m, side) => {
-                setSelectedMarket(m);
-                if (side) setTradeSide(side);
-              }}
-              onOpenChart={() => setChartOpen(true)}
-              onOpenWeatherChart={() => setWeatherChartOpen(true)}
-              closeDate={targetDay?.date
-                ? (() => {
-                    const [, m, d] = targetDay.date.split('-');
-                    return `${m}/${d}`;
-                  })()
-                : '--'}
-            />
+            {markets.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: 40, color: '#888' }}>
+                暫無該地區的預測事件，請稍後再試。
+              </div>
+            ) : (
+              <ThresholdEventList
+                markets={markets}
+                selectedId={selectedMarket?.id}
+                onSelect={(m, side) => {
+                  setSelectedMarket(m);
+                  if (side) setTradeSide(side);
+                }}
+                onOpenChart={() => setChartOpen(true)}
+                onOpenWeatherChart={() => setWeatherChartOpen(true)}
+                closeDate={closeDate}
+                showWeatherChart={!isMonthlyRain}
+              />
+            )}
           </div>
 
           <MarketRulesSection market={selectedMarket} />
@@ -507,19 +544,20 @@ export default function WeatherDetailPage() {
             </div>
           </WeatherChartModal>
 
-          <WeatherChartModal
-            open={weatherChartOpen}
-            onClose={() => setWeatherChartOpen(false)}
-            title="天氣預報"
-            description="未來 3 天溫度與降雨機率"
-          >
-            <div className="weather-modal-chart">
-              <WeatherCharts days={forecast?.days || []} />
-            </div>
-          </WeatherChartModal>
+          {!isMonthlyRain && (
+            <WeatherChartModal
+              open={weatherChartOpen}
+              onClose={() => setWeatherChartOpen(false)}
+              title="天氣預報"
+              description="未來 3 天溫度與降雨機率"
+            >
+              <div className="weather-modal-chart">
+                <WeatherCharts days={forecast?.days || []} />
+              </div>
+            </WeatherChartModal>
+          )}
         </>
       )}
     </DetailPageTemplate>
-    </div>
   );
 }

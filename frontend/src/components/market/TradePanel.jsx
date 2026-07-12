@@ -1,6 +1,7 @@
 ﻿import { useState } from 'react';
 import useAuthStore from '../../store/authStore';
 import useGlowEffect from '../../hooks/useGlowEffect';
+import { placeTrade } from '../../api/marketApi';
 
 const FIXED_ODDS = {
   YES: 1.62,
@@ -35,10 +36,10 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
   const estimatedReturn = betAmount * odds;
   const actualProfit = estimatedReturn - betAmount;
 
-  function handleTrade() {
-    if (!user) return;
+  async function handleTrade() {
+    if (!user || !market?.id) return;
     if (!betAmount || betAmount < 10) {
-      setBtnState({ text: '最低下注金額 ', bg: '#ff476d' });
+      setBtnState({ text: '最低下注金額 10', bg: '#ff476d' });
       setTimeout(() => setBtnState({ text: '', bg: '' }), 2500);
       return;
     }
@@ -47,8 +48,22 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
       setTimeout(() => setBtnState({ text: '', bg: '' }), 2500);
       return;
     }
-    setBtnState({ text: '交易送出成功', bg: '#00d66f' });
-    setTimeout(() => setBtnState({ text: '', bg: '' }), 2000);
+
+    try {
+      setBtnState({ text: '處理中...', bg: '#d9aa43' });
+      await placeTrade({
+        marketId: market.id,
+        side: tradeSide,
+        amount: Number(amount),
+      });
+      setBtnState({ text: '交易成功', bg: '#00d66f' });
+      setAmount('');
+    } catch (err) {
+      const message = err?.response?.data?.message || err.message || '交易失敗';
+      setBtnState({ text: message, bg: '#ff476d' });
+    } finally {
+      setTimeout(() => setBtnState({ text: '', bg: '' }), 2500);
+    }
   }
 
   return (

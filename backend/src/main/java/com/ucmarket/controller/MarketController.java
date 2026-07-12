@@ -1,10 +1,13 @@
 package com.ucmarket.controller;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -29,7 +32,9 @@ import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.entity.User;
 import com.ucmarket.entity.UserRole;
 import com.ucmarket.repository.MarketRepository;
+import com.ucmarket.repository.TradeRepository;
 import com.ucmarket.service.MarketService;
+import com.ucmarket.service.PriceHistoryService;
 import com.ucmarket.service.TradeQuoteService;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -42,12 +47,17 @@ public class MarketController {
 	private final MarketRepository marketRepository;
 	private final MarketService marketService;
 	private final TradeQuoteService tradeQuoteService;
+	private final PriceHistoryService priceHistoryService;
+	private final TradeRepository tradeRepository;
 
 	public MarketController(MarketRepository marketRepository, MarketService marketService,
-			TradeQuoteService tradeQuoteService) {
+			TradeQuoteService tradeQuoteService, PriceHistoryService priceHistoryService,
+			TradeRepository tradeRepository) {
 		this.marketRepository = marketRepository;
 		this.marketService = marketService;
 		this.tradeQuoteService = tradeQuoteService;
+		this.priceHistoryService = priceHistoryService;
+		this.tradeRepository = tradeRepository;
 	}
 
 	@GetMapping
@@ -68,7 +78,7 @@ public class MarketController {
 						.getContent();
 			}
 
-			return marketRepository.findByCategory(category, pageable).getContent();
+			return marketRepository.findByCategory(category);
 		}
 
 		if (status != null) {
@@ -170,16 +180,54 @@ public class MarketController {
 		return quoteTrade(id, request);
 	}
 
+	public record MarketPriceHistoryResponse(
+		LocalDateTime recordedAt,
+		BigDecimal yesPrice,
+		BigDecimal noPrice,
+		BigDecimal tradeVolume
+	) {}
+
+	@GetMapping("/{id}/price-history")
+	public List<MarketPriceHistoryResponse> getPriceHistory(
+			@PathVariable UUID id,
+			@RequestParam(required = false)
+			@DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime from,
+			@RequestParam(required = false)
+			@DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime to) {
+
+		marketRepository.findById(id)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+		LocalDateTime now = LocalDateTime.now();
+		if (from == null) from = now.minusDays(1);
+		if (to == null) to = now;
+
+		return priceHistoryService.findHistory(id, from, to).stream()
+				.map(h -> new MarketPriceHistoryResponse(
+						h.getRecordedAt(),
+						h.getYesPrice(),
+						h.getNoPrice(),
+						h.getTradeVolume()
+				))
+				.toList();
+	}
+
 	@GetMapping("/{id}/odds")
 	public MarketOddsResponse getOdds(@PathVariable UUID id) {
 		Market market = marketRepository.findById(id)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
+		BigDecimal totalVolume = tradeRepository.sumAmountByMarketId(id);
+		if (totalVolume == null) {
+			totalVolume = BigDecimal.ZERO;
+		}
+
 		return new MarketOddsResponse(
 				tradeQuoteService.getMarketOdds(market, MarketSide.YES),
 				tradeQuoteService.getMarketOdds(market, MarketSide.NO),
 				market.getYesPool(),
-				market.getNoPool()
+				market.getNoPool(),
+				totalVolume
 		);
 	}
 }

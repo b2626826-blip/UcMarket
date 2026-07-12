@@ -50,6 +50,7 @@ import com.ucmarket.repository.WalletRepository;
 import com.ucmarket.repository.WalletTransactionRepository;
 import com.ucmarket.service.MarketService;
 import com.ucmarket.service.PositionService;
+import com.ucmarket.service.PriceHistoryService;
 import com.ucmarket.service.ResolutionService;
 import com.ucmarket.service.TradeQuoteService;
 import com.ucmarket.service.TradeService;
@@ -67,6 +68,7 @@ class CoreMarketLifecycleTest {
 	private final AdminLogRepository adminLogRepository = mock(AdminLogRepository.class);
 	private final PositionRepository positionRepository = mock(PositionRepository.class);
 	private final TradeRepository tradeRepository = mock(TradeRepository.class);
+	private final PriceHistoryService priceHistoryService = mock(PriceHistoryService.class);
 	private final WalletRepository walletRepository = mock(WalletRepository.class);
 	private final WalletTransactionRepository walletTransactionRepository =
 			mock(WalletTransactionRepository.class);
@@ -109,9 +111,10 @@ class CoreMarketLifecycleTest {
 				tradeRepository,
 				tradeQuoteService,
 				walletService,
-				positionService
+				positionService,
+				priceHistoryService
 		);
-		marketController = new MarketController(marketRepository, marketService, tradeQuoteService);
+		marketController = new MarketController(marketRepository, marketService, tradeQuoteService, priceHistoryService, tradeRepository);
 		tradeController = new TradeController(tradeService);
 	}
 
