@@ -8,8 +8,9 @@ import LandingPage from "../pages/public/landing";
 import HomePage from "../pages/public/home";
 import LoginPage from "../pages/public/login/LoginPage";
 import RegisterPage from "../pages/public/register/RegisterPage";
-import MarketDetailPage from "../pages/public/market-detail";
 import WeatherDetailPage from "../pages/public/market-detail-weather";
+import WeatherListPage from "../pages/public/weather-list";
+import PoliticsListPage from "../pages/public/market-politics";
 import PoliticsDetailPage from "../pages/public/market-detail-politics";
 import SportsDetailPage from "../pages/public/market-detail-sports";
 import CurrentAffairsDetailPage from "../pages/public/market-detail-current-affairs";
@@ -37,8 +38,11 @@ const router = createBrowserRouter([
     element: <UserLayout />,
     children: [
       { index: true, element: <LandingPage /> },
+      { path: "home", element: <HomePage /> },
       { path: "markets", element: <HomePage /> },
-      { path: "markets/:id", element: <MarketDetailPage /> },
+      { path: "markets/current-affairs", element: <Navigate to="/home" replace /> },
+      { path: "markets/politics", element: <PoliticsListPage /> },
+      { path: "markets/weather", element: <WeatherListPage /> },
       { path: "markets/weather/:id", element: <WeatherDetailPage /> },
       { path: "markets/politics/:id", element: <PoliticsDetailPage /> },
       { path: "markets/sports/:id", element: <SportsDetailPage /> },

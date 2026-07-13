@@ -1,7 +1,10 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useState } from 'react';
+import { getPagedCurrentEventMarkets } from '../../../api/marketApi';
+import CurrentEventMarketCard from '../../../components/market/CurrentEventMarketCard';
 import MarketCard from '../../../components/market/MarketCard';
 import MarketTrendCarousel from '../../../components/market/MarketTrendCarousel';
 import useGlowEffect from '../../../hooks/useGlowEffect';
+import { CURRENT_EVENT_CATEGORY } from '../../../types/market';
 
 const initialMarkets = [
   { id: 1, category: '政治', title: '共和黨是否會贏得下一屆美國總統大選？', date: '2028 年 11 月', yesPrice: 0.61, noPrice: 0.39, volume: '$5.8M', traders: '4,451' },
@@ -9,34 +12,49 @@ const initialMarkets = [
   { id: 3, category: '運動', title: '湖人是否能拿下下一屆 NBA 總冠軍？', date: '2027 賽季', yesPrice: 0.44, noPrice: 0.56, volume: '$3.2M', traders: '3,211' },
   { id: 4, category: '運動', title: '2026 世界盃足球賽冠軍是否會是南美洲球隊？', date: '2026 年 7 月', yesPrice: 0.58, noPrice: 0.42, volume: '$4.5M', traders: '3,890' },
   { id: 5, category: '天氣', title: '明天台中最高溫會超過 30°C 嗎？', date: '明天', yesPrice: 0.55, noPrice: 0.45, volume: '$320K', traders: '812' },
-  { id: 6, category: '天氣', title: '本週台北會下雨超過 3 天嗎？', date: '本週', yesPrice: 0.62, noPrice: 0.38, volume: '$280K', traders: '756' },
-  { id: 7, category: '時事', title: '某熱門社會議題是否會在本月登上主流媒體頭條？', date: '本月', yesPrice: 0.48, noPrice: 0.52, volume: '$410K', traders: '1,023' },
-  { id: 8, category: '時事', title: '某新興科技監管法案是否會在季內完成初審？', date: '本季', yesPrice: 0.37, noPrice: 0.63, volume: '$560K', traders: '1,245' },
-  { id: 9, category: '金融', title: '美國 Fed 是否會在今年降息兩次以上？', date: '2026 年', yesPrice: 0.57, noPrice: 0.43, volume: '$9.5M', traders: '6,892' },
+  { id: 6, category: '天氣', title: '本週台北會下雨超過 3 天嗎？', date: '本週', yesPrice: 0.62, noPrice: 0.38, volume: '$280K', traders: '756' }, { id: 9, category: '金融', title: '美國 Fed 是否會在今年降息兩次以上？', date: '2026 年', yesPrice: 0.57, noPrice: 0.43, volume: '$9.5M', traders: '6,892' },
   { id: 10, category: '金融', title: 'WTI 原油在 2026 年 5 月收盤是否會高過 75 美元？', date: '2026 年 5 月', yesPrice: 0.51, noPrice: 0.49, volume: '$2.3M', traders: '1,243' },
 ];
 
-function parseMetric(value) {
-  if (typeof value === 'number') return value;
-
-  const normalized = String(value ?? '').replace(/[$,\s]/g, '').toUpperCase();
-  const amount = Number.parseFloat(normalized);
-  if (!Number.isFinite(amount)) return 0;
-  if (normalized.endsWith('B')) return amount * 1_000_000_000;
-  if (normalized.endsWith('M')) return amount * 1_000_000;
-  if (normalized.endsWith('K')) return amount * 1_000;
-  return amount;
-}
-
-const categories = ['全部', '政治', '運動', '天氣', '時事', '金融'];
+const categories = ['全部', '政治', '運動', '天氣', CURRENT_EVENT_CATEGORY, '金融'];
 
 export default function HomePage() {
   const [category, setCategory] = useState('全部');
-  const [rankingType, setRankingType] = useState('traders');
+  const [search, setSearch] = useState('');
   const [markets, setMarkets] = useState(initialMarkets);
+  const [currentEventMarkets, setCurrentEventMarkets] = useState([]);
+  const [currentEventLoading, setCurrentEventLoading] = useState(true);
+  const [currentEventError, setCurrentEventError] = useState('');
+  const [currentEventPage, setCurrentEventPage] = useState(0);
+  const [currentEventPageInfo, setCurrentEventPageInfo] = useState({
+    totalPages: 0,
+    hasNext: false,
+  });
+
+  useEffect(() => {
+    if (category !== CURRENT_EVENT_CATEGORY) {
+      return;
+    }
+
+    setCurrentEventLoading(true);
+    setCurrentEventError('');
+
+    getPagedCurrentEventMarkets({ page: currentEventPage })
+      .then(({ content, totalPages, hasNext }) => {
+        setCurrentEventMarkets(content);
+        setCurrentEventPageInfo({ totalPages, hasNext });
+      })
+      .catch(() => {
+        setCurrentEventMarkets([]);
+        setCurrentEventPageInfo({ totalPages: 0, hasNext: false });
+        setCurrentEventError('時事市場載入失敗，請稍後再試。');
+      })
+      .finally(() => {
+        setCurrentEventLoading(false);
+      });
+  }, [category, currentEventPage]);
+
   useGlowEffect('.chart-card, .stats-card, .market-card');
-
-
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -51,91 +69,116 @@ export default function HomePage() {
   }, []);
 
 
-  const filtered = markets.filter((market) => category === categories[0] || market.category === category);
-  const rankedMarkets = [...markets]
-    .sort((a, b) => (
-      rankingType === 'traders'
-        ? parseMetric(b.traders) - parseMetric(a.traders)
-        : parseMetric(b.volume) - parseMetric(a.volume)
-    ))
-    .slice(0, 4);
+  const filtered = markets.filter((m) => {
+    const matchCat = category === '全部' || m.category === category;
+    const matchSearch = m.title.toLowerCase().includes(search.toLowerCase()) || m.category.toLowerCase().includes(search.toLowerCase());
+    return matchCat && matchSearch;
+  });
 
+  const filteredCurrentEvents = currentEventMarkets.filter((market) =>
+    market.title.toLowerCase().includes(search.toLowerCase())
+  );
+
+  function handleTrade(market, side) {
+    alert('交易確認\n\n市場：' + market.title + '\n方向：' + side + '\n價格：$' + (side === 'YES' ? market.yesPrice.toFixed(2) : market.noPrice.toFixed(2)));
+  }
 
   return (
     <div className="markets-dashboard-page">
-      <div className="dashboard" style={{ paddingTop: 80, paddingBottom: 80 }}>
+      <div className="dashboard home-dashboard">
         <MarketTrendCarousel />
         <div className="stats-card">
           <div className="stats-glow"></div>
           <div className="card-top">
             <div className="card-icon"><i className="fa-solid fa-trophy"></i></div>
-            <h3>熱門排行</h3>
-            <p>{rankingType === 'traders' ? '依盤口參與人數排序' : '依盤口交易金額排序'}</p>
+            <h3>平台數據</h3>
+            <p>即時更新市場統計</p>
           </div>
-
-          <div className="market-ranking-tabs" role="tablist" aria-label="熱門排行切換">
-            <button
-              type="button"
-              className={rankingType === 'traders' ? 'active' : ''}
-              onClick={() => setRankingType('traders')}
-            >
-              熱門市場排行
-            </button>
-            <button
-              type="button"
-              className={rankingType === 'volume' ? 'active' : ''}
-              onClick={() => setRankingType('volume')}
-            >
-              熱門交易排行
-            </button>
-          </div>
-
-          <div className="market-ranking-list">
-            {rankedMarkets.map((market, index) => (
-              <div className="market-ranking-row" key={market.id}>
-                <span className="market-ranking-position">{index + 1}</span>
-                <span className="market-ranking-title">{market.title}</span>
-                <strong>{rankingType === 'traders' ? `${market.traders} 人` : market.volume}</strong>
+          <div className="stats-list">
+            {[
+              { label: '總市場數', value: markets.length },
+              { label: '總交易量', value: '$48.2M' },
+              { label: '總交易者', value: '8,421' },
+              { label: '活躍市場', value: '6' },
+            ].map((s) => (
+              <div className="stat-row" key={s.label}>
+                <span>{s.label}</span>
+                <strong>{s.value}</strong>
               </div>
             ))}
           </div>
         </div>
       </div>
 
-      <section className="platform-metrics" aria-label="平台統計">
-        {[
-          { label: '本平台註冊人數', value: '12,680', unit: '人', icon: 'fa-user-plus' },
-          { label: '本平台交易金額', value: '$48.2M', unit: '', icon: 'fa-coins' },
-          { label: '本平台盤口數量', value: '10', unit: '個', icon: 'fa-chart-column' },
-          { label: '本平台預測人數', value: '8,421', unit: '人', icon: 'fa-users' },
-        ].map((metric) => (
-          <article className="platform-metric-card" key={metric.label}>
-            <div className="platform-metric-icon" aria-hidden="true">
-              <i className={`fa-solid ${metric.icon}`}></i>
-            </div>
-            <span>{metric.label}</span>
-            <strong>{metric.value}</strong>
-            {metric.unit && <small>{metric.unit}</small>}
-          </article>
-        ))}
-      </section>
-
-      <section className="markets">
+      <section id="markets" className="markets">
         <div className="section-title">
           <h2>預測市場</h2>
         </div>
         <div className="market-tabs">
           {categories.map((cat) => (
-            <button key={cat} className={category === cat ? 'active' : ''} onClick={() => setCategory(cat)}>
+            <button key={cat} className={category === cat ? 'active' : ''} onClick={() => {
+              setCategory(cat);
+              if (cat === CURRENT_EVENT_CATEGORY) setCurrentEventPage(0);
+            }}>
               {cat}
             </button>
           ))}
         </div>
-        <div className="market-grid" id="marketGrid">
-          {filtered.map((m) => (
-            <MarketCard key={m.id} market={m} />
-          ))}
+        <div className="market-search">
+          <input id="marketSearch" placeholder="搜尋市場..." value={search} onChange={(e) => setSearch(e.target.value)} />
+          <button><i className="fa-solid fa-magnifying-glass"></i></button>
         </div>
+        <div className="market-grid" id="marketGrid">
+          {category === CURRENT_EVENT_CATEGORY && currentEventLoading && (
+            <p>時事市場載入中...</p>
+          )}
+
+          {category !== CURRENT_EVENT_CATEGORY &&
+            filtered.map((market) => (
+              <MarketCard key={market.id} market={market} onClickTrade={handleTrade} />
+            ))}
+
+          {category === CURRENT_EVENT_CATEGORY && !currentEventLoading && currentEventError && (
+            <p role="alert">{currentEventError}</p>
+          )}
+
+          {category === CURRENT_EVENT_CATEGORY &&
+            !currentEventLoading &&
+            !currentEventError &&
+            filteredCurrentEvents.length === 0 && (
+              <p>目前沒有符合條件的時事市場。</p>
+            )}
+
+          {category === CURRENT_EVENT_CATEGORY &&
+            !currentEventLoading &&
+            !currentEventError &&
+            filteredCurrentEvents.map((market) => (
+              <CurrentEventMarketCard key={market.id} market={market} />
+            ))}
+        </div>
+
+        {category === CURRENT_EVENT_CATEGORY &&
+          !currentEventLoading &&
+          !currentEventError &&
+          currentEventPageInfo.totalPages > 1 && (
+            <nav aria-label="時事市場分頁">
+              <button
+                type="button"
+                disabled={currentEventPage === 0}
+                onClick={() => setCurrentEventPage((page) => page - 1)}
+              >
+                上一頁
+              </button>
+              <span>{currentEventPage + 1} / {currentEventPageInfo.totalPages}</span>
+              <button
+                type="button"
+                disabled={!currentEventPageInfo.hasNext}
+                onClick={() => setCurrentEventPage((page) => page + 1)}
+              >
+                下一頁
+              </button>
+            </nav>
+          )}
       </section>
     </div>
   );

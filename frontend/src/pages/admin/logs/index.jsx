@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getAdminLogs } from '../../../api/adminApi';
 import useUiStore from '../../../store/uiStore';
+import { formatTime } from '../../../utils/format';
 
 const ACTION_LABEL = {
   MARKET_APPROVE: '核准事件', MARKET_REJECT: '拒絕事件', MARKET_RESOLVE: '結算事件',
@@ -10,11 +11,6 @@ const ACTION_CLASS = {
   MARKET_APPROVE: 'status-approved', MARKET_REJECT: 'status-rejected', MARKET_RESOLVE: 'status-active',
   MARKET_REQUEST_CHANGES: 'status-pending', USER_SUSPEND: 'status-rejected', USER_UNSUSPEND: 'status-approved',
 };
-
-function formatTime(val) {
-  if (!val) return '';
-  return val.replace('T', ' ').substring(0, 19);
-}
 
 function getActionCategory(action) {
   if (!action) return 'system';

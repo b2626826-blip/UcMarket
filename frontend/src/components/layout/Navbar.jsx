@@ -1,12 +1,18 @@
+/**
+ * ⚠️ 孤兒元件（ORPHAN，2026-07-08 盤點）— 全專案零引用，未被任何頁面 import。
+ * 保留待日後接回使用或移除；若已重新啟用請刪除本註解。
+ */
 import { Link, NavLink } from "react-router-dom";
 import "./Navbar.css";
+import logoImg from "../../assets/logos/ucmarket-logo.png";
 
 export default function Navbar() {
   return (
     <header className="navbar">
       <div className="navbar__inner">
         <Link to="/" className="navbar__logo">
-          UCMARKET
+          <img className="navbar__logo-image" src={logoImg} alt="UCMARKET" />
+          <span>UCMARKET</span>
         </Link>
 
         <nav className="navbar__links">

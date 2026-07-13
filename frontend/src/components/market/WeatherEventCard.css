@@ -1,0 +1,94 @@
+.weather-event-card { display: block; min-width: 0; height: 100%; color: inherit; }
+
+.weather-event-card article {
+  display: flex; flex-direction: column; height: 100%;
+  padding: 20px; background: var(--card);
+  border: 1px solid var(--border); border-radius: 22px;
+  transition: 0.25s ease;
+}
+
+.weather-event-card:hover article {
+  transform: translateY(-4px);
+  border-color: rgba(217, 170, 67, 0.3);
+  box-shadow: 0 18px 36px rgba(0, 0, 0, 0.28);
+}
+
+.weather-event-card:focus-visible { outline: none; }
+.weather-event-card:focus-visible article {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px rgba(217, 170, 67, 0.12);
+}
+
+.weather-event-card__heading {
+  display: grid;
+  grid-template-columns: 56px minmax(0, 1fr);
+  gap: 14px;
+}
+
+.weather-event-card__media {
+  width: 56px; height: 56px;
+  display: grid; place-items: center;
+  background: #111; border: 1px solid var(--border);
+  border-radius: 14px; color: var(--gold); font-size: 22px;
+}
+
+.weather-event-card__summary { min-width: 0; }
+
+.weather-event-card__tags {
+  display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px;
+}
+
+.weather-event-card__tags span {
+  padding: 4px 8px; background: #111;
+  color: var(--text-secondary); border-radius: 7px; font-size: 11px;
+}
+
+.weather-event-card__tags span:first-child { color: var(--gold); }
+
+.weather-event-card h2 {
+  margin: 0; overflow: hidden;
+  font-size: 18px; font-weight: 700; line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+}
+
+.weather-event-card__probability { margin-top: 24px; margin-bottom: 20px; }
+
+.weather-event-card__probability-labels {
+  display: flex; justify-content: space-between; gap: 16px;
+  font-size: 15px; font-weight: 800;
+}
+
+.weather-event-card__probability-labels span:first-child { color: var(--green); }
+.weather-event-card__probability-labels span:last-child { color: var(--red); }
+
+.weather-event-card__probability-bar {
+  display: flex; height: 7px; margin-top: 10px;
+  overflow: hidden; background: #111; border-radius: 999px;
+}
+
+.weather-event-card__probability-bar span:first-child { background: var(--green); }
+.weather-event-card__probability-bar span:last-child { background: var(--red); }
+
+.weather-event-card__footer {
+  display: flex; flex-wrap: wrap; align-items: center;
+  gap: 10px 14px; margin-top: auto; padding-top: 20px;
+  color: var(--text-secondary); border-top: 1px solid var(--border);
+  font-size: 12px;
+}
+
+.weather-event-card__status {
+  margin-left: auto; padding: 5px 9px;
+  border-radius: 999px; font-weight: 700;
+}
+
+.weather-event-card__status.is-active {
+  background: rgba(0, 214, 111, 0.12); color: var(--green);
+}
+
+.weather-event-card__status.is-closed {
+  background: rgba(255, 255, 255, 0.06); color: var(--text-secondary);
+}
+
+.weather-event-card__status.is-resolved {
+  background: rgba(217, 170, 67, 0.12); color: var(--gold);
+}

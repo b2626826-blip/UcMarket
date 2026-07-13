@@ -36,6 +36,28 @@ function formatText(value) {
   return value;
 }
 
+export function getRankingMetric(type, user) {
+  if (type === "win-rate") {
+    return {
+      label: "勝率",
+      value: formatPercent(user.winRate),
+      secondaryLabel: "收益",
+      secondaryValue: formatProfit(user.profit),
+    };
+  }
+
+  if (type === "assets") {
+    return { label: "資產", value: formatCurrency(user.assets) };
+  }
+
+  return {
+    label: "收益",
+    value: formatProfit(user.profit),
+    secondaryLabel: "勝率",
+    secondaryValue: formatPercent(user.winRate),
+  };
+}
+
 const TABS = [
   { type: "profit", label: "盈虧榜" },
   { type: "win-rate", label: "勝率榜" },
@@ -43,15 +65,13 @@ const TABS = [
 ];
 
 function MyRankingCard({ data, currentUserId }) {
-  const currentUser = currentUserId ?
-  data.find((u) => u.userId === currentUserId) : null;
+  const currentUser = data.find((u) => u.userId === currentUserId);
 
   return (
     <section className="my-ranking-card" aria-label="我的排名">
       <h2>我的排名</h2>
-      {!currentUserId ? (
-        <p>登入後可查看你的排行榜名次。</p>
-      ) : !currentUser ? (
+
+      {!currentUser ? (
         <p>目前沒有你的排行榜資料。</p>
       ) : (
         <div className="my-ranking-content">
@@ -62,11 +82,12 @@ function MyRankingCard({ data, currentUserId }) {
           <span>資產 {formatCurrency(currentUser.assets)}</span>
         </div>
       )}
+
     </section>
   );
 }
 
-function TopRankGrid({ data }) {
+function TopRankGrid({ data, type }) {
   const topThree = data.slice(0, 3);
 
   if (!topThree.length) {
@@ -82,15 +103,22 @@ function TopRankGrid({ data }) {
 
   return (
     <section className="top-rank-grid" aria-label="前三名排行榜">
-      {topThree.map((user) => (
-        <article key={user.rank} className={`top-card top-${user.rank}`}>
-          <div className="rank-medal">#{user.rank}</div>
-          <h2>{user.name}</h2>
-          <p>{formatText(user.account)}</p>
-          <strong>{formatProfit(user.profit)}</strong>
-          <span>勝率 {formatPercent(user.winRate)}</span>
-        </article>
-      ))}
+      {topThree.map((user) => {
+        const metric = getRankingMetric(type, user);
+
+        return (
+          <article key={user.rank} className={`top-card top-${user.rank}`}>
+            <div className="rank-medal">#{user.rank}</div>
+            <h2>{user.name}</h2>
+            <strong className="top-card-profit">{metric.label} {metric.value}</strong>
+            {metric.secondaryLabel && (
+              <span className="top-card-win-rate">
+                {metric.secondaryLabel}{metric.secondaryValue}
+              </span>
+            )}
+          </article>
+        );
+      })}
     </section>
   );
 }
@@ -194,7 +222,9 @@ export default function RankingsPage() {
           <h1>排行榜</h1>
           <p className="ranking-description">一直賭 一直爽。</p>
         </div>
-        <MyRankingCard data={allData} currentUserId={authUser?.id} />
+        {authUser && (
+          <MyRankingCard data={allData} currentUserId={authUser.id} />
+        )}
       </section>
 
       <div className="ranking-tabs" aria-label="排行榜類型">
@@ -232,7 +262,7 @@ export default function RankingsPage() {
         </section>
       ) : (
         <>
-          <TopRankGrid data={filtered} />
+          <TopRankGrid data={filtered} type={activeTab} />
           <RankingTable data={filtered} />
         </>
       )}

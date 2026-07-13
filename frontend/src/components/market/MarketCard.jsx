@@ -4,28 +4,17 @@ const categoryToSlug = {
   '政治': 'politics',
   '運動': 'sports',
   '天氣': 'weather',
+  'WEATHER': 'weather',
   '時事': 'current-affairs',
   '金融': 'finance',
 };
 
-export default function MarketCard({ market }) {
-  const detailPath = categoryToSlug[market.category]
-    ? `/markets/${categoryToSlug[market.category]}/${market.id}`
-    : `/markets/${market.id}`;
-
-  const getOdds = (odds, price) => {
-    const explicitOdds = Number(odds);
-    if (Number.isFinite(explicitOdds) && explicitOdds > 0) return explicitOdds;
-
-    const probability = Number(price);
-    return Number.isFinite(probability) && probability > 0 ? 1 / probability : 0;
-  };
-
-  const yesOdds = getOdds(market.yesOdds ?? market.yes_odds, market.yesPrice);
-  const noOdds = getOdds(market.noOdds ?? market.no_odds, market.noPrice);
+export default function MarketCard({ market, onClickTrade }) {
+  const slug = categoryToSlug[market.category];
+  const detailPath = `/markets/${slug}/${market.id}`;
 
   return (
-    <div className="market-card glass-card" style={{ display: 'block' }}>
+    <div className="market-card" style={{ display: 'block' }}>
       <Link to={detailPath} style={{ display: 'block' }}>
         <div className="market-header">
           <h4>{market.title}</h4>
@@ -33,21 +22,21 @@ export default function MarketCard({ market }) {
         </div>
       </Link>
       <div className="market-price">
-        <Link className="market-outcome yes" to={detailPath} data-id={market.id} data-side="YES">
-          <span className="market-outcome-label">買 YES</span>
-          <small>目前賠率</small>
-          <strong>{yesOdds.toFixed(2)}</strong>
-        </Link>
-        <Link className="market-outcome no" to={detailPath} data-id={market.id} data-side="NO">
-          <span className="market-outcome-label">買 NO</span>
-          <small>目前賠率</small>
-          <strong>{noOdds.toFixed(2)}</strong>
-        </Link>
+        <div className="yes">
+          <small>YES</small>
+          <h3>${market.yesPrice.toFixed(2)}</h3>
+          <button className="trade-btn buy-btn" data-id={market.id} data-side="YES" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClickTrade?.(market, 'YES'); }}>Buy Yes</button>
+        </div>
+        <div className="no">
+          <small>NO</small>
+          <h3>${market.noPrice.toFixed(2)}</h3>
+          <button className="trade-btn sell-btn" data-id={market.id} data-side="NO" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClickTrade?.(market, 'NO'); }}>Buy No</button>
+        </div>
       </div>
       <Link to={detailPath} style={{ display: 'block' }}>
         <div className="market-footer">
-          <span>成交量 {market.volume}</span>
-          <span>{market.traders} 位交易者</span>
+          <span>Volume {market.volume}</span>
+          <span>{market.traders} traders</span>
         </div>
       </Link>
     </div>

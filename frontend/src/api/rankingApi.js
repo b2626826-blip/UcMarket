@@ -1,60 +1,42 @@
 import { getApi } from "./client";
-// Ranking API placeholder.
-// This file will later switch ranking data from mock data to backend API.
 
 export const rankingApiEndpoints = {
-  profit: "/api/rankings/profit",
-  "win-rate": "/api/rankings/win-rate",
-  assets: "/api/rankings/assets",
+  snapshot: "/api/rankings",
 };
 
 const inFlightRankRequests = new Map();
 
-function normalizeRankingItem(type, item, index) {
-  const baseRanking = {
-    userId : item.userId,
-    rank : index + 1,
-    name : item.username,
-    account : null,
-    market : null,
-    profit : null,
-    winRate : null,
-    assets : null,
+function toRankingNumber(value, multiplier = 1) {
+  if (value === null || value === undefined) return null;
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue * multiplier : null;
+}
+
+function toRanking(item) {
+  return {
+    rank: toRankingNumber(item.rank),
+    userId: item.userId,
+    name: item.username,
+    account: item.account,
+    market: item.primaryMarket,
+    profit: toRankingNumber(item.realizedProfit),
+    winRate: toRankingNumber(item.winRate, 100),
+    resolvedMarketCount: toRankingNumber(item.resolvedMarketCount) ?? 0,
+    assets: toRankingNumber(item.totalAssetValue),
   };
-
-  if (type === 'profit') {
-    return {
-      ...baseRanking,
-      profit : Number(item.realizedProfit),
-    };
-  }
-
-  if (type === "win-rate") {
-    return {
-      ...baseRanking,
-      winRate : Number(item.winRate) * 100,
-    };
-  }
-
-  if (type === "assets") {
-    return {
-      ...baseRanking,
-      assets : Number(item.totalAssetValue),
-    };
-  }
-  return baseRanking;
 }
 
 export function fetchRankings(type) {
   const existingRequest = inFlightRankRequests.get(type);
   if (existingRequest) return existingRequest;
 
-  const endpoint = rankingApiEndpoints[type];
-  const request = getApi(endpoint).then((data) =>
-  data.map((item, index) => normalizeRankingItem(type, item, index)))
-  .finally(() => {
-    inFlightRankRequests.delete(type);
-  });
+  const request = getApi(
+    `${rankingApiEndpoints.snapshot}?metric=${encodeURIComponent(type)}`
+  )
+    .then((snapshot) => snapshot.items.map(toRanking))
+    .finally(() => {
+      inFlightRankRequests.delete(type);
+    });
 
   inFlightRankRequests.set(type, request);
   return request;

@@ -1,53 +1,281 @@
-.trade-panel {
-  padding: 24px;
+.trade-panel--revamp {
+  padding: 20px;
+  background:
+    linear-gradient(
+      180deg,
+      rgba(217, 170, 67, 0.07),
+      rgba(255, 255, 255, 0.018)
+    );
 }
 
-.trade-panel h3 {
-  margin: 0 0 20px;
-  color: var(--color-primary);
+.trade-panel__header {
+  display: flex;
+  justify-content: flex-start;
+  align-items: flex-start;
+  margin-bottom: 14px;
 }
 
-.trade-panel__tabs {
+.trade-panel__header h3 {
+  margin: 0;
+  font-size: 28px !important;
+  font-weight: 900;
+  color: #fff;
+}
+
+.trade-panel__market-box {
+  padding: 12px 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  margin-bottom: 14px;
+}
+
+.trade-panel__market-box span {
+  color: #888;
+  font-size: 13px;
+}
+
+.trade-panel__market-box strong {
+  display: block;
+  margin-top: 6px;
+  font-size: 15px;
+  line-height: 1.45;
+  color: #fff;
+}
+
+.trade-panel__login-hint {
+  margin: 0 0 10px;
+  color: var(--gold);
+  font-size: 14px;
+}
+
+.trade-panel__side-switch {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-bottom: 10px;
 }
 
-.trade-panel__tabs button {
-  padding: 12px;
-  border-radius: 12px;
-  border: 1px solid var(--color-border-glass);
-  background: var(--color-surface-low);
-  color: var(--color-text-secondary);
+.trade-panel__side-switch button {
+  height: 48px;
+  border-radius: 16px;
+  background: #111;
+  color: #aaa;
+  font-weight: 900;
+  transition: 0.25s;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.trade-panel__side-switch button.active.yes {
+  background: rgba(0, 214, 111, 0.13);
+  color: var(--green);
+  border-color: rgba(0, 214, 111, 0.25);
+}
+
+.trade-panel__side-switch button.active.no {
+  background: rgba(255, 71, 109, 0.13);
+  color: var(--red);
+  border-color: rgba(255, 71, 109, 0.25);
+}
+
+.trade-panel__form label {
+  display: block;
+  margin: 12px 0 8px;
+  color: #aaa;
+  font-size: 14px;
   font-weight: 800;
-  cursor: pointer;
 }
 
-.trade-panel__tabs button.active.yes {
-  color: var(--color-green);
-  border-color: rgba(51, 233, 127, 0.4);
-  background: rgba(51, 233, 127, 0.1);
+.trade-panel__field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0 8px;
 }
 
-.trade-panel__tabs button.active.no {
-  color: var(--color-red);
-  border-color: rgba(255, 71, 109, 0.4);
-  background: rgba(255, 71, 109, 0.1);
+.trade-panel__field-head label {
+  margin: 0;
+}
+
+.trade-panel__balance-inline {
+  color: #888;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.trade-panel__input-box {
+  display: flex;
+  align-items: center;
+  height: 50px;
+  border-radius: 16px;
+  background: #050505;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+
+.trade-panel__input-box input {
+  flex: 1;
+  height: 100%;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: #fff;
+  padding: 0 14px;
+  font-size: 16px;
+  font-weight: 800;
+}
+
+.trade-panel__input-box input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+.trade-panel__input-box input[type="number"]::-webkit-outer-spin-button,
+.trade-panel__input-box input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.trade-panel__input-box span {
+  padding: 0 14px;
+  color: #888;
+  font-size: 13px;
+}
+
+.trade-panel__input-box:focus-within {
+  border-color: rgba(217, 170, 67, 0.45);
+  box-shadow: 0 0 0 3px rgba(217, 170, 67, 0.08);
+}
+
+.trade-panel__quick-bets {
+  margin-top: 10px;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.trade-panel__quick-bets button {
+  height: 34px;
+  border-radius: 12px;
+  background: #111;
+  color: #aaa;
+  font-weight: 900;
+  transition: 0.25s;
+}
+
+.trade-panel__quick-bets button:hover {
+  color: var(--gold);
+  border: 1px solid rgba(217, 170, 67, 0.2);
+  transform: translateY(-2px);
 }
 
 .trade-panel__summary {
-  margin: 20px 0;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  margin-top: 14px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  overflow: hidden;
 }
 
 .trade-panel__summary div {
   display: flex;
   justify-content: space-between;
+  align-items: center;
+  padding: 11px 14px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.045);
+}
+
+.trade-panel__summary div:last-child {
+  border-bottom: none;
 }
 
 .trade-panel__summary span {
-  color: var(--color-text-secondary);
+  color: #888;
+  font-size: 13px;
+}
+
+.trade-panel__summary strong {
+  font-size: 14px;
+  color: #fff;
+}
+
+.trade-panel__submit {
+  width: 100%;
+  height: 50px;
+  margin-top: 14px;
+  border-radius: 16px;
+  background: var(--gold);
+  color: #000;
+  font-size: 16px;
+  font-weight: 900;
+  transition: 0.25s;
+}
+
+.trade-panel__submit:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 0 30px rgba(217, 170, 67, 0.38);
+}
+
+.trade-panel__submit:disabled {
+  cursor: not-allowed;
+  opacity: 0.72;
+}
+
+.trade-panel__risk-text {
+  margin-top: 10px;
+  color: #888;
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.trade-panel__position-box {
+  margin-top: 22px;
+  padding-top: 22px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.trade-panel__position-box h4 {
+  font-size: 18px;
+  margin: 0 0 14px;
+  color: #fff;
+}
+
+.trade-panel__position-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 10px 0;
+  color: #aaa;
+  font-size: 14px;
+}
+
+.trade-panel__position-row strong {
+  color: #fff;
+}
+
+.trade-panel__status-live {
+  color: var(--green) !important;
+}
+
+@media (max-width: 576px) {
+  .trade-panel__header {
+    align-items: flex-start;
+  }
+
+  .trade-panel--revamp {
+    padding: 16px;
+  }
+
+  .trade-panel__header h3 {
+    font-size: 24px !important;
+  }
+
+  .trade-panel__field-head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .trade-panel__quick-bets {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }

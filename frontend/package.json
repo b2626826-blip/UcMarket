@@ -6,12 +6,15 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest",
+    "test:int": "RUN_INTEGRATION=1 vitest --run"
   },
   "dependencies": {
     "bootstrap": "^5.3.8",
     "bootstrap-icons": "^1.13.1",
     "chart.js": "^4.5.1",
+    "firebase": "^12.15.0",
     "react": "latest",
     "react-dom": "latest",
     "react-router-dom": "^7.18.0",
@@ -19,6 +22,8 @@
   },
   "devDependencies": {
     "@vitejs/plugin-react": "latest",
-    "vite": "latest"
+    "jsdom": "^29.1.1",
+    "vite": "latest",
+    "vitest": "^4.1.10"
   }
 }

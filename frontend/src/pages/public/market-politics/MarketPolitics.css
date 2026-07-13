@@ -1,0 +1,342 @@
+.politics-page {
+  width: 92%;
+  max-width: 1500px;
+  margin: 0 auto;
+  padding: 56px 0 88px;
+}
+
+.politics-page__hero {
+  position: relative;
+  min-height: 320px;
+  overflow: hidden;
+  border: 1px solid rgba(217, 170, 67, .2);
+  border-radius: 28px;
+  background: #080808;
+  display: flex;
+  align-items: flex-end;
+  padding: 42px;
+}
+
+.politics-page__hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(90deg, rgba(4, 4, 4, .96), rgba(4, 4, 4, .68), rgba(4, 4, 4, .18)),
+    radial-gradient(circle at 22% 35%, rgba(217, 170, 67, .26), transparent 34%);
+}
+
+.politics-page__hero img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: .38;
+}
+
+.politics-page__hero div {
+  position: relative;
+  z-index: 1;
+  max-width: 680px;
+}
+
+.politics-page__hero span {
+  color: var(--gold);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: .12em;
+}
+
+.politics-page__hero h1 {
+  margin-top: 14px;
+  font-size: 56px;
+  line-height: 1.05;
+}
+
+.politics-page__hero p {
+  margin-top: 16px;
+  color: var(--text-secondary);
+  font-size: 17px;
+  line-height: 1.8;
+}
+
+.politics-page__filters {
+  margin-top: 28px;
+  display: grid;
+  gap: 18px;
+}
+
+.politics-page__tabs,
+.politics-page__tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.politics-page__tabs button {
+  padding: 11px 16px;
+  border-radius: 999px;
+  background: #111;
+  color: #999;
+  transition: .25s;
+}
+
+.politics-page__tabs button:hover,
+.politics-page__tabs button.active {
+  background: var(--gold);
+  color: #000;
+  font-weight: 800;
+}
+
+.politics-page__tools {
+  justify-content: space-between;
+}
+
+.politics-page__search {
+  min-width: 280px;
+  flex: 1;
+  height: 56px;
+  padding: 0 18px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #0a0a0a;
+  color: #777;
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.politics-page__search input,
+.politics-page__tools select {
+  height: 100%;
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: white;
+  font: inherit;
+}
+
+.politics-page__search input {
+  width: 100%;
+}
+
+.politics-page__tools select {
+  min-width: 160px;
+  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: #0a0a0a;
+}
+
+.politics-page__layout {
+  margin-top: 32px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 24px;
+  align-items: start;
+}
+
+.politics-page__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.politics-page__message {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 48px 20px;
+  color: #a9a9b2;
+  text-align: center;
+}
+
+.politics-page__message.error {
+  color: #ff6b81;
+}
+
+.politics-card,
+.politics-page__trade {
+  border: 1px solid rgba(217, 170, 67, .16);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, .025);
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .24);
+}
+
+.politics-card {
+  padding: 22px;
+}
+
+.politics-card__header {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+}
+
+.politics-card__header span {
+  width: 44px;
+  height: 44px;
+  border-radius: 14px;
+  background: rgba(217, 170, 67, .12);
+  color: var(--gold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.politics-card__header h2 {
+  font-size: 19px;
+  line-height: 1.45;
+}
+
+.politics-card__outcomes {
+  margin-top: 18px;
+  display: grid;
+  gap: 10px;
+}
+
+.politics-card__outcomes div {
+  min-height: 54px;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, .06);
+  border-radius: 14px;
+  background: rgba(0, 0, 0, .22);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.politics-card__outcomes strong {
+  color: var(--gold);
+}
+
+.politics-card__outcomes small {
+  color: var(--green);
+  font-weight: 800;
+}
+
+.politics-card__footer {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid rgba(255, 255, 255, .06);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: space-between;
+  color: #8f8f8f;
+  font-size: 13px;
+}
+
+.politics-card__footer a,
+.politics-page__trade a {
+  color: var(--gold);
+  font-weight: 800;
+}
+
+.politics-page__pagination {
+  margin-top: 22px;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+  justify-content: center;
+}
+
+.politics-page__pagination button {
+  min-width: 92px;
+  height: 42px;
+  border-radius: 12px;
+  background: #111;
+  color: white;
+}
+
+.politics-page__pagination button:disabled {
+  cursor: not-allowed;
+  opacity: .4;
+}
+
+.politics-page__trade {
+  position: sticky;
+  top: 96px;
+  padding: 24px;
+}
+
+.politics-page__trade > span {
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: .1em;
+}
+
+.politics-page__trade h2 {
+  margin-top: 12px;
+  font-size: 22px;
+  line-height: 1.5;
+}
+
+.politics-page__trade-prices {
+  margin: 22px 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.politics-page__trade-prices div {
+  padding: 16px;
+  border-radius: 16px;
+  background: #0b0b0b;
+  border: 1px solid rgba(255, 255, 255, .06);
+}
+
+.politics-page__trade-prices small {
+  display: block;
+  color: #8f8f8f;
+  margin-bottom: 8px;
+}
+
+.politics-page__trade-prices strong {
+  font-size: 24px;
+}
+
+@media (max-width: 1100px) {
+  .politics-page__layout {
+    grid-template-columns: 1fr;
+  }
+
+  .politics-page__trade {
+    position: static;
+  }
+}
+
+@media (max-width: 760px) {
+  .politics-page {
+    width: 94%;
+    padding-top: 28px;
+  }
+
+  .politics-page__hero {
+    min-height: 260px;
+    padding: 28px;
+    border-radius: 20px;
+  }
+
+  .politics-page__hero h1 {
+    font-size: 40px;
+  }
+
+  .politics-page__grid {
+    grid-template-columns: 1fr;
+  }
+
+  .politics-page__tools {
+    display: grid;
+  }
+
+  .politics-page__search,
+  .politics-page__tools select {
+    width: 100%;
+    min-width: 0;
+  }
+}
