@@ -1,10 +1,9 @@
 import { useState } from "react";
 import { signInWithPopup } from "firebase/auth";
+import { useNavigate } from "react-router-dom";
 import { auth, firebaseEnabled, OAuthProviders } from "../../../config/firebase";
 import useAuthStore from "../../../store/authStore";
 import "./LoginPage.css";
-import { useNavigate } from "react-router-dom";
-
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -16,8 +15,8 @@ export default function LoginPage() {
   const { login, checkAuth, firebaseLogin } = useAuthStore();
   const navigate = useNavigate();
 
-  async function handleSubmit(e) {
-    e.preventDefault();
+  async function handleSubmit(event) {
+    event.preventDefault();
     setError("");
     setLoading(true);
 
@@ -29,8 +28,8 @@ export default function LoginPage() {
         setShowToast(false);
         navigate("/", { replace: true });
       }, 800);
-    } catch {
-      setError("登入失敗：Email 或密碼錯誤");
+    } catch (err) {
+      setError(err?.message || "登入失敗，請確認 Email 與密碼。");
     } finally {
       setLoading(false);
     }
@@ -41,21 +40,23 @@ export default function LoginPage() {
     try {
       const provider = OAuthProviders[providerName];
       if (!provider) return;
+
       const result = await signInWithPopup(auth, provider);
       const idToken = await result.user.getIdToken();
       await firebaseLogin(idToken, providerName);
+
       setShowToast(true);
       setTimeout(() => setShowToast(false), 1800);
     } catch (err) {
-      let msg = "登入失敗";
+      let message = "第三方登入失敗。";
       if (err.code === "auth/account-exists-with-different-credential") {
-        msg = "此 Email 已使用其他登入方式註冊。";
+        message = "這個 Email 已綁定其他登入方式，請改用原本的方法登入。";
       } else if (err.code === "auth/popup-closed-by-user") {
-        msg = "登入視窗已關閉，請重新嘗試。";
+        message = "登入視窗已被關閉，請重新操作。";
       } else if (err.message) {
-        msg = err.message;
+        message = err.message;
       }
-      setError(msg);
+      setError(message);
     }
   }
 
@@ -63,20 +64,15 @@ export default function LoginPage() {
     <>
       <main className="login-wrapper">
         <section className="login-bg-text">
-          <div className="bg-row row1">• UCMARKET • LOGIN • SYSTEM • UCMARKET • LOGIN • SYSTEM</div>
-          <div className="bg-row row2">• UCMARKET • LOGIN • SYSTEM • UCMARKET • LOGIN • SYSTEM</div>
-          <div className="bg-row row3">• UCMARKET • LOGIN • SYSTEM • UCMARKET • LOGIN • SYSTEM</div>
+          <div className="bg-row row1">UCMARKET LOGIN SYSTEM UCMARKET LOGIN SYSTEM</div>
+          <div className="bg-row row2">UCMARKET LOGIN SYSTEM UCMARKET LOGIN SYSTEM</div>
+          <div className="bg-row row3">UCMARKET LOGIN SYSTEM UCMARKET LOGIN SYSTEM</div>
         </section>
 
         <section className="login-card">
           <div className="login-glow"></div>
 
           <div className="login-header">
-            <span className="badge">
-              <span className="material-symbols-outlined">login</span>
-              會員登入
-            </span>
-
             <h1>歡迎回來</h1>
 
             <p>登入您的預測市場帳戶，查看持倉、交易紀錄與錢包資產。</p>
@@ -84,10 +80,16 @@ export default function LoginPage() {
 
           <form className="login-form" onSubmit={handleSubmit}>
             <div className="form-group">
-              <label>Email</label>
-
+              <label>電子郵件</label>
               <div className="input-box">
-                <input type="email" placeholder="example@gmail.com" value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
+                <input
+                  type="email"
+                  placeholder="example@gmail.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  autoComplete="email"
+                  required
+                />
                 <span className="material-symbols-outlined">mail</span>
               </div>
             </div>
@@ -99,12 +101,15 @@ export default function LoginPage() {
               </div>
 
               <div className="input-box">
-                <input type={showPassword ? "text" : "password"} placeholder="請輸入密碼" value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
-
-                <button
-                  type="button"
-                  onClick={() => setShowPassword(!showPassword)}
-                >
+                <input
+                  type={showPassword ? "text" : "password"}
+                  placeholder="請輸入您的密碼"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoComplete="current-password"
+                  required
+                />
+                <button type="button" onClick={() => setShowPassword(!showPassword)}>
                   <span className="material-symbols-outlined">
                     {showPassword ? "visibility_off" : "visibility"}
                   </span>
@@ -129,10 +134,29 @@ export default function LoginPage() {
           </div>
 
           <div className="social-login">
-            <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? "Firebase 尚未設定" : undefined} onClick={() => handleSocialLogin("GOOGLE")}>G</button>
-            <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? "Firebase 尚未設定" : undefined} onClick={() => handleSocialLogin("GITHUB")}>GH</button>
+            <button
+              type="button"
+              disabled={!firebaseEnabled}
+              title={!firebaseEnabled ? "Firebase 未啟用" : undefined}
+              onClick={() => handleSocialLogin("GOOGLE")}
+            >
+              Google
+            </button>
+            <button
+              type="button"
+              disabled={!firebaseEnabled}
+              title={!firebaseEnabled ? "Firebase 未啟用" : undefined}
+              onClick={() => handleSocialLogin("GITHUB")}
+            >
+              GitHub
+            </button>
           </div>
-          {error && <p className="error-text" style={{ textAlign: "center", marginTop: 12 }}>{error}</p>}
+
+          {error && (
+            <p className="error-text" style={{ textAlign: "center", marginTop: 12 }}>
+              {error}
+            </p>
+          )}
 
           <p className="register-link">
             還沒有帳號？ <a href="/auth/register">立即註冊</a>
@@ -141,12 +165,11 @@ export default function LoginPage() {
           <div className="security-list">
             <div>
               <span className="material-symbols-outlined">shield</span>
-              <span>SSL 安全連線</span>
+              <span>SSL 加密安全防護</span>
             </div>
-
             <div>
               <span className="material-symbols-outlined">lock</span>
-              <span>資料加密保護</span>
+              <span>帳戶資料受到完整保護</span>
             </div>
           </div>
         </section>

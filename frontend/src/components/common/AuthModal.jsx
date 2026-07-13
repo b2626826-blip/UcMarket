@@ -1,7 +1,12 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, firebaseEnabled, OAuthProviders } from '../../config/firebase';
 import useAuthStore from '../../store/authStore';
+import { createIdempotencyKey } from '../../utils/idempotency';
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
+}
 
 export default function AuthModal({ open, onClose, initialTab }) {
   const [tab, setTab] = useState(initialTab || 'login');
@@ -15,23 +20,33 @@ export default function AuthModal({ open, onClose, initialTab }) {
   const [regBtnState, setRegBtnState] = useState({ text: '', bg: '' });
   const [showPwd, setShowPwd] = useState(false);
   const dialogRef = useRef(null);
+  const registerKeyRef = useRef(null);
 
-  const resetLogin = () => { setLoginForm({ email: '', password: '' }); setLoginErrors({}); };
-  const resetReg = () => { setRegForm({ username: '', email: '', password: '', confirmPwd: '', agree: false }); setRegErrors({}); };
+  const resetLogin = () => {
+    setLoginForm({ email: '', password: '' });
+    setLoginErrors({});
+  };
+
+  const resetReg = () => {
+    registerKeyRef.current = null;
+    setRegForm({ username: '', email: '', password: '', confirmPwd: '', agree: false });
+    setRegErrors({});
+  };
 
   useEffect(() => {
     if (open) {
-      tab === 'login' ? resetLogin() : resetReg();
+      if ((initialTab || 'login') === 'login') resetLogin();
+      else resetReg();
       setTab(initialTab || 'login');
     }
   }, [open, initialTab]);
 
   useEffect(() => {
     if (!open || !dialogRef.current) return;
-    const handler = (e) => {
+    const handler = (event) => {
       const rect = dialogRef.current.getBoundingClientRect();
-      dialogRef.current.style.setProperty('--mouse-x', (e.clientX - rect.left) + 'px');
-      dialogRef.current.style.setProperty('--mouse-y', (e.clientY - rect.top) + 'px');
+      dialogRef.current.style.setProperty('--mouse-x', `${event.clientX - rect.left}px`);
+      dialogRef.current.style.setProperty('--mouse-y', `${event.clientY - rect.top}px`);
     };
     document.addEventListener('mousemove', handler);
     return () => document.removeEventListener('mousemove', handler);
@@ -39,75 +54,106 @@ export default function AuthModal({ open, onClose, initialTab }) {
 
   useEffect(() => {
     if (!open) return;
-    const handler = (e) => { if (e.key === 'Escape') onClose(); };
+    const handler = (event) => {
+      if (event.key === 'Escape') onClose();
+    };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
-  function isValidEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v); }
-
   function validateLogin() {
-    const e = {};
-    if (!loginForm.email.trim()) e.email = '請輸入 Email';
-    else if (!isValidEmail(loginForm.email)) e.email = 'Email 格式不正確';
-    if (!loginForm.password) e.password = '請輸入密碼';
-    else if (loginForm.password.length < 8) e.password = '密碼至少需要 8 個字元';
-    setLoginErrors(e);
-    return Object.keys(e).length === 0;
+    const errors = {};
+    if (!loginForm.email.trim()) errors.email = '請輸入 Email';
+    else if (!isValidEmail(loginForm.email)) errors.email = 'Email 格式不正確';
+    if (!loginForm.password) errors.password = '請輸入密碼';
+    else if (loginForm.password.length < 8) errors.password = '密碼至少需要 8 個字元';
+    setLoginErrors(errors);
+    return Object.keys(errors).length === 0;
   }
 
   function validateReg() {
-    const e = {};
-    if (!regForm.username.trim()) e.username = '請輸入用戶名稱';
-    else if (regForm.username.length < 3) e.username = '至少 3 個字元';
-    if (!regForm.email.trim()) e.email = '請輸入電子郵件';
-    else if (!isValidEmail(regForm.email)) e.email = '格式不正確';
-    if (!regForm.password) e.password = '請輸入密碼';
-    else if (regForm.password.length < 8) e.password = '至少 8 個字元';
-    if (!regForm.confirmPwd) e.confirmPwd = '請再次輸入密碼';
-    else if (regForm.confirmPwd !== regForm.password) e.confirmPwd = '兩次密碼不一致';
-    if (!regForm.agree) e.agree = '請同意服務條款';
-    setRegErrors(e);
-    return Object.keys(e).length === 0;
+    const errors = {};
+    if (!regForm.username.trim()) errors.username = '請輸入用戶名稱';
+    else if (regForm.username.trim().length < 3) errors.username = '用戶名稱至少需要 3 個字元';
+    if (!regForm.email.trim()) errors.email = '請輸入 Email';
+    else if (!isValidEmail(regForm.email)) errors.email = 'Email 格式不正確';
+    if (!regForm.password) errors.password = '請輸入密碼';
+    else if (regForm.password.length < 8) errors.password = '密碼至少需要 8 個字元';
+    if (!regForm.confirmPwd) errors.confirmPwd = '請再次輸入密碼';
+    else if (regForm.confirmPwd !== regForm.password) errors.confirmPwd = '兩次輸入的密碼不一致';
+    if (!regForm.agree) errors.agree = '請先同意條款後再註冊';
+    setRegErrors(errors);
+    return Object.keys(errors).length === 0;
   }
 
-  function showToastMsg(msg) { setToast(msg); setTimeout(() => setToast(''), 2500); }
+  function showToastMsg(message) {
+    setToast(message);
+    setTimeout(() => setToast(''), 2500);
+  }
 
-  async function handleLogin(e) {
-    e.preventDefault();
+  function updateRegisterForm(patch) {
+    registerKeyRef.current = null;
+    setRegForm((prev) => ({ ...prev, ...patch }));
+  }
+
+  async function handleLogin(event) {
+    event.preventDefault();
     if (!validateLogin()) return;
     setLoginBtnState({ text: '登入中...', bg: '' });
     try {
       await login(loginForm.email.trim(), loginForm.password);
       setLoginBtnState({ text: '登入成功', bg: '#00d66f' });
       showToastMsg('登入成功');
-      setTimeout(() => { onClose(); resetLogin(); setLoginBtnState({ text: '', bg: '' }); }, 1200);
-    } catch (err) {
-      setLoginErrors((p) => ({ ...p, email: err.message }));
-      setLoginBtnState({ text: '登入帳戶', bg: '' });
+      setTimeout(() => {
+        onClose();
+        resetLogin();
+        setLoginBtnState({ text: '', bg: '' });
+      }, 1200);
+    } catch (error) {
+      setLoginErrors((prev) => ({ ...prev, email: error.message }));
+      setLoginBtnState({ text: '登入失敗', bg: '' });
     }
   }
 
-  async function handleRegister(e) {
-    e.preventDefault();
+  async function handleRegister(event) {
+    event.preventDefault();
     if (!validateReg()) return;
-    setRegBtnState({ text: '註冊中...', bg: '' });
+
+    const idempotencyKey = registerKeyRef.current ?? createIdempotencyKey('register');
+    registerKeyRef.current = idempotencyKey;
+    setRegBtnState({ text: '建立帳號中...', bg: '' });
+
     try {
-      await register(regForm.username.trim(), regForm.email.trim(), regForm.password);
-      setRegBtnState({ text: '註冊成功', bg: '#00d66f' });
-      showToastMsg('註冊成功，帳號已建立');
-      setTimeout(() => { onClose(); resetReg(); setRegBtnState({ text: '', bg: '' }); }, 1200);
-    } catch (err) {
-      setRegErrors((p) => ({ ...p, email: err.message }));
-      setRegBtnState({ text: '立即註冊 →', bg: '' });
+      await register(
+        regForm.username.trim(),
+        regForm.email.trim(),
+        regForm.password,
+        idempotencyKey
+      );
+      setRegBtnState({ text: '帳號建立成功', bg: '#00d66f' });
+      showToastMsg('註冊成功');
+      setTimeout(() => {
+        onClose();
+        resetReg();
+        setRegBtnState({ text: '', bg: '' });
+      }, 1200);
+    } catch (error) {
+      setRegErrors((prev) => ({ ...prev, email: error.message }));
+      setRegBtnState({ text: '註冊失敗', bg: '' });
     }
   }
 
-  function switchTab(t) { setTab(t); t === 'login' ? resetLogin() : resetReg(); setLoginBtnState({ text: '', bg: '' }); setRegBtnState({ text: '', bg: '' }); }
+  function switchTab(nextTab) {
+    setTab(nextTab);
+    if (nextTab === 'login') resetLogin();
+    else resetReg();
+    setLoginBtnState({ text: '', bg: '' });
+    setRegBtnState({ text: '', bg: '' });
+  }
 
   async function handleSocialLogin(providerName) {
     setLoginBtnState({ text: '登入中...', bg: '' });
-    setRegBtnState({ text: '註冊中...', bg: '' });
+    setRegBtnState({ text: '建立帳號中...', bg: '' });
     try {
       const provider = OAuthProviders[providerName];
       if (!provider) return;
@@ -115,18 +161,24 @@ export default function AuthModal({ open, onClose, initialTab }) {
       const idToken = await result.user.getIdToken();
       await useAuthStore.getState().firebaseLogin(idToken, providerName);
       showToastMsg('登入成功');
-      setTimeout(() => { onClose(); resetLogin(); resetReg(); setLoginBtnState({ text: '', bg: '' }); setRegBtnState({ text: '', bg: '' }); }, 1200);
-    } catch (err) {
-      let msg = '登入失敗';
-      if (err.code === 'auth/account-exists-with-different-credential') {
-        msg = '此 Email 已使用其他登入方式註冊。';
-      } else if (err.code === 'auth/popup-closed-by-user') {
-        msg = '登入視窗已關閉，請重新嘗試。';
-      } else if (err.message) {
-        msg = err.message;
+      setTimeout(() => {
+        onClose();
+        resetLogin();
+        resetReg();
+        setLoginBtnState({ text: '', bg: '' });
+        setRegBtnState({ text: '', bg: '' });
+      }, 1200);
+    } catch (error) {
+      let message = '第三方登入失敗';
+      if (error.code === 'auth/account-exists-with-different-credential') {
+        message = '這個 Email 已綁定其他登入方式，請改用原本的方法登入。';
+      } else if (error.code === 'auth/popup-closed-by-user') {
+        message = '登入視窗已被關閉，請重新操作。';
+      } else if (error.message) {
+        message = error.message;
       }
-      setLoginErrors((p) => ({ ...p, email: msg }));
-      setRegErrors((p) => ({ ...p, email: msg }));
+      setLoginErrors((prev) => ({ ...prev, email: message }));
+      setRegErrors((prev) => ({ ...prev, email: message }));
       setLoginBtnState({ text: '', bg: '' });
       setRegBtnState({ text: '', bg: '' });
     }
@@ -135,7 +187,7 @@ export default function AuthModal({ open, onClose, initialTab }) {
   if (!open) return null;
 
   return (
-    <div className="auth-overlay" style={{ display: 'flex' }} onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+    <div className="auth-overlay" style={{ display: 'flex' }} onClick={(event) => { if (event.target === event.currentTarget) onClose(); }}>
       <div className="auth-dialog glow-active" ref={dialogRef}>
         <div className="auth-glow"></div>
         <button className="auth-close" onClick={onClose}>&times;</button>
@@ -145,15 +197,14 @@ export default function AuthModal({ open, onClose, initialTab }) {
         </div>
         <div className={`auth-pane ${tab === 'login' ? 'active' : ''}`}>
           <div className="login-header">
-            <span className="badge"><i className="fa-solid fa-right-to-bracket"></i> 會員登入</span>
             <h1>歡迎回來</h1>
-            <p>登入您的預測市場帳戶，查看持倉、交易紀錄與錢包資產。</p>
+            <p>登入後即可交易、查看錢包並追蹤持倉。</p>
           </div>
           <form className="login-form" onSubmit={handleLogin}>
             <div className="form-group">
-              <label>Email</label>
+              <label>電子郵件</label>
               <div className="input-box">
-                <input type="email" value={loginForm.email} onChange={(e) => { setLoginForm((p) => ({ ...p, email: e.target.value })); setLoginErrors((p) => ({ ...p, email: '' })); }} placeholder="example@gmail.com" />
+                <input type="email" value={loginForm.email} onChange={(event) => { setLoginForm((prev) => ({ ...prev, email: event.target.value })); setLoginErrors((prev) => ({ ...prev, email: '' })); }} placeholder="example@gmail.com" />
                 <i className="fa-regular fa-envelope"></i>
               </div>
               <small className="error-text">{loginErrors.email}</small>
@@ -161,44 +212,34 @@ export default function AuthModal({ open, onClose, initialTab }) {
             <div className="form-group">
               <div className="label-row">
                 <label>密碼</label>
-                <a href="#">忘記密碼？</a>
               </div>
               <div className="input-box">
-                <input type={showPwd ? 'text' : 'password'} value={loginForm.password} onChange={(e) => { setLoginForm((p) => ({ ...p, password: e.target.value })); setLoginErrors((p) => ({ ...p, password: '' })); }} placeholder="請輸入密碼" />
+                <input type={showPwd ? 'text' : 'password'} value={loginForm.password} onChange={(event) => { setLoginForm((prev) => ({ ...prev, password: event.target.value })); setLoginErrors((prev) => ({ ...prev, password: '' })); }} placeholder="請輸入您的密碼" />
                 <button type="button" tabIndex={-1} onClick={() => setShowPwd(!showPwd)}><i className={`fa-regular fa-eye${showPwd ? '-slash' : ''}`}></i></button>
               </div>
               <small className="error-text">{loginErrors.password}</small>
             </div>
-            <label className="remember-row">
-              <input type="checkbox" /><span>記住我的登入狀態</span>
-            </label>
             <button type="submit" className="login-submit-btn" disabled={loading} style={loginBtnState.bg ? { background: loginBtnState.bg } : undefined}>
               {loginBtnState.text || (loading ? '登入中...' : '登入帳戶')}
             </button>
           </form>
           <div className="login-divider"><span></span><p>或使用以下方式</p><span></span></div>
           <div className="social-login">
-            <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? 'Firebase 尚未設定' : undefined} onClick={() => handleSocialLogin('GOOGLE')}><i className="fa-brands fa-google"></i></button>
-            <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? 'Firebase 尚未設定' : undefined} onClick={() => handleSocialLogin('GITHUB')}><i className="fa-brands fa-github"></i></button>
-            <button type="button" disabled title="Facebook 即將推出"><i className="fa-brands fa-facebook"></i></button>
+            <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? 'Firebase 未啟用' : undefined} onClick={() => handleSocialLogin('GOOGLE')}><i className="fa-brands fa-google"></i></button>
+            <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? 'Firebase 未啟用' : undefined} onClick={() => handleSocialLogin('GITHUB')}><i className="fa-brands fa-github"></i></button>
           </div>
-          <p className="register-link">還沒有帳號？<a href="#" onClick={(e) => { e.preventDefault(); switchTab('register'); }}>立即註冊</a></p>
-          <div className="security-list">
-            <div><i className="fa-solid fa-shield-halved"></i><span>SSL 安全連線</span></div>
-            <div><i className="fa-solid fa-lock"></i><span>資料加密保護</span></div>
-          </div>
+          <p className="register-link">還沒有帳號？<a href="#" onClick={(event) => { event.preventDefault(); switchTab('register'); }}>立即註冊</a></p>
         </div>
         <div className={`auth-pane ${tab === 'register' ? 'active' : ''}`}>
           <div className="register-card-header">
-            <span className="badge"><i className="fa-solid fa-user-plus"></i> 建立帳號</span>
             <h2>會員註冊</h2>
-            <p>請輸入以下資料建立帳號</p>
+            <p>請填寫以下資料建立帳號。</p>
           </div>
           <form className="register-form" onSubmit={handleRegister}>
             <div className="form-group">
               <label>用戶名稱</label>
               <div className="input-box">
-                <input type="text" value={regForm.username} onChange={(e) => { setRegForm((p) => ({ ...p, username: e.target.value })); setRegErrors((p) => ({ ...p, username: '' })); }} placeholder="輸入您的用戶名稱" />
+                <input type="text" value={regForm.username} onChange={(event) => { updateRegisterForm({ username: event.target.value }); setRegErrors((prev) => ({ ...prev, username: '' })); }} placeholder="輸入您的用戶名稱" />
                 <i className="fa-regular fa-user"></i>
               </div>
               <small className="error-text">{regErrors.username}</small>
@@ -206,7 +247,7 @@ export default function AuthModal({ open, onClose, initialTab }) {
             <div className="form-group">
               <label>電子郵件</label>
               <div className="input-box">
-                <input type="email" value={regForm.email} onChange={(e) => { setRegForm((p) => ({ ...p, email: e.target.value })); setRegErrors((p) => ({ ...p, email: '' })); }} placeholder="name@example.com" />
+                <input type="email" value={regForm.email} onChange={(event) => { updateRegisterForm({ email: event.target.value }); setRegErrors((prev) => ({ ...prev, email: '' })); }} placeholder="name@example.com" />
                 <i className="fa-regular fa-envelope"></i>
               </div>
               <small className="error-text">{regErrors.email}</small>
@@ -215,7 +256,7 @@ export default function AuthModal({ open, onClose, initialTab }) {
               <div className="form-group">
                 <label>設定密碼</label>
                 <div className="input-box">
-                  <input type={showPwd ? 'text' : 'password'} value={regForm.password} onChange={(e) => { setRegForm((p) => ({ ...p, password: e.target.value })); setRegErrors((p) => ({ ...p, password: '' })); }} placeholder="至少 8 個字元" />
+                  <input type={showPwd ? 'text' : 'password'} value={regForm.password} onChange={(event) => { updateRegisterForm({ password: event.target.value }); setRegErrors((prev) => ({ ...prev, password: '' })); }} placeholder="至少 8 個字元" />
                   <button type="button" className="password-toggle" tabIndex={-1} onClick={() => setShowPwd(!showPwd)}><i className={`fa-regular fa-eye${showPwd ? '-slash' : ''}`}></i></button>
                 </div>
                 <small className="error-text">{regErrors.password}</small>
@@ -223,26 +264,26 @@ export default function AuthModal({ open, onClose, initialTab }) {
               <div className="form-group">
                 <label>確認密碼</label>
                 <div className="input-box">
-                  <input type={showPwd ? 'text' : 'password'} value={regForm.confirmPwd} onChange={(e) => { setRegForm((p) => ({ ...p, confirmPwd: e.target.value })); setRegErrors((p) => ({ ...p, confirmPwd: '' })); }} placeholder="再次輸入密碼" />
+                  <input type={showPwd ? 'text' : 'password'} value={regForm.confirmPwd} onChange={(event) => { updateRegisterForm({ confirmPwd: event.target.value }); setRegErrors((prev) => ({ ...prev, confirmPwd: '' })); }} placeholder="再次輸入密碼" />
                 </div>
                 <small className="error-text">{regErrors.confirmPwd}</small>
               </div>
             </div>
             <label className="terms-area">
-              <input type="checkbox" checked={regForm.agree} onChange={(e) => { setRegForm((p) => ({ ...p, agree: e.target.checked })); setRegErrors((p) => ({ ...p, agree: '' })); }} />
-              <span>我同意 UCMARKET 的 <a href="#">服務條款</a>、<a href="#">隱私政策</a> 與 <a href="#">風險披露聲明</a></span>
+              <input type="checkbox" checked={regForm.agree} onChange={(event) => { updateRegisterForm({ agree: event.target.checked }); setRegErrors((prev) => ({ ...prev, agree: '' })); }} />
+              <span>我同意服務條款與隱私政策</span>
             </label>
             <small className="terms-error">{regErrors.agree}</small>
             <button type="submit" className="register-submit-btn" disabled={loading} style={regBtnState.bg ? { background: regBtnState.bg } : undefined}>
-              {regBtnState.text || (loading ? '註冊中...' : '立即註冊  →')}
+              {regBtnState.text || (loading ? '建立帳號中...' : '立即註冊')}
             </button>
           </form>
-          <div className="register-divider"><span></span><p>或使用以下方式繼續</p><span></span></div>
+          <div className="register-divider"><span></span><p>或使用以下方式</p><span></span></div>
           <div className="social-register">
-            <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? 'Firebase 尚未設定' : undefined} onClick={() => handleSocialLogin('GOOGLE')}><i className="fa-brands fa-google"></i> Google</button>
-            <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? 'Firebase 尚未設定' : undefined} onClick={() => handleSocialLogin('GITHUB')}><i className="fa-brands fa-github"></i> GitHub</button>
+            <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? 'Firebase 未啟用' : undefined} onClick={() => handleSocialLogin('GOOGLE')}><i className="fa-brands fa-google"></i> Google</button>
+            <button type="button" disabled={!firebaseEnabled} title={!firebaseEnabled ? 'Firebase 未啟用' : undefined} onClick={() => handleSocialLogin('GITHUB')}><i className="fa-brands fa-github"></i> GitHub</button>
           </div>
-          <p className="login-link">已經有帳號？<a href="#" onClick={(e) => { e.preventDefault(); switchTab('login'); }}>立即登入</a></p>
+          <p className="login-link">已經有帳號？<a href="#" onClick={(event) => { event.preventDefault(); switchTab('login'); }}>立即登入</a></p>
         </div>
         <div className={`auth-toast ${toast ? 'show' : ''}`}>
           <i className="fa-solid fa-check"></i><span>{toast}</span>
