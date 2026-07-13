@@ -1,5 +1,7 @@
 package com.ucmarket.repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -38,4 +40,31 @@ public interface CurrentAffairsMarketRepository extends Repository<Market, UUID>
 			@Param("status") MarketStatus status,
 			@Param("sort") String sort,
 			Pageable pageable);
+
+	@Query(value = """
+			SELECT m FROM Market m
+			LEFT JOIN Trade t ON t.marketId = m.id
+			WHERE m.category = 'CURRENT_AFFAIRS' AND m.status = :status
+			GROUP BY m
+			ORDER BY COALESCE(SUM(t.amount), 0) DESC, m.createdAt DESC, m.id ASC
+			""", countQuery = """
+			SELECT COUNT(m) FROM Market m
+			WHERE m.category = 'CURRENT_AFFAIRS' AND m.status = :status
+			""")
+	Page<Market> findPopularByStatus(@Param("status") MarketStatus status, Pageable pageable);
+
+	@Query("""
+			SELECT m FROM Market m
+			WHERE m.category = 'CURRENT_AFFAIRS' AND m.status = :status
+			""")
+	Page<Market> findByStatus(@Param("status") MarketStatus status, Pageable pageable);
+
+	@Query("""
+			SELECT t.marketId AS marketId, SUM(t.amount) AS volume
+			FROM Trade t
+			WHERE t.marketId IN :marketIds
+			GROUP BY t.marketId
+			""")
+	List<MarketVolume> findVolumesByMarketIds(
+			@Param("marketIds") Collection<UUID> marketIds);
 }

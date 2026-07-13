@@ -31,8 +31,8 @@ import com.ucmarket.entity.Market;
 import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.repository.CurrentAffairsMarketRepository;
 import com.ucmarket.repository.UserRepository;
-import com.ucmarket.security.JwtAuthFilter;
 import com.ucmarket.security.JwtTokenProvider;
+import com.ucmarket.security.JwtAuthFilter;
 
 @WebMvcTest(CurrentAffairsMarketController.class)
 @AutoConfigureMockMvc
@@ -91,4 +91,5 @@ class CurrentAffairsMarketControllerTest {
 		market.changeStatus(MarketStatus.ACTIVE);
 		return market;
 	}
+
 }

@@ -144,6 +144,18 @@
   gap: 18px;
 }
 
+.politics-page__message {
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 48px 20px;
+  color: #a9a9b2;
+  text-align: center;
+}
+
+.politics-page__message.error {
+  color: #ff6b81;
+}
+
 .politics-card,
 .politics-page__trade {
   border: 1px solid rgba(217, 170, 67, .16);

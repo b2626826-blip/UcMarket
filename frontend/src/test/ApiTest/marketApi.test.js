@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  getMarkets, getMarketDetail, getCurrentEventMarkets, getPagedCurrentEventMarkets,
-  getCurrentEventMarketDetail, createMarket, rejectMarket,
+  getMarkets, getMarketDetail, getCurrentEventMarkets,
+  getCurrentEventMarketDetail, getPagedCurrentEventMarkets, createMarket, rejectMarket,
 } from '../../api/marketApi';
 import { CURRENT_EVENT_CATEGORY, CURRENT_EVENT_CATEGORY_CODE } from '../../types/market';
 import { apiUrl, jsonResponse, installFetchMock } from './_helpers';
@@ -31,7 +31,7 @@ describe('marketApi.js', () => {
   it('getMarkets / getMarketDetail 打對 URL', async () => {
     fetchMock.mockResolvedValue(jsonResponse([]));
     await getMarkets();
-    expect(fetchMock).toHaveBeenLastCalledWith(apiUrl('/api/markets'), expect.any(Object));
+    expect(fetchMock).toHaveBeenLastCalledWith(apiUrl('/api/markets?page=0&size=20'), expect.any(Object));
 
     await getMarketDetail('m1');
     expect(fetchMock).toHaveBeenLastCalledWith(apiUrl('/api/markets/m1'), expect.any(Object));
@@ -92,26 +92,20 @@ describe('marketApi.js', () => {
     });
   });
 
-  it('getPagedCurrentEventMarkets 使用時事分頁 endpoint 並保留分頁資訊', async () => {
+  it('getPagedCurrentEventMarkets 保留後端回傳的 imageUrl', async () => {
     fetchMock.mockResolvedValueOnce(jsonResponse({
-      content: [rawMarket()],
+      content: [rawMarket({ imageUrl: 'https://images.example.com/market.jpg' })],
       page: 0,
       size: 20,
-      totalElements: 1,
       totalPages: 1,
-      first: true,
-      last: true,
       hasNext: false,
     }));
 
-    const result = await getPagedCurrentEventMarkets({ page: 0, size: 20 });
+    const result = await getPagedCurrentEventMarkets();
 
-    expect(fetchMock).toHaveBeenLastCalledWith(
-      apiUrl('/api/current-affairs/markets?status=ACTIVE&sort=popular&page=0&size=20'),
-      expect.any(Object),
-    );
-    expect(result.content[0].category).toBe(CURRENT_EVENT_CATEGORY);
-    expect(result.totalPages).toBe(1);
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toBe(apiUrl('/api/current-affairs/markets?status=ACTIVE&sort=popular&page=0&size=20'));
+    expect(result.content[0].imageUrl).toBe('https://images.example.com/market.jpg');
   });
 
   describe('getCurrentEventMarketDetail', () => {

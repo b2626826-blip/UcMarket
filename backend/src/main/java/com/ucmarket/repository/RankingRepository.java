@@ -52,16 +52,11 @@ public interface RankingRepository extends JpaRepository<User, UUID> {
 				FROM settled_predictions
 				GROUP BY user_id
 			),
-			latest_binary_price_ranked AS (
-				SELECT market_id, yes_price, no_price,
-					ROW_NUMBER() OVER (PARTITION BY market_id ORDER BY recorded_at DESC) AS price_rank
+			latest_binary_price AS (
+				SELECT DISTINCT ON (market_id) market_id, yes_price, no_price, recorded_at
 				FROM market_price_history
 				WHERE option_id IS NULL
-			),
-			latest_binary_price AS (
-				SELECT market_id, yes_price, no_price
-				FROM latest_binary_price_ranked
-				WHERE price_rank = 1
+				ORDER BY market_id, recorded_at DESC
 			),
 			open_position_values AS (
 				SELECT

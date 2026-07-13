@@ -111,7 +111,7 @@ class CoreMarketLifecycleTest {
 				walletService,
 				positionService
 		);
-		marketController = new MarketController(marketRepository, marketService, tradeQuoteService);
+		marketController = new MarketController(marketRepository, tradeRepository, marketService, tradeQuoteService);
 		tradeController = new TradeController(tradeService);
 	}
 
@@ -138,6 +138,7 @@ class CoreMarketLifecycleTest {
 						"TEST",
 						"BINARY",
 						"https://example.com/result",
+						null,
 						"Resolve YES when the scenario completes.",
 						LocalDateTime.now().plusDays(1)
 				)

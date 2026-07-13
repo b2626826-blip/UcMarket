@@ -23,7 +23,7 @@ function renderCard(overrides = {}) {
 }
 
 describe('CurrentEventMarketCard', () => {
-  it('renders an available market image', () => {
+  it('renders the market image returned by the current-affairs API', () => {
     const markup = renderCard({ imageUrl: 'https://images.example.com/market.jpg' });
 
     expect(markup).toContain('src="https://images.example.com/market.jpg"');

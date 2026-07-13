@@ -8,8 +8,11 @@ import java.time.LocalDateTime;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.jdbc.AutoConfigureTestDatabase;
 import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.ucmarket.entity.Market;
 import com.ucmarket.entity.MarketSide;
@@ -23,6 +26,9 @@ import com.ucmarket.repository.TradeRepository;
 import com.ucmarket.repository.UserRepository;
 
 @DataJpaTest
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@ActiveProfiles("pgtest")
+@Transactional
 class CurrentAffairsMarketRepositoryIntegrationTest {
 
 	@Autowired
@@ -35,7 +41,7 @@ class CurrentAffairsMarketRepositoryIntegrationTest {
 	private UserRepository userRepository;
 
 	@Test
-	void findPageWithVolume_ordersByTotalTradeAmountBeforePaging() {
+	void findPopularByStatus_shouldOrderByTotalTradeAmountBeforePaging() {
 		User user = userRepository.save(new User("popular-query-user", "popular-query@example.com", "password"));
 		Market lowVolume = saveActiveMarket(user, "P2 low-volume market");
 		Market highVolume = saveActiveMarket(user, "P2 high-volume market");

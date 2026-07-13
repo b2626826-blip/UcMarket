@@ -33,7 +33,6 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
 
   const betAmount = Number(amount) || 0;
   const estimatedReturn = betAmount * odds;
-  const actualProfit = estimatedReturn - betAmount;
 
   function handleTrade() {
     if (!user) return;
@@ -66,8 +65,6 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
         <input id="tradeAmount" placeholder="輸入下注金額" value={amount} onChange={(event) => setAmount(event.target.value)} />
         <label>預期回報</label>
         <div className="readonly-box" style={{ color: 'var(--green)' }} id="estimatedReturn">${estimatedReturn.toFixed(2)}</div>
-        <label>實際收益</label>
-        <div className="readonly-box" style={{ color: 'var(--gold)' }} id="actualProfit">${actualProfit.toFixed(2)}</div>
       </div>
       <button className="submit-trade-btn" onClick={handleTrade} disabled={!user} style={btnState.bg ? { background: btnState.bg } : undefined} id="submitTradeBtn" data-market-id={marketId}>
         {btnState.text || '送出交易'}

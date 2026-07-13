@@ -18,14 +18,14 @@ import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import com.ucmarket.dto.RankingWinRateResponse;
-import com.ucmarket.dto.RankingProfitResponse;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.security.JwtTokenProvider;
 import com.ucmarket.service.RankingService;
 import com.ucmarket.dto.RankingAssetsResponse;
+import com.ucmarket.dto.RankingProfitResponse;
 import com.ucmarket.dto.RankingSnapshotItemResponse;
 import com.ucmarket.dto.RankingSnapshotResponse;
+import com.ucmarket.dto.RankingWinRateResponse;
 
 @WebMvcTest(RankingController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -133,7 +133,6 @@ class RankingControllerTest {
 
 		verify(rankingService).getAssetRankings();
 	}
-
 	@Test
 	void getRankingSnapshotReturnsSelectedMetricAndAsOf() throws Exception {
 		UUID userId = UUID.randomUUID();

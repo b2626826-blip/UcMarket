@@ -35,7 +35,7 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/refresh", "/api/auth/oauth/**").permitAll()
                 .requestMatchers("/api/health").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/markets/**").permitAll()
-				.requestMatchers(HttpMethod.GET, "/api/current-affairs/markets").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/current-affairs/markets").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/rankings/**").permitAll()
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()

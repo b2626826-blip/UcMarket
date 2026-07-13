@@ -2,8 +2,9 @@ import { matchesCurrentEventFilter } from '../config/currentEventFilters';
 import { CURRENT_EVENT_CATEGORY, CURRENT_EVENT_CATEGORY_CODE } from '../types/market';
 import { getApi, postApi } from './client';
 
-export function getMarkets() {
-  return getApi('/api/markets');
+export function getMarkets({ page = 0, size = 20 } = {}) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return getApi('/api/markets?' + params.toString());
 }
 
 export function getMarketDetail(id) {

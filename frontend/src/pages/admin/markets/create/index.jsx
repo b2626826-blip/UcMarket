@@ -40,7 +40,7 @@ export default function CreateMarketPage() {
     if (!form.category) errs.category = true;
     if (!form.description.trim()) errs.description = true;
     if (!form.sourceUrl.trim() || !validateUrl(form.sourceUrl)) errs.sourceUrl = true;
-    if (form.imageUrl.trim() && !validateUrl(form.imageUrl)) errs.imageUrl = true;
+	if (form.imageUrl.trim() && !validateUrl(form.imageUrl)) errs.imageUrl = true;
     if (!form.resolutionRule.trim()) errs.resolutionRule = true;
     if (!form.closeAt) errs.closeAt = true;
     else if (new Date(form.closeAt) <= new Date()) errs.closeAt = true;
@@ -163,11 +163,11 @@ export default function CreateMarketPage() {
                 <input type="url" className={`form-control ${errors.sourceUrl ? 'is-invalid' : ''}`} value={form.sourceUrl} onChange={(e) => update('sourceUrl', e.target.value)} placeholder="https://example.com/news/article" />
                 {errors.sourceUrl && <div className="invalid-feedback">請輸入來源網址</div>}
               </div>
-              <div className="col-12">
-                <label className="form-label">圖片網址（選填）</label>
-                <input type="url" className={`form-control ${errors.imageUrl ? 'is-invalid' : ''}`} value={form.imageUrl} onChange={(e) => update('imageUrl', e.target.value)} placeholder="https://example.com/news/image.jpg" />
-                {errors.imageUrl && <div className="invalid-feedback">請輸入有效的圖片網址</div>}
-              </div>
+			  <div className="col-12">
+				<label className="form-label">圖片網址（選填）</label>
+				<input type="url" className={`form-control ${errors.imageUrl ? 'is-invalid' : ''}`} value={form.imageUrl} onChange={(e) => update('imageUrl', e.target.value)} placeholder="https://example.com/news/image.jpg" />
+				{errors.imageUrl && <div className="invalid-feedback">請輸入有效的圖片網址</div>}
+			  </div>
               <div className="col-md-8">
                 <label className="form-label">裁決規則</label>
                 <textarea className={`form-control ${errors.resolutionRule ? 'is-invalid' : ''}`} rows="2" value={form.resolutionRule} onChange={(e) => update('resolutionRule', e.target.value)} placeholder="說明事件結果的裁決依據與資料來源..."></textarea>

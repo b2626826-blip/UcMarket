@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import java.time.LocalDateTime;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,7 +39,9 @@ import com.ucmarket.entity.Market;
 import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.entity.User;
 import com.ucmarket.repository.MarketRepository;
+import com.ucmarket.repository.MarketVolume;
 import com.ucmarket.repository.PositionRepository;
+import com.ucmarket.repository.TradeRepository;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.security.JwtTokenProvider;
 import com.ucmarket.service.MarketService;
@@ -56,6 +59,8 @@ class MarketControllerTest {
 
     @MockitoBean
     private MarketRepository marketRepository;
+    @MockitoBean
+    private TradeRepository tradeRepository;
     @MockitoBean
     private PositionRepository positionRepository;
     @MockitoBean
@@ -87,11 +92,27 @@ class MarketControllerTest {
     @Test
     void listMarkets_shouldReturnAllMarkets() throws Exception {
         Market m = createMarket(MarketStatus.ACTIVE);
+        UUID id = UUID.randomUUID();
+        ReflectionTestUtils.setField(m, "id", id);
+        m.setImageUrl("https://example.com/image.jpg");
         when(marketRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(m)));
+        when(tradeRepository.findVolumesByMarketIds(any())).thenReturn(List.of(new MarketVolume() {
+            @Override
+            public UUID getMarketId() {
+                return id;
+            }
+
+            @Override
+            public BigDecimal getVolume() {
+                return new BigDecimal("250.50");
+            }
+        }));
 
         mockMvc.perform(get("/api/markets"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].volume").value(250.50))
+                .andExpect(jsonPath("$[0].imageUrl").value("https://example.com/image.jpg"));
     }
 
     @Test
@@ -106,7 +127,8 @@ class MarketControllerTest {
         mockMvc.perform(get("/api/markets")
                 .param("category", "CURRENT_AFFAIRS"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.length()").value(1));
+                .andExpect(jsonPath("$.length()").value(1))
+                .andExpect(jsonPath("$[0].volume").value(0));
 
         verify(marketRepository).findByCategory(
                 eq("CURRENT_AFFAIRS"),
@@ -158,8 +180,8 @@ class MarketControllerTest {
     @Test
     void createMarket_shouldReturn201() throws Exception {
         CreateMarketRequest request = new CreateMarketRequest(
-                "New Market", "Desc", "CURRENT_AFFAIRS", null, "https://example.com/news", null,
-                LocalDateTime.now().plusDays(7), "https://example.com/news-image.jpg");
+                "New Market", "Desc", "CURRENT_AFFAIRS", null, "https://example.com/news", "https://example.com/image.jpg", null,
+                LocalDateTime.now().plusDays(7));
 
         Market saved = new Market("New Market", "Desc", "CURRENT_AFFAIRS", null, "https://example.com/news", null,
                 LocalDateTime.now().plusDays(7));
@@ -174,13 +196,13 @@ class MarketControllerTest {
         verify(marketRepository).save(marketCaptor.capture());
         assertEquals("CURRENT_AFFAIRS", marketCaptor.getValue().getCategory());
         assertEquals("https://example.com/news", marketCaptor.getValue().getSourceUrl());
-        assertEquals("https://example.com/news-image.jpg", marketCaptor.getValue().getImageUrl());
+        assertEquals("https://example.com/image.jpg", marketCaptor.getValue().getImageUrl());
     }
 
     @Test
     void createMarket_shouldReturn400_whenValidationFails() throws Exception {
         CreateMarketRequest request = new CreateMarketRequest(
-                "", "Desc", "Cat", null, null, null, null);
+                "", "Desc", "Cat", null, null, null, null, null);
 
         mockMvc.perform(post("/api/markets")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -191,7 +213,7 @@ class MarketControllerTest {
     @Test
     void createMarket_shouldReturn400_whenSourceUrlIsMalformed() throws Exception {
         CreateMarketRequest request = new CreateMarketRequest(
-                "New Market", "Desc", "CURRENT_AFFAIRS", null, "not a url", null,
+                "New Market", "Desc", "CURRENT_AFFAIRS", null, "not a url", null, null,
                 LocalDateTime.now().plusDays(7));
 
         mockMvc.perform(post("/api/markets")
@@ -203,8 +225,8 @@ class MarketControllerTest {
     @Test
     void createMarket_shouldReturn400_whenImageUrlIsMalformed() throws Exception {
         CreateMarketRequest request = new CreateMarketRequest(
-                "New Market", "Desc", "CURRENT_AFFAIRS", null, "https://example.com/news", null,
-                LocalDateTime.now().plusDays(7), "not a url");
+                "New Market", "Desc", "CURRENT_AFFAIRS", null, "https://example.com/news", "not a url",
+                null, LocalDateTime.now().plusDays(7));
 
         mockMvc.perform(post("/api/markets")
                 .contentType(MediaType.APPLICATION_JSON)

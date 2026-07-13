@@ -5,6 +5,7 @@ import java.util.List;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
 import com.ucmarket.dto.RankingProfitResponse;
@@ -66,7 +67,8 @@ public class RankingService {
 				rows.stream()
 						.filter(row -> row.getUserId() != null)
 						.map(this::toSnapshotItemResponse)
-						.toList());
+						.toList()
+		);
 	}
 
 	private RankingProfitResponse toProfitResponse(RankingProfitRow row) {

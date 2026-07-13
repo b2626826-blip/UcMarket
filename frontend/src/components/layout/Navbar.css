@@ -20,10 +20,21 @@
 }
 
 .navbar__logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   color: var(--color-primary);
   font-size: 28px;
   font-weight: 900;
   letter-spacing: -1px;
+}
+
+.navbar__logo-image {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  object-fit: cover;
+  flex-shrink: 0;
 }
 
 .navbar__links {

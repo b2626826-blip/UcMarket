@@ -1,3 +1,21 @@
+.politics-detail-message {
+  margin: 0;
+  padding: 56px 24px;
+  color: #aaa;
+  text-align: center;
+}
+
+.politics-detail-message.error {
+  color: #ff6b81;
+}
+
+.politics-detail-description {
+  max-width: 680px;
+  margin: 16px 0 0;
+  color: #aaa;
+  line-height: 1.7;
+}
+
 .politics-detail-hero {
   position: relative;
   min-height: 230px;
