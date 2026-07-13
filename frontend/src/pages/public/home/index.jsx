@@ -531,6 +531,12 @@ export default function HomePage() {
             ))}
         </div>
 
+        <div className="view-all-weather">
+          <Link to="/markets/politics" className="view-all-weather-link">
+            查看更多 <i className="fa-solid fa-arrow-right"></i>
+          </Link>
+        </div>
+
         {category === '天氣' && !weatherLoading && !weatherError && (weatherMarkets.length > 0 || weatherIndividuals.length > 0) && (
           <div className="view-all-weather">
             <Link to="/markets/weather" className="view-all-weather-link">
