@@ -27,6 +27,19 @@ img{ max-width:100%; }
     --text:#ffffff;
     --text-secondary:#8f8f8f;
     --border:rgba(255,255,255,.06);
+    --app-mouse-x:50vw;
+    --app-mouse-y:50vh;
+}
+
+.global-mouse-glow{
+    position:fixed;
+    inset:0;
+    pointer-events:none;
+    z-index:1;
+    background:
+      radial-gradient(320px circle at var(--app-mouse-x) var(--app-mouse-y), rgba(217,170,67,.12), transparent 42%),
+      radial-gradient(120px circle at var(--app-mouse-x) var(--app-mouse-y), rgba(255,255,255,.035), transparent 55%);
+    opacity:.9;
 }
 
 /* ==========================================

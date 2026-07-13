@@ -5,6 +5,7 @@ import useUiStore from '../../store/uiStore';
 import 'bootstrap-icons/font/bootstrap-icons.css';
 import '../../assets/styles/admin.css';
 import logoImg from '../../assets/logos/uclogoicon.png';
+import useGlobalMouseGlow from '../../hooks/useGlobalMouseGlow';
 
 const navItems = [
   { group: '儀表板', items: [
@@ -31,6 +32,8 @@ export default function AdminLayout() {
   const toast = useUiStore((s) => s.toast);
   const clearToast = useUiStore((s) => s.clearToast);
   const [hiding, setHiding] = useState(null);
+
+  useGlobalMouseGlow();
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -66,6 +69,7 @@ export default function AdminLayout() {
 
   return (
     <div className="admin-shell">
+      <div className="global-mouse-glow" aria-hidden="true" />
       <nav className="sidebar">
         <div className="sidebar-brand">
           <img src={logoImg} alt="UcMarket" width="128" height="128" />

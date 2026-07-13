@@ -4,6 +4,7 @@ import useAuthStore from '../../store/authStore';
 import AuthModal from '../common/AuthModal';
 import Toast from '../common/Toast';
 import logoImg from '../../assets/logos/ucmarket-logo.png';
+import useGlobalMouseGlow from '../../hooks/useGlobalMouseGlow';
 
 export default function UserLayout() {
   const location = useLocation();
@@ -15,6 +16,8 @@ export default function UserLayout() {
   const isAdmin = role === 'ADMIN' || role === 'admin';
   const [authOpen, setAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState('login');
+
+  useGlobalMouseGlow();
 
   const openLogin = useCallback(() => { setAuthTab('login'); setAuthOpen(true); }, []);
   const openRegister = useCallback(() => { setAuthTab('register'); setAuthOpen(true); }, []);
@@ -36,6 +39,7 @@ export default function UserLayout() {
 
   return (
     <>
+      <div className="global-mouse-glow" aria-hidden="true" />
       <nav className="navbar">
         <Link to={isLanding ? '/' : '/home'} className="logo">
           <img className="logo-image" src={logoImg} alt="UCMARKET" />
