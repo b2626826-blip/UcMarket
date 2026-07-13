@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { getWallet } from '../api/walletApi';
+import { getWallet,getAllWalletTransactions } from '../api/walletApi';
+
 
 const useWalletStore = create((set) => ({
   balance: 0,
@@ -15,6 +16,16 @@ const useWalletStore = create((set) => ({
       set({ loading: false });
     }
   },
+
+  fetchTransactions: async () => {
+    set({ loading: true });
+    try {
+      const data = await getAllWalletTransactions();
+      set({ transactions: data || [], loading: false })
+    } catch {
+      set({ loading: false })
+    }
+  }
 }));
 
 export default useWalletStore;

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { getWallet, getWalletTransactions } from '../../api/walletApi';
+import { getAllWalletTransactions, getWallet, getWalletTransactions } from '../../api/walletApi';
 import { apiUrl, jsonResponse, installFetchMock } from './_helpers';
 
 describe('walletApi.js', () => {
@@ -22,5 +22,10 @@ describe('walletApi.js', () => {
   it('getWalletTransactions(page)：帶指定頁碼', async () => {
     await getWalletTransactions(3);
     expect(fetchMock).toHaveBeenLastCalledWith(apiUrl('/api/wallets/me/transactions?page=3'), expect.any(Object));
+  });
+
+  it('getAllWalletTransactions：GET 全量明細 endpoint', async () => {
+    await getAllWalletTransactions();
+    expect(fetchMock).toHaveBeenLastCalledWith(apiUrl('/api/wallets/me/transactions/all'), expect.any(Object));
   });
 });

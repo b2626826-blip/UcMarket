@@ -36,6 +36,15 @@ public class WalletController {
 	}
 
 	// 查紀錄 (改綁 JWT，userId 取自登入身分）
+	@GetMapping("/me/transactions/all")
+	public List<WalletTransactionResponse> allTransactions(@AuthenticationPrincipal User user) {
+		return walletService.getTransactions(user.getId()).stream()
+				.map(tx -> new WalletTransactionResponse(
+						tx.getId(), tx.getType(), tx.getAmount(),
+						tx.getBalanceAfter(), tx.getReferenceType(), tx.getReferenceId(), tx.getCreatedAt()))
+				.toList();
+	}
+
 	@GetMapping("/me/transactions")
 	public List<WalletTransactionResponse> transactions(
 	        @AuthenticationPrincipal User user,

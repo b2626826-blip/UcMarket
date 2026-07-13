@@ -31,7 +31,7 @@ describe('marketApi.js', () => {
   it('getMarkets / getMarketDetail 打對 URL', async () => {
     fetchMock.mockResolvedValue(jsonResponse([]));
     await getMarkets();
-    expect(fetchMock).toHaveBeenLastCalledWith(apiUrl('/api/markets?page=0&size=20'), expect.any(Object));
+    expect(fetchMock).toHaveBeenLastCalledWith(apiUrl('/api/markets?page=0&size=20&status=ACTIVE'), expect.any(Object));
 
     await getMarketDetail('m1');
     expect(fetchMock).toHaveBeenLastCalledWith(apiUrl('/api/markets/m1'), expect.any(Object));

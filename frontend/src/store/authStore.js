@@ -5,21 +5,22 @@ import { setToken, getToken } from '../api/client';
 
 const useAuthStore = create((set) => ({
   user: null,
+  initialized: false,
   loading: false,
   error: null,
 
   checkAuth: async () => {
     if (!getToken()) {
-      set({ user: null });
+      set({ user: null, initialized: true });
       return null;
     }
     try {
       const data = await getCurrentUser();
       const user = data.user || data;
-      set({ user, error: null });
+      set({ user, initialized: true, error: null });
       return user;
     } catch {
-      set({ user: null });
+      set({ user: null, initialized: true });
       return null;
     }
   },
@@ -30,7 +31,7 @@ const useAuthStore = create((set) => ({
       const data = await apiLogin(email, password);
       const user = data.user || data;
       if (data.accessToken) setToken(data.accessToken);
-      set({ user, loading: false });
+      set({ user, initialized: true, loading: false });
       return user;
     } catch (err) {
       set({ error: err.message, loading: false });
@@ -38,13 +39,13 @@ const useAuthStore = create((set) => ({
     }
   },
 
-  register: async (username, email, password) => {
+  register: async (username, email, password, idempotencyKey) => {
     set({ loading: true, error: null });
     try {
-      const data = await apiRegister(username, email, password);
+      const data = await apiRegister(username, email, password, idempotencyKey);
       const user = data.user || data;
       if (data.accessToken) setToken(data.accessToken);
-      set({ user, loading: false });
+      set({ user, initialized: true, loading: false });
       return user;
     } catch (err) {
       set({ error: err.message, loading: false });
@@ -58,7 +59,7 @@ const useAuthStore = create((set) => ({
       const data = await apiFirebaseLogin(idToken, provider);
       const user = data.user || data;
       if (data.accessToken) setToken(data.accessToken);
-      set({ user, loading: false });
+      set({ user, initialized: true, loading: false });
       return user;
     } catch (err) {
       set({ error: err.message, loading: false });
@@ -71,7 +72,7 @@ const useAuthStore = create((set) => ({
       await apiLogout();
     } catch { /* ignore */ }
     setToken(null);
-    set({ user: null });
+    set({ user: null, initialized: true });
   },
 
   clearError: () => set({ error: null }),

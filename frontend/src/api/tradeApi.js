@@ -4,8 +4,10 @@ export function getTrades() {
   return getApi('/api/trades');
 }
 
-export function createTrade(data) {
-  return postApi('/api/trades', data);
+export function createTrade(data, idempotencyKey) {
+  return postApi('/api/trades', data, {
+    headers: { 'Idempotency-Key': idempotencyKey }
+  });
 }
 
 export function getAdminTransactions() {

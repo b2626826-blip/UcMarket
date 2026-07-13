@@ -103,6 +103,7 @@ export default function CurrentAffairsDetailPage() {
       category={market.title}
       subtitle={`市場 #${market.code}`}
       marketId={market.id}
+      market={market}
       heroBanner={(
         <div className="current-affairs-showcase">
           <strong className="current-affairs-showcase__label">時事</strong>

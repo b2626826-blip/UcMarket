@@ -108,6 +108,18 @@ class WalletControllerTest {
 	}
 
 	@Test
+	@DisplayName("GET /me/transactions/all → 查的是登入者自己的完整明細")
+	void allTransactions_returnsCallersOwn() throws Exception {
+		UUID me = loginAs("alice");
+		when(walletService.getTransactions(me)).thenReturn(List.of());
+
+		mockMvc.perform(get("/api/wallets/me/transactions/all"))
+			.andExpect(status().isOk());
+
+		verify(walletService).getTransactions(me);
+	}
+
+	@Test
 	@DisplayName("GY：/me/transactions?userId=<別人> → 硬塞的 userId 被無視，查的還是自己")
 	void meTransactions_ignoresClientSuppliedUserId() throws Exception {
 		UUID me = loginAs("alice");

@@ -15,9 +15,11 @@ export default function UserLayout() {
   const isAdmin = role === 'ADMIN' || role === 'admin';
   const [authOpen, setAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState('login');
+  const [navActionsOpen, setNavActionsOpen] = useState(false);
 
   const openLogin = useCallback(() => { setAuthTab('login'); setAuthOpen(true); }, []);
   const openRegister = useCallback(() => { setAuthTab('register'); setAuthOpen(true); }, []);
+  const closeNavActions = useCallback(() => setNavActionsOpen(false), []);
 
   useEffect(() => {
     checkAuth();
@@ -43,12 +45,22 @@ export default function UserLayout() {
         </Link>
         {!isLanding && (
           <>
-            <div className="nav-menu">
+            <div className="nav-menu" onClick={closeNavActions}>
               <Link to="/home" data-page="views/dashboard.html">市場</Link>
               <Link to="/rankings">排行榜</Link>
               <Link to={user ? '/wallet' : '/auth/login'}>錢包</Link>
             </div>
-            <div className="nav-right">
+            <button
+              className="nav-toggle"
+              type="button"
+              aria-expanded={navActionsOpen}
+              aria-controls="nav-actions"
+              onClick={() => setNavActionsOpen((open) => !open)}
+            >
+              <span className="visually-hidden">{navActionsOpen ? '收合選單' : '展開選單'}</span>
+              <i className={`fa-solid ${navActionsOpen ? 'fa-xmark' : 'fa-bars'}`} aria-hidden="true" />
+            </button>
+            <div id="nav-actions" className={`nav-right${navActionsOpen ? ' nav-right--open' : ''}`} onClick={closeNavActions}>
               {user ? (
                 <>
                   <span id="user-display" style={{ color: 'var(--gold)', fontWeight: 700 }}>{user.username || user.email}</span>

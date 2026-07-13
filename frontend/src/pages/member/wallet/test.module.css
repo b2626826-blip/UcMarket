@@ -92,12 +92,18 @@
 .trend :global(.toggle){ background:transparent; border:1px solid rgba(217,170,67,.35); color:var(--gold); border-radius:999px; padding:8px 14px; cursor:pointer; font-size:13px; font-weight:600; transition:all .2s; white-space:nowrap; }
 .trend :global(.toggle:hover){ background:rgba(217,170,67,.1); }
 .trend :global(.toggle.on){ background:var(--gold); border-color:var(--gold); color:#402d00; }
-.trend :global(.box){ height:300px; margin-top:16px; }
+.trend :global(.box){ height:300px; margin-top:16px; position:relative; }
+.trend :global(.noline){ position:absolute; inset:0; display:grid; place-items:center; color:var(--color-text-secondary); font-size:13px; }
 .trend :global(.legend){ margin-top:12px; color:var(--color-text-secondary); font-size:12px; }
 .trend :global(.legend i){ display:inline-block; width:9px; height:9px; border-radius:2px; margin:0 5px 0 0; vertical-align:middle; }
 .trend :global(.sw-green){ background:var(--color-green); }
 .trend :global(.sw-red){ background:var(--color-red); }
 .trend :global(.hint){ color:var(--color-text-secondary); font-size:12px; margin-top:6px; }
+.trend :global(.ranges){ display:flex; gap:6px; flex-wrap:wrap; margin-top:14px; }
+.trend :global(.ranges button){ background:transparent; border:1px solid rgba(217,170,67,.25); color:var(--color-text-secondary); border-radius:8px; padding:5px 12px; cursor:pointer; font-size:12px; font-weight:600; transition:all .15s; }
+.trend :global(.ranges button:hover:not(:disabled)){ background:rgba(217,170,67,.1); color:var(--gold); }
+.trend :global(.ranges button.on){ background:var(--gold); border-color:var(--gold); color:#402d00; }
+.trend :global(.ranges button:disabled){ opacity:.3; cursor:not-allowed; }
 
 /* ═══ 區塊3左 熱力圖(塞滿左欄;標題統一 20px/700)═══ */
 .heat{ width:100%; height:100%; font-family:Inter,system-ui,sans-serif; }
@@ -117,6 +123,10 @@
 .heat :global(.legend i){ width:13px; height:13px; border-radius:3px; display:inline-block; }
 @keyframes hwave-w { 0%,100%{ filter:brightness(.55); } 50%{ filter:brightness(1.2); } }
 @media (prefers-reduced-motion: reduce){ .cell{ animation:none; } }
+/* 熱力圖 hover 浮窗(fixed 跟游標,避免被卡片 overflow 裁掉)*/
+.heatTip{ position:fixed; z-index:50; pointer-events:none; background:rgba(9,9,9,.92); border:1px solid rgba(217,170,67,.4); border-radius:8px; padding:7px 10px; box-shadow:0 8px 24px rgba(0,0,0,.5); font-family:Inter,system-ui,sans-serif; }
+.heatTipD{ color:var(--gold); font-size:12px; font-weight:700; font-variant-numeric:tabular-nums; }
+.heatTipA{ color:var(--color-text-soft); font-size:12px; margin-top:2px; }
 
 /* 葉片圖:填滿右欄、max-width 當上限 */
 .page :global(.pa-chart) { max-width: 480px; width: 100%; margin: 0 auto; padding: 0; }
