@@ -16,6 +16,7 @@ export default function UserLayout() {
   const [authOpen, setAuthOpen] = useState(false);
   const [authTab, setAuthTab] = useState('login');
   const [navActionsOpen, setNavActionsOpen] = useState(false);
+  const [openFooterSection, setOpenFooterSection] = useState(null);
 
   const openLogin = useCallback(() => { setAuthTab('login'); setAuthOpen(true); }, []);
   const openRegister = useCallback(() => { setAuthTab('register'); setAuthOpen(true); }, []);
@@ -86,10 +87,62 @@ export default function UserLayout() {
       {!isLanding && (
         <footer className="wallet-footer">
           <div className="footer-grid">
-            <div><h4>平台</h4><a href="#">市場</a><a href="#">熱門事件</a><a href="#">排行榜</a></div>
-            <div><h4>資源</h4><a href="#">玩法介紹</a><a href="#">白皮書</a><a href="#">API 文件</a></div>
-            <div><h4>公司</h4><a href="#">關於我們</a><a href="#">部落格</a><a href="#">徵才</a></div>
-            <div><h4>法律</h4><a href="#">服務條款</a><a href="#">隱私政策</a><a href="#">風險聲明</a></div>
+            <div className="footer-section">
+              <button
+                className="footer-section-toggle"
+                type="button"
+                aria-expanded={openFooterSection === 'platform'}
+                aria-controls="footer-section-platform"
+                onClick={() => setOpenFooterSection((section) => section === 'platform' ? null : 'platform')}
+              >
+                <span>平台</span><i className="fa-solid fa-chevron-down" aria-hidden="true" />
+              </button>
+              <div id="footer-section-platform" className={`footer-links${openFooterSection === 'platform' ? ' is-open' : ''}`}>
+                <a href="#">市場</a><a href="#">熱門事件</a><a href="#">排行榜</a>
+              </div>
+            </div>
+            <div className="footer-section">
+              <button
+                className="footer-section-toggle"
+                type="button"
+                aria-expanded={openFooterSection === 'resources'}
+                aria-controls="footer-section-resources"
+                onClick={() => setOpenFooterSection((section) => section === 'resources' ? null : 'resources')}
+              >
+                <span>資源</span><i className="fa-solid fa-chevron-down" aria-hidden="true" />
+              </button>
+              <div id="footer-section-resources" className={`footer-links${openFooterSection === 'resources' ? ' is-open' : ''}`}>
+                <a href="#">玩法介紹</a><a href="#">白皮書</a><a href="#">API 文件</a>
+              </div>
+            </div>
+            <div className="footer-section">
+              <button
+                className="footer-section-toggle"
+                type="button"
+                aria-expanded={openFooterSection === 'company'}
+                aria-controls="footer-section-company"
+                onClick={() => setOpenFooterSection((section) => section === 'company' ? null : 'company')}
+              >
+                <span>公司</span><i className="fa-solid fa-chevron-down" aria-hidden="true" />
+              </button>
+              <div id="footer-section-company" className={`footer-links${openFooterSection === 'company' ? ' is-open' : ''}`}>
+                <a href="#">關於我們</a><a href="#">部落格</a><a href="#">徵才</a>
+              </div>
+            </div>
+            <div className="footer-section">
+              <button
+                className="footer-section-toggle"
+                type="button"
+                aria-expanded={openFooterSection === 'legal'}
+                aria-controls="footer-section-legal"
+                onClick={() => setOpenFooterSection((section) => section === 'legal' ? null : 'legal')}
+              >
+                <span>法律</span><i className="fa-solid fa-chevron-down" aria-hidden="true" />
+              </button>
+              <div id="footer-section-legal" className={`footer-links${openFooterSection === 'legal' ? ' is-open' : ''}`}>
+                <a href="#">服務條款</a><a href="#">隱私政策</a><a href="#">風險聲明</a>
+              </div>
+            </div>
           </div>
           <div className="footer-bottom">
             <div className="footer-brand"><img className="footer-logo-image" src={logoImg} alt="UCMARKET" /><strong>UCMARKET</strong></div>

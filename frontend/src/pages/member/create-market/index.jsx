@@ -17,10 +17,23 @@ function formatCloseAt(value) {
 
 export default function CreateMarketPage() {
   const [form, setForm] = useState({ title: '', description: '', category: '', marketType: 'BINARY', sourceUrl: '', resolutionRule: '', closeAt: '' });
+  const [closeAtText, setCloseAtText] = useState('選擇日期時間');
   const [errors, setErrors] = useState({});
   const { showToast } = useUiStore();
 
   function setField(k, v) { setForm((p) => ({ ...p, [k]: v })); setErrors((p) => ({ ...p, [k]: '' })); }
+
+  function handleDateChange(e) {
+    const value = e.target.value;
+    setField('closeAt', value);
+    if (!value) {
+      setCloseAtText('選擇日期時間');
+      return;
+    }
+    const date = new Date(value);
+    const pad = (n) => String(n).padStart(2, '0');
+    setCloseAtText(`${date.getFullYear()}/${pad(date.getMonth() + 1)}/${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`);
+  }
 
   function validateUrl(url) {
     if (!url.trim()) return false;
@@ -61,6 +74,7 @@ export default function CreateMarketPage() {
       await submitMarket(market.id);
       showToast('success', '送審成功');
       setForm({ title: '', description: '', category: '', marketType: 'BINARY', sourceUrl: '', resolutionRule: '', closeAt: '' });
+      setCloseAtText('選擇日期時間');
       setErrors({});
     } catch (err) { showToast('danger', '送審失敗', err.message); }
   }
@@ -118,7 +132,18 @@ export default function CreateMarketPage() {
             </div>
             <div className="form-group">
               <label className="form-label">截止時間 *</label>
-              <input type="datetime-local" className={`form-control ${errors.closeAt ? 'is-invalid' : ''}`} value={form.closeAt} onChange={(e) => setField('closeAt', e.target.value)} />
+              <div
+                className={`create-market-date-picker ${errors.closeAt ? 'is-invalid' : ''}`}
+                onClick={(e) => {
+                  const input = e.currentTarget.querySelector('input[type="datetime-local"]');
+                  if (input?.showPicker) input.showPicker();
+                  else input?.focus();
+                }}
+              >
+                <i className="bi bi-calendar3"></i>
+                <span className={`create-market-date-picker__text ${form.closeAt ? 'has-value' : ''}`}>{closeAtText}</span>
+                <input type="datetime-local" value={form.closeAt} onChange={handleDateChange} />
+              </div>
             </div>
           </form>
           <div className="create-market-actions">

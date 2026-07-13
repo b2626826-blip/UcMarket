@@ -139,7 +139,7 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
       setQuotedOdds(null);
       idempotencyKeyRef.current = null;
     } catch (err) {
-      showButtonState(err?.message || '交易失敗', '#ff476d');
+      showButtonState(err?.status === 422 ? '餘額不足' : (err?.message || '交易失敗'), '#ff476d');
       return;
     } finally {
       setSubmitting(false);

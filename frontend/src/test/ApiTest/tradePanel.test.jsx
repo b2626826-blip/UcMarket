@@ -78,4 +78,19 @@ describe('TradePanel', () => {
     );
     expect(mocks.fetchWallet).toHaveBeenCalledTimes(2);
   });
+
+  it('餘額不足時只顯示餘額不足', async () => {
+    const error = new Error('餘額不足，userId=user-1：需要 10，可用 0');
+    error.status = 422;
+    mocks.placeTrade.mockRejectedValueOnce(error);
+
+    const quickBetButton = [...container.querySelectorAll('button')]
+      .find((button) => button.textContent === '10');
+    await act(async () => quickBetButton.click());
+
+    const submitButton = container.querySelector('#submitTradeBtn');
+    await act(async () => submitButton.click());
+
+    expect(submitButton.textContent).toBe('餘額不足');
+  });
 });

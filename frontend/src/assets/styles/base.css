@@ -13,6 +13,7 @@ a{ text-decoration:none; color:inherit; }
 button{ border:none; cursor:pointer; font-family:inherit; }
 ul,ol{ list-style:none; }
 img{ max-width:100%; }
+.visually-hidden{ position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
 
 /* ==========================================
    CSS VARIABLES
@@ -90,6 +91,7 @@ img{ max-width:100%; }
 .nav-menu a:hover{ color:#fff; }
 .nav-right{ display:flex; align-items:center; gap:18px; }
 .nav-right a{ color:#c1c1c1; font-size:14px; }
+.nav-toggle{ display:none; }
 .register-btn{
     background:var(--gold); color:black; font-weight:700;
     padding:10px 18px; border-radius:12px; transition:.3s;
@@ -107,7 +109,11 @@ img{ max-width:100%; }
     max-width:1500px; margin:0 auto 80px;
     display:grid; grid-template-columns:repeat(4,1fr); gap:60px;
 }
-.wallet-footer .footer-grid h4{ font-size:16px; margin-bottom:20px; color:#fff; }
+.wallet-footer .footer-section-toggle{
+    width:100%; margin-bottom:20px; padding:0; display:flex; align-items:center; justify-content:space-between;
+    background:transparent; color:#fff; font-size:16px; font-weight:700; text-align:left;
+}
+.wallet-footer .footer-section-toggle i{ display:none; }
 .wallet-footer .footer-grid a{ display:block; color:#888; font-size:14px; margin-bottom:12px; transition:.25s; }
 .wallet-footer .footer-grid a:hover{ color:#fff; }
 .wallet-footer .footer-bottom{
@@ -731,19 +737,29 @@ img{ max-width:100%; }
 }
 @media(max-width:768px){
     .market-grid{ grid-template-columns:1fr; }
-    .wallet-footer .footer-grid{ grid-template-columns:1fr; gap:35px; }
+    .wallet-footer{ padding:54px 20px 46px; text-align:center; }
+    .wallet-footer .footer-grid{ grid-template-columns:1fr; gap:0; margin-bottom:48px; }
+    .wallet-footer .footer-section-toggle{ justify-content:center; gap:10px; margin:0; padding:16px 0; text-align:center; }
+    .wallet-footer .footer-section-toggle i{ display:inline-block; font-size:11px; transition:transform .2s; }
+    .wallet-footer .footer-section-toggle[aria-expanded="true"] i{ transform:rotate(180deg); }
+    .wallet-footer .footer-links{ display:none; padding-bottom:10px; }
+    .wallet-footer .footer-links.is-open{ display:block; }
     .wallet-footer .footer-bottom{ grid-template-columns:1fr; gap:22px; text-align:center; }
     .wallet-footer .footer-brand, .wallet-footer .footer-bottom p, .wallet-footer .footer-social{ justify-self:center; }
     .slide h1{ font-size:60px; }
     .navbar{ height:auto; min-height:72px; padding:18px 20px 0; flex-wrap:wrap; row-gap:14px; }
     .nav-menu{ order:3; display:flex; width:100%; justify-content:center; gap:24px; padding:12px 0; border-top:1px solid var(--border); }
+    .nav-toggle{ width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; background:transparent; color:var(--gold); font-size:20px; }
+    .nav-right{ display:none; order:4; width:100%; flex-direction:column; align-items:center; gap:0; padding:0 0 12px; border-top:1px solid var(--border); text-align:center; }
+    .nav-right--open{ display:flex; }
+    .nav-right > a, .nav-right .register-btn, .nav-right #user-display{ padding:12px 0; }
+    .nav-right .register-btn{ width:100%; text-align:center; background:transparent; color:#c1c1c1; font-weight:400; border-radius:0; }
     .ranking-hero h1{ font-size:48px; }
     .ranking-stats{ grid-template-columns:1fr; }
     .ranking-row{ grid-template-columns:60px 2fr 1fr 1fr; }
     .ranking-row span:nth-child(3), .ranking-row span:nth-child(5), .ranking-row span:nth-child(6), .ranking-row span:nth-child(7){ display:none; }
 }
 @media(max-width:576px){
-    .nav-right a{ display:none; }
     .hero{ height:520px; }
     .slide h1{ font-size:42px; }
     .hero-buttons{ flex-direction:column; }
