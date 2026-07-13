@@ -88,7 +88,7 @@ export default function CreateMarketPage() {
                 <option value="">選擇分類</option>
                 <option value="政治">政治</option>
                 <option value="運動">運動</option>
-                <option value="天氣">天氣</option>
+                <option value="WEATHER">天氣</option>
                 <option value={CURRENT_EVENT_CATEGORY_CODE}>時事</option>
                 <option value="金融">金融</option>
               </select>

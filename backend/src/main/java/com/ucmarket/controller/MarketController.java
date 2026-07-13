@@ -209,11 +209,17 @@ public class MarketController {
 		Market market = marketRepository.findById(id)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
 
+		BigDecimal totalVolume = tradeRepository.sumAmountByMarketId(id);
+		if (totalVolume == null) {
+			totalVolume = BigDecimal.ZERO;
+		}
+
 		return new MarketOddsResponse(
 				tradeQuoteService.getMarketOdds(market, MarketSide.YES),
 				tradeQuoteService.getMarketOdds(market, MarketSide.NO),
 				market.getYesPool(),
-				market.getNoPool()
+				market.getNoPool(),
+				totalVolume
 		);
 	}
 }

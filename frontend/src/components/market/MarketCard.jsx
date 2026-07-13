@@ -4,6 +4,7 @@ const categoryToSlug = {
   '政治': 'politics',
   '運動': 'sports',
   '天氣': 'weather',
+  'WEATHER': 'weather',
   '時事': 'current-affairs',
   '金融': 'finance',
 };

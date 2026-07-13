@@ -16,6 +16,8 @@ import jakarta.persistence.Id;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
 import jakarta.persistence.Table;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 @Entity
 @Table(name = "markets")
@@ -49,6 +51,10 @@ public class Market {
 	
 	@Column( name = "market_type", nullable = false, length = 32)
 	private String marketType = "BINARY";
+
+	@JdbcTypeCode(SqlTypes.JSON)
+	@Column(name = "metadata", columnDefinition = "jsonb")
+	private String metadata;
 
 	@Column( name = "creator_id", nullable = false)
 	private UUID creatorId;
@@ -268,4 +274,7 @@ public class Market {
 	public LocalDateTime getCreatedAt() {
 		return createdAt;
 	}
+
+	public String getMetadata() { return metadata; }
+	public void setMetadata(String metadata) { this.metadata = metadata; }
 }

@@ -6,6 +6,7 @@ public record MarketOddsResponse(
 		BigDecimal yesOdds,
 		BigDecimal noOdds,
 		BigDecimal yesPool,
-		BigDecimal noPool
+		BigDecimal noPool,
+		BigDecimal totalVolume
 	) {
 	}

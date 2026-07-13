@@ -13,6 +13,7 @@ export default function DetailPageTemplate({
   heroLayout = 'left',
   heroBanner = null,
   heroExtras = null,
+  hero = null,
   children = null,
   belowDashboard = null,
   marketId,
@@ -62,13 +63,15 @@ export default function DetailPageTemplate({
     </div>
   );
 
+  const heroNode = hero ?? heroContent;
+
   return (
     <div className="trade-wrapper" style={{ paddingTop: 40, paddingBottom: 90 }}>
-      {heroLayout === 'full' && heroContent}
+      {heroLayout === 'full' && heroNode}
 
       <div className="trade-dashboard">
         <main className="trade-main-column">
-          {heroLayout !== 'full' && heroContent}
+          {heroLayout !== 'full' && heroNode}
           {children}
         </main>
 

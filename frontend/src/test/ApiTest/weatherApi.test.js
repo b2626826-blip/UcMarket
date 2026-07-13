@@ -1,9 +1,8 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { fetchCityForecast } from '../../api/weatherApi';
+import { fetchCityForecast } from '../../pages/public/market-detail-weather/weatherApi';
 import { jsonResponse, installFetchMock } from './_helpers';
 
-// 註：src/api/weatherApi.js 為 orphan，與實際使用的
-// pages/public/market-detail-weather/weatherApi.js 邏輯逐字相同，測此份等同覆蓋該邏輯。
+// 註：此處測試實際使用的 pages/public/market-detail-weather/weatherApi.js。
 
 // 造一筆最小可解析的 CWA F-C0032-001 回應（單一 location、單日）
 function cwaPayload(locationName = '臺北市') {

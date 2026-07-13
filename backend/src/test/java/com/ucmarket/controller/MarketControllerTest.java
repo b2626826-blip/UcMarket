@@ -45,6 +45,7 @@ import com.ucmarket.repository.TradeRepository;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.security.JwtTokenProvider;
 import com.ucmarket.service.MarketService;
+import com.ucmarket.service.PriceHistoryService;
 import com.ucmarket.service.TradeQuoteService;
 import com.ucmarket.service.WalletService;
 
@@ -73,6 +74,8 @@ class MarketControllerTest {
     private JwtTokenProvider jwtTokenProvider;
     @MockitoBean
     private UserRepository userRepository;
+    @MockitoBean
+    private PriceHistoryService priceHistoryService;
 
     private static final UUID AUTH_USER_ID = UUID.randomUUID();
 

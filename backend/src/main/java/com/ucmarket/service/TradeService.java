@@ -23,14 +23,17 @@ public class TradeService {
 	private final TradeQuoteService tradeQuoteService;
 	private final WalletService walletService;
 	private final PositionService positionService;
+	private final PriceHistoryService priceHistoryService;
 
 	public TradeService(MarketRepository marketRepository, TradeRepository tradeRepository,
-			TradeQuoteService tradeQuoteService, WalletService walletService, PositionService positionService) {
+			TradeQuoteService tradeQuoteService, WalletService walletService, PositionService positionService,
+			PriceHistoryService priceHistoryService) {
 		this.marketRepository = marketRepository;
 		this.tradeRepository = tradeRepository;
 		this.tradeQuoteService = tradeQuoteService;
 		this.walletService = walletService;
 		this.positionService = positionService;
+		this.priceHistoryService = priceHistoryService;
 	}
 
 	@Transactional
@@ -64,6 +67,15 @@ public class TradeService {
 
 		market.buy(request.side(), amount);
 		marketRepository.save(market);
+
+		BigDecimal totalPool = market.getYesPool().add(market.getNoPool());
+		BigDecimal yesPrice = totalPool.compareTo(BigDecimal.ZERO) > 0
+				? market.getYesPool().divide(totalPool, 4, RoundingMode.HALF_UP)
+				: new BigDecimal("0.5000");
+		BigDecimal noPrice = totalPool.compareTo(BigDecimal.ZERO) > 0
+				? market.getNoPool().divide(totalPool, 4, RoundingMode.HALF_UP)
+				: new BigDecimal("0.5000");
+		priceHistoryService.record(market.getId(), yesPrice, noPrice, amount);
 
 		return savedTrade;
 	}

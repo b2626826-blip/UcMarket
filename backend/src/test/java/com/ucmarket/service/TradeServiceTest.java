@@ -44,6 +44,8 @@ class TradeServiceTest {
 	private WalletService walletService;
 	@Mock
 	private PositionService positionService;
+	@Mock
+	private PriceHistoryService priceHistoryService;
 
 	private TradeService tradeService;
 	private UUID userId;
@@ -56,7 +58,8 @@ class TradeServiceTest {
 				tradeRepository,
 				tradeQuoteService,
 				walletService,
-				positionService
+				positionService,
+				priceHistoryService
 		);
 		userId = UUID.randomUUID();
 		marketId = UUID.randomUUID();
