@@ -181,7 +181,7 @@ CREATE TABLE positions (
     CONSTRAINT ck_positions_status CHECK (status IN ('OPEN', 'SETTLED', 'CANCELED'))
 );
 
--- There is no JPA entity for this read-model table. RankingRepository queries it
+-- MarketPriceHistory maps this read-model table, and RankingRepository queries it
 -- directly to value open positions. option_id remains as the current query's
 -- binary-market discriminator; no market_options table is implemented yet.
 CREATE TABLE market_price_history (
@@ -190,6 +190,7 @@ CREATE TABLE market_price_history (
     option_id UUID,
     yes_price NUMERIC(18, 4),
     no_price NUMERIC(18, 4),
+    option_price NUMERIC(18, 4),
     trade_volume NUMERIC(18, 2) NOT NULL DEFAULT 0,
     recorded_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 

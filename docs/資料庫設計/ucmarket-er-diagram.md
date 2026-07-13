@@ -8,7 +8,7 @@
 - 一位使用者在同一 binary 市場只有一筆 `positions`，由 `(user_id, market_id) WHERE option_id IS NULL` partial unique index 保證。
 - `wallet_transactions` 透過 `wallet_id` 找到使用者，以 `reference_type/reference_id` 記錄交易或市場來源。
 - 排行榜由 repository 查詢即時計算，不建立 ranking table 或 ranking view。
-- `market_price_history` 是資產榜估值使用的 read model，暫無 JPA entity；`positions.option_id` 與 `market_price_history.option_id` 都由 native SQL 用來判定 binary row，尚無多選項寫入流程。
+- `market_price_history` 是資產榜估值使用的 read model，由 `MarketPriceHistory` JPA entity 映射；`positions.option_id` 與 `market_price_history.option_id` 都由 native SQL 用來判定 binary row，尚無多選項寫入流程。
 - `market_options`、`notifications`、`user_portfolio_snapshots` 屬未來規劃，未納入目前 schema。
 
 ## Mermaid ERD
@@ -121,6 +121,7 @@ erDiagram
         uuid option_id "nullable discriminator"
         numeric yes_price
         numeric no_price
+        numeric option_price
         numeric trade_volume
         timestamp recorded_at
     }
