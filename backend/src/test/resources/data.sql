@@ -21,14 +21,14 @@ INSERT INTO users (
     id, code, username, email, password_hash, role, status, reputation,
     last_login_at, avatar_url, bio, created_at, updated_at
 ) VALUES
-    ('00000000-0000-4000-8000-000000000001', 'USR-0001', 'admin_shung', 'admin.shung@ucmarket.test', 'hash', 'ADMIN', 'ACTIVE', 980, '2026-06-01 21:10:00', null, null, '2026-05-20 09:00:00', '2026-06-01 21:10:00'),
-    ('00000000-0000-4000-8000-000000000002', 'USR-0002', 'admin_mina', 'admin.mina@ucmarket.test', 'hash', 'ADMIN', 'ACTIVE', 860, '2026-06-01 18:35:00', null, null, '2026-05-20 09:05:00', '2026-06-01 18:35:00'),
-    ('00000000-0000-4000-8000-000000000003', 'USR-0003', 'rainmaker', 'rainmaker@ucmarket.test', 'hash', 'USER', 'ACTIVE', 420, '2026-06-01 20:22:00', null, null, '2026-05-21 10:00:00', '2026-06-01 20:22:00'),
-    ('00000000-0000-4000-8000-000000000004', 'USR-0004', 'macro_cat', 'macro.cat@ucmarket.test', 'hash', 'USER', 'ACTIVE', 360, '2026-06-01 19:45:00', null, null, '2026-05-21 11:15:00', '2026-06-01 19:45:00'),
-    ('00000000-0000-4000-8000-000000000005', 'USR-0005', 'sports_lee', 'sports.lee@ucmarket.test', 'hash', 'USER', 'ACTIVE', 275, '2026-06-01 17:04:00', null, null, '2026-05-22 13:30:00', '2026-06-01 17:04:00'),
-    ('00000000-0000-4000-8000-000000000006', 'USR-0006', 'tech_luna', 'tech.luna@ucmarket.test', 'hash', 'USER', 'ACTIVE', 510, '2026-06-01 22:12:00', null, null, '2026-05-23 08:40:00', '2026-06-01 22:12:00'),
-    ('00000000-0000-4000-8000-000000000008', 'USR-0008', 'banned_demo', 'banned.demo@ucmarket.test', 'hash', 'USER', 'BANNED', 0, '2026-05-25 09:10:00', null, null, '2026-05-24 15:00:00', '2026-05-30 12:00:00'),
-    ('00000000-0000-4000-8000-000000000009', 'USR-0009', 'disabled_demo', 'disabled.demo@ucmarket.test', 'hash', 'USER', 'DISABLED', 15, null, null, null, '2026-05-25 16:20:00', '2026-05-30 12:30:00');
+    ('00000000-0000-4000-8000-000000000001', 'USR-0001', 'admin_shung', 'admin.shung@ucmarket.test', '$2a$10$87qcikpCyzeG36F1RIXqyO2n3.QJHfbgWJQK3o30SzeK2n.mDypuS', 'ADMIN', 'ACTIVE', 980, '2026-06-01 21:10:00', null, null, '2026-05-20 09:00:00', '2026-06-01 21:10:00'),
+    ('00000000-0000-4000-8000-000000000002', 'USR-0002', 'admin_mina', 'admin.mina@ucmarket.test', '$2a$10$87qcikpCyzeG36F1RIXqyO2n3.QJHfbgWJQK3o30SzeK2n.mDypuS', 'ADMIN', 'ACTIVE', 860, '2026-06-01 18:35:00', null, null, '2026-05-20 09:05:00', '2026-06-01 18:35:00'),
+    ('00000000-0000-4000-8000-000000000003', 'USR-0003', 'rainmaker', 'rainmaker@ucmarket.test', '$2a$10$87qcikpCyzeG36F1RIXqyO2n3.QJHfbgWJQK3o30SzeK2n.mDypuS', 'USER', 'ACTIVE', 420, '2026-06-01 20:22:00', null, null, '2026-05-21 10:00:00', '2026-06-01 20:22:00'),
+    ('00000000-0000-4000-8000-000000000004', 'USR-0004', 'macro_cat', 'macro.cat@ucmarket.test', '$2a$10$87qcikpCyzeG36F1RIXqyO2n3.QJHfbgWJQK3o30SzeK2n.mDypuS', 'USER', 'ACTIVE', 360, '2026-06-01 19:45:00', null, null, '2026-05-21 11:15:00', '2026-06-01 19:45:00'),
+    ('00000000-0000-4000-8000-000000000005', 'USR-0005', 'sports_lee', 'sports.lee@ucmarket.test', '$2a$10$87qcikpCyzeG36F1RIXqyO2n3.QJHfbgWJQK3o30SzeK2n.mDypuS', 'USER', 'ACTIVE', 275, '2026-06-01 17:04:00', null, null, '2026-05-22 13:30:00', '2026-06-01 17:04:00'),
+    ('00000000-0000-4000-8000-000000000006', 'USR-0006', 'tech_luna', 'tech.luna@ucmarket.test', '$2a$10$87qcikpCyzeG36F1RIXqyO2n3.QJHfbgWJQK3o30SzeK2n.mDypuS', 'USER', 'ACTIVE', 510, '2026-06-01 22:12:00', null, null, '2026-05-23 08:40:00', '2026-06-01 22:12:00'),
+    ('00000000-0000-4000-8000-000000000008', 'USR-0008', 'banned_demo', 'banned.demo@ucmarket.test', '$2a$10$87qcikpCyzeG36F1RIXqyO2n3.QJHfbgWJQK3o30SzeK2n.mDypuS', 'USER', 'BANNED', 0, '2026-05-25 09:10:00', null, null, '2026-05-24 15:00:00', '2026-05-30 12:00:00'),
+    ('00000000-0000-4000-8000-000000000009', 'USR-0009', 'disabled_demo', 'disabled.demo@ucmarket.test', '$2a$10$87qcikpCyzeG36F1RIXqyO2n3.QJHfbgWJQK3o30SzeK2n.mDypuS', 'USER', 'DISABLED', 15, null, null, null, '2026-05-25 16:20:00', '2026-05-30 12:30:00');
 
 INSERT INTO wallets (
     id, user_id, balance, locked_balance, version, created_at, updated_at

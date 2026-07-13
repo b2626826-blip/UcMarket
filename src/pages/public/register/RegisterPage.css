@@ -4,6 +4,8 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
+  padding: 18px 0;
   overflow: hidden;
 }
 
@@ -55,53 +57,21 @@
   }
 }
 
-.register-hero {
-  position: relative;
-  z-index: 2;
-  text-align: center;
-  padding-top: 90px;
-  padding-bottom: 32px;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 16px;
-  border-radius: 999px;
-  background: rgba(217, 170, 67, 0.12);
-  border: 1px solid rgba(217, 170, 67, 0.25);
-  color: var(--gold);
-  font-size: 14px;
-}
-
-.register-hero h1 {
-  margin-top: 24px;
-  font-size: 48px;
-  font-weight: 900;
-}
-
-.register-hero p {
-  margin-top: 12px;
-  color: #888;
-  font-size: 16px;
-}
-
 .register-layout {
   position: relative;
   z-index: 2;
   width: 100%;
   display: flex;
   justify-content: center;
-  padding-bottom: 100px;
+  padding: 0 16px;
 }
 
 .register-card {
   position: relative;
   width: 100%;
   max-width: 560px;
-  padding: 36px 38px;
-  border-radius: 28px ;
+  padding: 22px 24px;
+  border-radius: 28px;
   background: linear-gradient(
     180deg,
     rgba(217, 170, 67, 0.06),
@@ -114,7 +84,7 @@
 }
 
 .register-card:hover {
-  transform: translateY(-6px);
+  transform: translateY(-4px);
   border-color: rgba(217, 170, 67, 0.35);
   box-shadow:
     0 0 0 1px rgba(217, 170, 67, 0.12),
@@ -124,8 +94,8 @@
 
 .register-glow {
   position: absolute;
-  width: 260px;
-  height: 260px;
+  width: 240px;
+  height: 240px;
   top: -120px;
   right: -120px;
   border-radius: 50%;
@@ -136,17 +106,18 @@
   position: relative;
   z-index: 2;
   text-align: center;
-  margin-bottom: 30px;
+  margin-bottom: 14px;
 }
 
 .register-card-header h2 {
-  font-size: 32px;
+  font-size: 22px;
   font-weight: 900;
 }
 
 .register-card-header p {
-  margin-top: 10px;
+  margin-top: 4px;
   color: #888;
+  font-size: 14px;
 }
 
 .register-form {
@@ -157,18 +128,18 @@
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 16px;
+  gap: 10px;
 }
 
 .form-group {
-  margin-bottom: 18px;
+  margin-bottom: 10px;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 10px;
+  margin-bottom: 4px;
   color: #aaa;
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .input-box {
@@ -177,12 +148,13 @@
 
 .input-box input {
   width: 100%;
-  height: 56px;
-  border-radius: 15px;
+  height: 46px;
+  border-radius: 14px;
   background: #050505;
   border: 1px solid rgba(255, 255, 255, 0.08);
   color: white;
   padding: 0 50px 0 16px;
+  font-size: 15px;
   outline: none;
   transition: 0.25s;
 }
@@ -219,11 +191,12 @@
 
 .terms-area {
   display: flex;
-  gap: 12px;
-  margin-top: 10px;
-  margin-bottom: 20px;
+  gap: 8px;
+  margin-top: 4px;
+  margin-bottom: 10px;
   color: #aaa;
-  font-size: 14px;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .terms-area input {
@@ -236,11 +209,11 @@
 
 .register-submit-btn {
   width: 100%;
-  height: 56px;
-  border-radius: 15px;
+  height: 46px;
+  border-radius: 14px;
   background: var(--gold);
   color: black;
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 900;
   transition: 0.25s;
   display: flex;
@@ -259,8 +232,8 @@
   z-index: 2;
   display: flex;
   align-items: center;
-  gap: 14px;
-  margin: 26px 0;
+  gap: 10px;
+  margin: 14px 0 10px;
 }
 
 .register-divider span {
@@ -283,7 +256,7 @@
 }
 
 .social-register button {
-  height: 50px;
+  height: 42px;
   border-radius: 14px;
   background: #111;
   color: #aaa;
@@ -299,9 +272,10 @@
 .login-link {
   position: relative;
   z-index: 2;
-  margin-top: 24px;
+  margin-top: 12px;
   text-align: center;
   color: #aaa;
+  font-size: 13px;
 }
 
 .login-link a {
@@ -330,13 +304,9 @@
 }
 
 @media (max-width: 768px) {
-  .register-hero h1 {
-    font-size: 38px;
-  }
-
   .register-card {
-    margin: 0 18px;
-    padding: 28px;
+    margin: 0 8px;
+    padding: 18px 16px;
   }
 
   .form-row {

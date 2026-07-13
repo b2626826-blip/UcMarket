@@ -1,18 +1,21 @@
 package com.ucmarket.service;
 
-import com.ucmarket.dto.auth.AuthResponse;
-import com.ucmarket.dto.auth.AuthResponse.UserInfo;
-import com.ucmarket.dto.auth.LoginRequest;
-import com.ucmarket.dto.auth.RegisterRequest;
-import com.ucmarket.entity.User;
-import com.ucmarket.entity.UserRole;
-import com.ucmarket.entity.UserSession;
-import com.ucmarket.entity.UserStatus;
-import com.ucmarket.repository.UserRepository;
-import com.ucmarket.repository.UserSessionRepository;
-import com.ucmarket.security.JwtTokenProvider;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.math.BigDecimal;
+import java.util.Optional;
+import java.util.UUID;
+
 import org.junit.jupiter.api.BeforeEach;
-import org.springframework.test.util.ReflectionTestUtils;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -20,14 +23,18 @@ import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.test.util.ReflectionTestUtils;
 
-import java.math.BigDecimal;
-import java.util.Optional;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
-import static org.mockito.Mockito.*;
+import com.ucmarket.dto.auth.AuthResponse;
+import com.ucmarket.dto.auth.AuthResponse.UserInfo;
+import com.ucmarket.dto.auth.LoginRequest;
+import com.ucmarket.dto.auth.RegisterRequest;
+import com.ucmarket.entity.User;
+import com.ucmarket.entity.UserSession;
+import com.ucmarket.entity.UserStatus;
+import com.ucmarket.repository.UserRepository;
+import com.ucmarket.repository.UserSessionRepository;
+import com.ucmarket.security.JwtTokenProvider;
 
 @ExtendWith(MockitoExtension.class)
 class AuthServiceTest {
@@ -52,17 +59,20 @@ class AuthServiceTest {
     @Test
     void register_shouldCreateUserAndWallet() {
         RegisterRequest request = new RegisterRequest("newuser", "new@test.com", "password123");
+        String idempotencyKey = "register-123";
         when(userRepository.existsByEmail("new@test.com")).thenReturn(false);
         when(userRepository.existsByUsername("newuser")).thenReturn(false);
         when(passwordEncoder.encode("password123")).thenReturn("encodedPass");
         when(jwtTokenProvider.generateAccessToken(any())).thenReturn("access-token");
         when(jwtTokenProvider.generateRefreshToken()).thenReturn("refresh-token");
         when(jwtTokenProvider.getRefreshTokenExpiration()).thenReturn(604800000L);
+        when(userRepository.save(any())).thenAnswer(invocation -> {
+            User user = invocation.getArgument(0);
+            ReflectionTestUtils.setField(user, "id", UUID.randomUUID());
+            return user;
+        });
 
-        User savedUser = new User("newuser", "new@test.com", "encodedPass");
-        when(userRepository.save(any())).thenReturn(savedUser);
-
-        AuthResponse response = authService.register(request);
+        AuthResponse response = authService.register(request, idempotencyKey);
 
         assertNotNull(response);
         assertEquals("access-token", response.accessToken());
@@ -75,12 +85,26 @@ class AuthServiceTest {
         assertEquals("newuser", captured.getUsername());
         assertEquals("new@test.com", captured.getEmail());
 
-        verify(walletService).createWalletForUser(any());
-
-        // 流程1：註冊要送 10000 點（refType BONUS → SIGNUP_BONUS、refId 為 null）
-        verify(walletService).credit(any(), eq(new BigDecimal("10000")), eq("BONUS"), isNull(), anyString());
-
+        verify(walletService).createWalletForUser(captured.getId());
+        verify(walletService).credit(
+                eq(captured.getId()),
+                eq(new BigDecimal("10000")),
+                eq("BONUS"),
+                isNull(),
+                eq("signup:" + idempotencyKey)
+        );
         verify(userSessionRepository).save(any());
+    }
+
+    @Test
+    void register_shouldThrow_whenIdempotencyKeyMissing() {
+        RegisterRequest request = new RegisterRequest("newuser", "new@test.com", "password123");
+
+        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
+                () -> authService.register(request, " "));
+
+        assertEquals("Missing Idempotency-Key header", ex.getMessage());
+        verify(userRepository, never()).save(any());
     }
 
     @Test
@@ -88,7 +112,7 @@ class AuthServiceTest {
         RegisterRequest request = new RegisterRequest("user", "dup@test.com", "password123");
         when(userRepository.existsByEmail("dup@test.com")).thenReturn(true);
 
-        assertThrows(IllegalArgumentException.class, () -> authService.register(request));
+        assertThrows(IllegalArgumentException.class, () -> authService.register(request, "register-dup"));
         verify(userRepository, never()).save(any());
         verify(walletService, never()).createWalletForUser(any());
     }
@@ -99,7 +123,7 @@ class AuthServiceTest {
         when(userRepository.existsByEmail("e@test.com")).thenReturn(false);
         when(userRepository.existsByUsername("dupuser")).thenReturn(true);
 
-        assertThrows(IllegalArgumentException.class, () -> authService.register(request));
+        assertThrows(IllegalArgumentException.class, () -> authService.register(request, "register-dup"));
         verify(userRepository, never()).save(any());
     }
 
@@ -184,7 +208,6 @@ class AuthServiceTest {
         when(userSessionRepository.findByRefreshTokenHash(any())).thenReturn(Optional.empty());
 
         assertThrows(IllegalArgumentException.class, () -> authService.logout(userId, "some-token"));
-
         verify(userSessionRepository, never()).save(any());
     }
 
@@ -195,7 +218,6 @@ class AuthServiceTest {
         when(userSessionRepository.findByRefreshTokenHash(any())).thenReturn(Optional.of(session));
 
         assertThrows(IllegalArgumentException.class, () -> authService.logout(userId, "some-token"));
-
         verify(userSessionRepository, never()).save(any());
     }
 }

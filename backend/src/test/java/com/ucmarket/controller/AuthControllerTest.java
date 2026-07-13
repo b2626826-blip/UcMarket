@@ -1,5 +1,24 @@
 package com.ucmarket.controller;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+import java.util.UUID;
+
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ucmarket.dto.auth.AuthResponse;
 import com.ucmarket.dto.auth.AuthResponse.UserInfo;
@@ -10,20 +29,6 @@ import com.ucmarket.repository.UserRepository;
 import com.ucmarket.security.JwtTokenProvider;
 import com.ucmarket.service.AuthService;
 import com.ucmarket.service.FirebaseAuthService;
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.http.MediaType;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
-import org.springframework.test.web.servlet.MockMvc;
-
-import java.util.UUID;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(AuthController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -43,9 +48,10 @@ class AuthControllerTest {
         AuthResponse response = new AuthResponse("access", "refresh", 604800L,
                 new UserInfo(UUID.randomUUID(), "newuser", "new@test.com", "USER", "ACTIVE", 0, null, null));
 
-        when(authService.register(any())).thenReturn(response);
+        when(authService.register(any(RegisterRequest.class), any(String.class))).thenReturn(response);
 
         mockMvc.perform(post("/api/auth/register")
+                .header("Idempotency-Key", "register-123")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isCreated())
@@ -54,10 +60,28 @@ class AuthControllerTest {
     }
 
     @Test
+    void register_shouldPassIdempotencyKeyToService() throws Exception {
+        RegisterRequest request = new RegisterRequest("newuser", "new@test.com", "password123");
+        AuthResponse response = new AuthResponse("access", "refresh", 604800L,
+                new UserInfo(UUID.randomUUID(), "newuser", "new@test.com", "USER", "ACTIVE", 0, null, null));
+
+        when(authService.register(any(RegisterRequest.class), any(String.class))).thenReturn(response);
+
+        mockMvc.perform(post("/api/auth/register")
+                .header("Idempotency-Key", "register-abc")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated());
+
+        verify(authService).register(any(RegisterRequest.class), eq("register-abc"));
+    }
+
+    @Test
     void register_shouldReturn400_whenValidationFails() throws Exception {
         RegisterRequest request = new RegisterRequest("ab", "invalid-email", "12");
 
         mockMvc.perform(post("/api/auth/register")
+                .header("Idempotency-Key", "register-123")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());

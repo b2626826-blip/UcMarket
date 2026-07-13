@@ -1,0 +1,264 @@
+{
+  "info": {
+    "_postman_id": "b0f5bdf4-44b8-4e97-a5a0-5e5457df5fe2",
+    "name": "UcMarket Dev Wallet Credit",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Dev profile wallet credit flow for UcMarket. Run requests in order: login -> credit -> balance -> transactions. Register is optional if the account does not exist yet."
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:8080"
+    },
+    {
+      "key": "username",
+      "value": "a999999999"
+    },
+    {
+      "key": "email",
+      "value": "999@999.com"
+    },
+    {
+      "key": "password",
+      "value": "a999999999"
+    },
+    {
+      "key": "accessToken",
+      "value": ""
+    },
+    {
+      "key": "refreshToken",
+      "value": ""
+    },
+    {
+      "key": "userId",
+      "value": ""
+    },
+    {
+      "key": "creditAmount",
+      "value": "5000.00"
+    },
+    {
+      "key": "creditRefType",
+      "value": "BONUS"
+    },
+    {
+      "key": "creditRefId",
+      "value": ""
+    },
+    {
+      "key": "idemKey",
+      "value": "postman-credit-{{$timestamp}}"
+    }
+  ],
+  "item": [
+    {
+      "name": "1. Login Existing User",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('login ok', function () {",
+              "  pm.response.to.have.status(200);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.collectionVariables.set('accessToken', json.accessToken);",
+              "pm.collectionVariables.set('refreshToken', json.refreshToken);",
+              "pm.collectionVariables.set('userId', json.user.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/login",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "description": "Logs into the existing account, then stores accessToken, refreshToken, and userId into collection variables."
+      }
+    },
+    {
+      "name": "2. Credit Wallet",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('credit ok', function () {",
+              "  pm.response.to.have.status(200);",
+              "});"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"userId\": \"{{userId}}\",\n  \"amount\": {{creditAmount}},\n  \"refType\": \"{{creditRefType}}\",\n  \"refId\": null,\n  \"idemKey\": \"{{idemKey}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/dev/wallets/credit",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "dev",
+            "wallets",
+            "credit"
+          ]
+        },
+        "description": "DEV ONLY endpoint. Requires the backend to run with the dev profile enabled."
+      }
+    },
+    {
+      "name": "3. Check Balance",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/wallets/me/balance",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "wallets",
+            "me",
+            "balance"
+          ]
+        },
+        "description": "Checks the current logged-in user's balance."
+      }
+    },
+    {
+      "name": "4. Check Transactions",
+      "request": {
+        "auth": {
+          "type": "bearer",
+          "bearer": [
+            {
+              "key": "token",
+              "value": "{{accessToken}}",
+              "type": "string"
+            }
+          ]
+        },
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{baseUrl}}/api/wallets/me/transactions?page=0",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "wallets",
+            "me",
+            "transactions"
+          ],
+          "query": [
+            {
+              "key": "page",
+              "value": "0"
+            }
+          ]
+        },
+        "description": "Checks transaction history for the current logged-in user."
+      }
+    },
+    {
+      "name": "5. Optional Register This Account",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "type": "text/javascript",
+            "exec": [
+              "pm.test('register ok', function () {",
+              "  pm.response.to.have.status(201);",
+              "});",
+              "var json = pm.response.json();",
+              "pm.collectionVariables.set('accessToken', json.accessToken);",
+              "pm.collectionVariables.set('refreshToken', json.refreshToken);",
+              "pm.collectionVariables.set('userId', json.user.id);"
+            ]
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"username\": \"{{username}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+        },
+        "url": {
+          "raw": "{{baseUrl}}/api/auth/register",
+          "host": [
+            "{{baseUrl}}"
+          ],
+          "path": [
+            "api",
+            "auth",
+            "register"
+          ]
+        },
+        "description": "Use this only if the account does not exist yet. Register will also trigger the signup bonus flow."
+      }
+    }
+  ]
+}

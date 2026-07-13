@@ -24,7 +24,6 @@ import com.ucmarket.security.JwtTokenProvider;
 @Transactional
 public class AuthService {
 
-    // 流程1：註冊送點金額（負責人已同意 10000）
     private static final BigDecimal SIGNUP_BONUS_POINTS = new BigDecimal("10000");
 
     private final UserRepository userRepository;
@@ -42,7 +41,10 @@ public class AuthService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    public AuthResponse register(RegisterRequest request) {
+    public AuthResponse register(RegisterRequest request, String idempotencyKey) {
+        if (idempotencyKey == null || idempotencyKey.isBlank()) {
+            throw new IllegalArgumentException("Missing Idempotency-Key header");
+        }
         if (userRepository.existsByEmail(request.email())) {
             throw new IllegalArgumentException("Email already registered");
         }
@@ -54,10 +56,7 @@ public class AuthService {
         userRepository.save(user);
 
         walletService.createWalletForUser(user.getId());
-
-        // 流程1：註冊送點。與建 user / 建錢包同屬 register 的 @Transactional → 一起成功 / 一起回滾。
-        // idemKey = signup-{userId}（可推導、每人一次）→ 萬一 register 重送也不會重複送點。
-        walletService.credit(user.getId(), SIGNUP_BONUS_POINTS, "BONUS", null, "signup-" + user.getId());
+        walletService.credit(user.getId(), SIGNUP_BONUS_POINTS, "BONUS", null, "signup:" + idempotencyKey);
 
         return buildAuthResponse(user);
     }

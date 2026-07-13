@@ -4,6 +4,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -27,8 +28,9 @@ public class TradeController {
 	@PostMapping
 	public ResponseEntity<Trade> placeTrade(
 			@AuthenticationPrincipal User user,
+			@RequestHeader(value = "Idempotency-Key", required = false) String idempotencyKey,
 			@Valid @RequestBody TradeRequest request) {
-		Trade trade = tradeService.placeTrade(user.getId(), request);
+		Trade trade = tradeService.placeTrade(user.getId(), request, idempotencyKey);
 		return ResponseEntity.ok(trade);
 	}
 }

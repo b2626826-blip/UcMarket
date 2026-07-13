@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.UUID;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,6 +13,7 @@ import com.ucmarket.entity.Market;
 import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.entity.Trade;
 import com.ucmarket.entity.TradeAction;
+import com.ucmarket.exception.IdempotencyConflictException;
 import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.TradeRepository;
 
@@ -37,17 +39,23 @@ public class TradeService {
 	}
 
 	@Transactional
-	public Trade placeTrade(UUID userId, TradeRequest request) {
+	public Trade placeTrade(UUID userId, TradeRequest request, String idempotencyKey) {
+		requireIdempotencyKey(idempotencyKey);
+		Trade existingTrade = tradeRepository.findByIdempotencyKey(idempotencyKey).orElse(null);
+		if (existingTrade != null) {
+			return verifyExistingTrade(existingTrade, userId, request, idempotencyKey);
+		}
+
 		Market market = marketRepository.findByIdForUpdate(request.marketId())
-				.orElseThrow(() -> new RuntimeException("市場不存在"));
+				.orElseThrow(() -> new RuntimeException("Market not found"));
 		if (market.getStatus() != MarketStatus.ACTIVE) {
-			throw new IllegalStateException("該市場目前無法下單");
+			throw new IllegalStateException("Market is not active");
 		}
 
 		BigDecimal amount = request.amount();
 		BigDecimal currentOdds = tradeQuoteService.getMarketOdds(market, request.side());
 		if (currentOdds.compareTo(new BigDecimal("1.5")) < 0 || currentOdds.compareTo(new BigDecimal("5.0")) > 0) {
-			throw new IllegalStateException("目前賠率超出允許範圍 (1.5 - 5.0)，無法下單");
+			throw new IllegalStateException("Trade odds are outside the allowed range");
 		}
 
 		BigDecimal shares = amount.divide(currentOdds, 8, RoundingMode.HALF_UP);
@@ -58,11 +66,20 @@ public class TradeService {
 				TradeAction.BUY,
 				amount,
 				currentOdds,
-				shares
+				shares,
+				idempotencyKey
 		);
-		Trade savedTrade = tradeRepository.save(trade);
-		String idemKey = "TRADE_BUY_" + savedTrade.getId();
-		walletService.debit(userId, amount, "TRADE", savedTrade.getId(), idemKey);
+
+		Trade savedTrade;
+		try {
+			savedTrade = tradeRepository.saveAndFlush(trade);
+		} catch (DataIntegrityViolationException ex) {
+			Trade retryTrade = tradeRepository.findByIdempotencyKey(idempotencyKey)
+					.orElseThrow(() -> ex);
+			return verifyExistingTrade(retryTrade, userId, request, idempotencyKey);
+		}
+
+		walletService.debit(userId, amount, "TRADE", savedTrade.getId(), idempotencyKey);
 		positionService.addBuyPosition(userId, request.marketId(), request.side(), shares, amount);
 
 		market.buy(request.side(), amount);
@@ -78,5 +95,22 @@ public class TradeService {
 		priceHistoryService.record(market.getId(), yesPrice, noPrice, amount);
 
 		return savedTrade;
+	}
+
+	private void requireIdempotencyKey(String idempotencyKey) {
+		if (idempotencyKey == null || idempotencyKey.isBlank()) {
+			throw new IllegalArgumentException("Missing Idempotency-Key header");
+		}
+	}
+
+	private Trade verifyExistingTrade(Trade trade, UUID userId, TradeRequest request, String idempotencyKey) {
+		if (!trade.getUserId().equals(userId)
+				|| !trade.getMarketId().equals(request.marketId())
+				|| trade.getSide() != request.side()
+				|| trade.getAction() != TradeAction.BUY
+				|| trade.getAmount().compareTo(request.amount()) != 0) {
+			throw new IdempotencyConflictException(idempotencyKey);
+		}
+		return trade;
 	}
 }
