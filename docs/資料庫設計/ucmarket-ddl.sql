@@ -94,6 +94,7 @@ CREATE TABLE markets (
     image_url TEXT,
     resolution_rule TEXT,
     market_type VARCHAR(32) NOT NULL DEFAULT 'BINARY',
+    metadata JSONB,
     creator_id UUID NOT NULL,
     close_at TIMESTAMP NOT NULL,
     status VARCHAR(32) NOT NULL DEFAULT 'DRAFT',
