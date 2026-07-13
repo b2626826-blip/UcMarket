@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import DetailPageTemplate from '../../../components/common/DetailPageTemplate';
 import TradingViewWidget from '../../../components/finance/TradingViewWidget';
 import TradingViewNewsWidget from '../../../components/finance/TradingViewNewsWidget';
+import './FinanceDetailPage.css';
 
 export default function FinanceDetailPage() {
   const { id } = useParams();
@@ -16,7 +17,7 @@ export default function FinanceDetailPage() {
       settlementRule="本市場預測比特幣（BTC）現貨價格是否會於 2025 年 12 月 31 日 23:59（UTC+8）前首次突破並觸及 100,000 美元。若在截止時間前曾達到或超過 100,000 美元，即判定為 YES；否則為 NO。"
       marketId={id}
     >
-      <div className="trade-market-card">
+      <div className="trade-market-card finance-market-card">
         <div className="trade-card-header" style={{ marginBottom: 24 }}>
           <div>
             <div className="market-type">
@@ -32,6 +33,7 @@ export default function FinanceDetailPage() {
         </div>
 
         <div
+          className="finance-embed finance-chart-embed"
           style={{
             height: 560,
             minHeight: 560,
@@ -64,6 +66,7 @@ export default function FinanceDetailPage() {
           </div>
 
           <div
+            className="finance-embed finance-news-embed"
             style={{
               borderRadius: 16,
               overflow: 'hidden',
