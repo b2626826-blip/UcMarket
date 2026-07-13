@@ -1,90 +1,296 @@
-﻿import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import useAuthStore from '../../store/authStore';
 import useGlowEffect from '../../hooks/useGlowEffect';
-import { placeTrade } from '../../api/marketApi';
+import { getMarketOdds, getTradeQuote, placeTrade } from '../../api/marketApi';
+import './TradePanel.css';
 
-const FIXED_ODDS = {
-  YES: 1.62,
-  NO: 2.63,
+const FALLBACK_ODDS = {
+  YES: 1.82,
+  NO: 2.22,
 };
+
+const QUICK_BETS = [10, 50, 100, 500];
 
 export default function TradePanel({ marketId, market, side, onSideChange }) {
   const user = useAuthStore((state) => state.user);
   const [internalSide, setInternalSide] = useState('YES');
   const [amount, setAmount] = useState('');
   const [btnState, setBtnState] = useState({ text: '', bg: '' });
+  const [marketOdds, setMarketOdds] = useState(null);
+  const [quotedOdds, setQuotedOdds] = useState(null);
 
   useGlowEffect('.trade-panel');
 
   const tradeSide = side !== undefined ? side : internalSide;
-  const setTradeSide = (val) => {
-    if (onSideChange) onSideChange(val);
-    else setInternalSide(val);
+  const setTradeSide = (nextSide) => {
+    if (onSideChange) onSideChange(nextSide);
+    else setInternalSide(nextSide);
   };
 
-  const yesPrice = market?.yesPrice ?? 0.55;
-  const noPrice = market?.noPrice ?? 0.45;
+  const amountNumber = Number(amount) || 0;
+  const marketTitle = market?.title || `市場 #${marketId}`;
+  const balance = formatCurrency(resolveBalance(user));
+  const liveOdds = resolveDisplayedOdds({
+    quotedOdds,
+    marketOdds,
+    market,
+    side: tradeSide,
+  });
+  const shares = liveOdds > 0 ? amountNumber / liveOdds : 0;
+  const estimatedPayout = shares * liveOdds;
+  const canSubmit = Boolean(user && market?.id);
 
-  const dynamicOdds = {
-    YES: yesPrice > 0 ? +(1 / yesPrice).toFixed(2) : FIXED_ODDS.YES,
-    NO: noPrice > 0 ? +(1 / noPrice).toFixed(2) : FIXED_ODDS.NO,
-  };
+  useEffect(() => {
+    let active = true;
 
-  const odds = market ? dynamicOdds[tradeSide] : FIXED_ODDS[tradeSide];
+    if (!marketId) {
+      setMarketOdds(null);
+      return undefined;
+    }
 
-  const betAmount = Number(amount) || 0;
-  const estimatedReturn = betAmount * odds;
+    getMarketOdds(marketId)
+      .then((response) => {
+        if (!active) return;
+        setMarketOdds(response);
+      })
+      .catch(() => {
+        if (!active) return;
+        setMarketOdds(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [marketId]);
+
+  useEffect(() => {
+    let active = true;
+
+    if (!marketId || !amountNumber) {
+      setQuotedOdds(null);
+      return undefined;
+    }
+
+    getTradeQuote(marketId, {
+      side: tradeSide,
+      amount: amountNumber,
+    })
+      .then((response) => {
+        if (!active) return;
+        setQuotedOdds(response);
+      })
+      .catch(() => {
+        if (!active) return;
+        setQuotedOdds(null);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [amountNumber, marketId, tradeSide]);
 
   async function handleTrade() {
-    if (!user || !market?.id) return;
-    if (!betAmount || betAmount < 10) {
-      setBtnState({ text: '最低下注金額 10', bg: '#ff476d' });
-      setTimeout(() => setBtnState({ text: '', bg: '' }), 2500);
+    if (!user) {
+      showButtonState('請先登入後再交易', '#ff476d');
       return;
     }
-    if (betAmount > 50000) {
-      setBtnState({ text: '下注金額過高', bg: '#ff476d' });
-      setTimeout(() => setBtnState({ text: '', bg: '' }), 2500);
+
+    if (!market?.id) {
+      showButtonState('找不到可交易的市場', '#ff476d');
+      return;
+    }
+
+    if (!amountNumber || amountNumber < 10) {
+      showButtonState('請輸入至少 10 USDC', '#ff476d');
+      return;
+    }
+
+    if (amountNumber > 50000) {
+      showButtonState('交易金額不可超過上限', '#ff476d');
       return;
     }
 
     try {
-      setBtnState({ text: '處理中...', bg: '#d9aa43' });
+      setBtnState({ text: '交易送出中...', bg: '#d9aa43' });
       await placeTrade({
         marketId: market.id,
         side: tradeSide,
-        amount: Number(amount),
+        amount: amountNumber,
       });
-      setBtnState({ text: '交易成功', bg: '#00d66f' });
+      setBtnState({ text: '交易已送出', bg: '#00d66f' });
       setAmount('');
+      setQuotedOdds(null);
     } catch (err) {
-      const message = err?.response?.data?.message || err.message || '交易失敗';
-      setBtnState({ text: message, bg: '#ff476d' });
-    } finally {
-      setTimeout(() => setBtnState({ text: '', bg: '' }), 2500);
+      showButtonState(err?.message || '交易失敗', '#ff476d');
+      return;
     }
+
+    window.setTimeout(() => setBtnState({ text: '', bg: '' }), 2500);
+  }
+
+  function showButtonState(text, bg) {
+    setBtnState({ text, bg });
+    window.setTimeout(() => setBtnState({ text: '', bg: '' }), 2500);
+  }
+
+  function addQuickBet(value) {
+    const nextAmount = amountNumber + value;
+    setAmount(String(nextAmount));
   }
 
   return (
-    <div className="trade-panel">
-      <h3 style={{ fontSize: 20, marginBottom: 14 }}>交易面板</h3>
-      {!user && <p style={{ color: 'var(--gold)', fontSize: 14, marginBottom: 12 }}>請先登入後再下注</p>}
-      <div className="trade-choice">
-        <button className={tradeSide === 'YES' ? 'active' : ''} data-choice="YES" onClick={() => setTradeSide('YES')}>YES</button>
-        <button className={tradeSide === 'NO' ? 'active' : ''} data-choice="NO" onClick={() => setTradeSide('NO')}>NO</button>
+    <div className="trade-panel trade-panel--revamp">
+      <div className="trade-panel__header">
+        <div>
+          <h3>立即交易</h3>
+        </div>
       </div>
-      <div className="trade-form">
-        <label>目前賠率</label>
-        <div className="readonly-box" id="currentOdds">{odds.toFixed(2)}x</div>
-        <label>下注金額</label>
-        <input id="tradeAmount" placeholder="輸入下注金額" value={amount} onChange={(event) => setAmount(event.target.value)} />
-        <label>預期回報</label>
-        <div className="readonly-box" style={{ color: 'var(--green)' }} id="estimatedReturn">${estimatedReturn.toFixed(2)}</div>
+
+      <div className="trade-panel__market-box">
+        <span>市場</span>
+        <strong>{marketTitle}</strong>
       </div>
-      <button className="submit-trade-btn" onClick={handleTrade} disabled={!user} style={btnState.bg ? { background: btnState.bg } : undefined} id="submitTradeBtn" data-market-id={marketId}>
-        {btnState.text || '送出交易'}
-      </button>
-      <p className="trade-warning">預測市場涉及風險，下注前請自行評估。</p>
+
+      {!user && (
+        <p className="trade-panel__login-hint">請先登入後再下單</p>
+      )}
+
+      <div className="trade-panel__side-switch">
+        <button
+          type="button"
+          className={tradeSide === 'YES' ? 'active yes' : 'yes'}
+          onClick={() => setTradeSide('YES')}
+        >
+          YES
+        </button>
+        <button
+          type="button"
+          className={tradeSide === 'NO' ? 'active no' : 'no'}
+          onClick={() => setTradeSide('NO')}
+        >
+          NO
+        </button>
+      </div>
+
+      <div className="trade-panel__form">
+        <label htmlFor="currentOdds">賠率</label>
+        <div className="trade-panel__input-box">
+          <input id="currentOdds" value={liveOdds.toFixed(4)} readOnly />
+          <span>x</span>
+        </div>
+
+        <div className="trade-panel__field-head">
+          <label htmlFor="tradeAmount">交易金額</label>
+          <span className="trade-panel__balance-inline">可用餘額 {balance} USDC</span>
+        </div>
+        <div className="trade-panel__input-box">
+          <input
+            id="tradeAmount"
+            type="number"
+            min="0"
+            step="1"
+            value={amount}
+            placeholder="請輸入交易金額"
+            onChange={(event) => setAmount(event.target.value)}
+          />
+          <span>USDC</span>
+        </div>
+
+        <div className="trade-panel__quick-bets">
+          {QUICK_BETS.map((value) => (
+            <button key={value} type="button" onClick={() => addQuickBet(value)}>
+              {value}
+            </button>
+          ))}
+        </div>
+
+        <div className="trade-panel__summary">
+          <div>
+            <span>預估持有股數</span>
+            <strong>{shares.toFixed(4)}</strong>
+          </div>
+          <div>
+            <span>預估回報</span>
+            <strong>${estimatedPayout.toFixed(2)}</strong>
+          </div>
+        </div>
+
+        <button
+          className="submit-trade-btn trade-panel__submit"
+          onClick={handleTrade}
+          disabled={!canSubmit}
+          style={btnState.bg ? { background: btnState.bg } : undefined}
+          id="submitTradeBtn"
+          data-market-id={marketId}
+          type="button"
+        >
+          {btnState.text || `買入 ${tradeSide}`}
+        </button>
+
+        <p className="trade-panel__risk-text">
+          <i className="fa-solid fa-triangle-exclamation" /> 預測市場具有風險，請在了解規則與風險後再進行交易。
+        </p>
+      </div>
     </div>
   );
+}
+
+function resolveDisplayedOdds({ quotedOdds, marketOdds, market, side }) {
+  const quoted = Number(quotedOdds?.odds);
+  if (Number.isFinite(quoted) && quoted > 0) {
+    return quoted;
+  }
+
+  const backendOdds = Number(side === 'YES' ? marketOdds?.yesOdds : marketOdds?.noOdds);
+  if (Number.isFinite(backendOdds) && backendOdds > 0) {
+    return backendOdds;
+  }
+
+  return resolveFallbackOdds(market, side);
+}
+
+function resolveFallbackOdds(market, side) {
+  if (!market) {
+    return FALLBACK_ODDS[side];
+  }
+
+  const yesPool = Number(market.yesPool ?? 0);
+  const noPool = Number(market.noPool ?? 0);
+  const totalPool = yesPool + noPool;
+
+  if (totalPool > 0) {
+    const sidePool = side === 'YES' ? yesPool : noPool;
+    if (sidePool > 0) {
+      return clampOdds(totalPool / sidePool);
+    }
+  }
+
+  return FALLBACK_ODDS[side];
+}
+
+function clampOdds(value) {
+  return Math.min(5, Math.max(1.5, value));
+}
+
+function resolveBalance(user) {
+  const candidates = [
+    user?.balance,
+    user?.walletBalance,
+    user?.wallet?.balance,
+  ];
+
+  for (const candidate of candidates) {
+    const numericValue = Number(candidate);
+    if (Number.isFinite(numericValue)) {
+      return numericValue;
+    }
+  }
+
+  return 0;
+}
+
+function formatCurrency(value) {
+  return new Intl.NumberFormat('en-US', {
+    maximumFractionDigits: 0,
+  }).format(value);
 }

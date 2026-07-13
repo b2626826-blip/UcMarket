@@ -15,6 +15,10 @@ export function getMarketOdds(id) {
   return getApi('/api/markets/' + id + '/odds');
 }
 
+export function getTradeQuote(marketId, request) {
+  return postApi('/api/markets/' + marketId + '/trades/quote', request);
+}
+
 export function getMarketPriceHistory(id, from, to) {
   const params = new URLSearchParams();
   if (from) params.append('from', from);
