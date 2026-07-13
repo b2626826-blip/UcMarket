@@ -26,8 +26,12 @@ export function getMarketPriceHistory(id, from, to) {
   return getApi('/api/markets/' + id + '/price-history?' + params.toString());
 }
 
-export function placeTrade(request) {
-  return postApi('/api/trades', request);
+export function placeTrade(request, idempotencyKey) {
+  return postApi(
+    '/api/trades',
+    request,
+    { headers: { 'Idempotency-Key': idempotencyKey } }
+  );
 }
 
 export function getMarketDetail(id) {

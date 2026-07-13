@@ -38,10 +38,10 @@ const useAuthStore = create((set) => ({
     }
   },
 
-  register: async (username, email, password) => {
+  register: async (username, email, password, idempotencyKey) => {
     set({ loading: true, error: null });
     try {
-      const data = await apiRegister(username, email, password);
+      const data = await apiRegister(username, email, password, idempotencyKey);
       const user = data.user || data;
       if (data.accessToken) setToken(data.accessToken);
       set({ user, loading: false });

@@ -8,8 +8,12 @@ export function login(email, password) {
   return postApi('/api/auth/login', { email, password });
 }
 
-export function register(username, email, password) {
-  return postApi('/api/auth/register', { username, email, password });
+export function register(username, email, password, idempotencyKey) {
+  return postApi(
+    '/api/auth/register',
+    { username, email, password },
+    { headers: { 'Idempotency-Key': idempotencyKey } }
+  );
 }
 
 export function logout() {

@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import useAuthStore from '../../store/authStore';
 import useGlowEffect from '../../hooks/useGlowEffect';
 import { getMarketOdds, getTradeQuote, placeTrade } from '../../api/marketApi';
+import { createIdempotencyKey } from '../../utils/idempotency';
 import './TradePanel.css';
 
 const FALLBACK_ODDS = {
@@ -18,6 +19,8 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
   const [btnState, setBtnState] = useState({ text: '', bg: '' });
   const [marketOdds, setMarketOdds] = useState(null);
   const [quotedOdds, setQuotedOdds] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const idempotencyKeyRef = useRef(null);
 
   useGlowEffect('.trade-panel');
 
@@ -25,10 +28,11 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
   const setTradeSide = (nextSide) => {
     if (onSideChange) onSideChange(nextSide);
     else setInternalSide(nextSide);
+    idempotencyKeyRef.current = null;
   };
 
   const amountNumber = Number(amount) || 0;
-  const marketTitle = market?.title || `市場 #${marketId}`;
+  const marketTitle = market?.title || `Market #${marketId}`;
   const balance = formatCurrency(resolveBalance(user));
   const liveOdds = resolveDisplayedOdds({
     quotedOdds,
@@ -38,7 +42,7 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
   });
   const shares = liveOdds > 0 ? amountNumber / liveOdds : 0;
   const estimatedPayout = shares * liveOdds;
-  const canSubmit = Boolean(user && market?.id);
+  const canSubmit = Boolean(user && market?.id && !submitting);
 
   useEffect(() => {
     let active = true;
@@ -91,38 +95,45 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
 
   async function handleTrade() {
     if (!user) {
-      showButtonState('請先登入後再交易', '#ff476d');
+      showButtonState('請先登入', '#ff476d');
       return;
     }
 
     if (!market?.id) {
-      showButtonState('找不到可交易的市場', '#ff476d');
+      showButtonState('市場暫時無法使用', '#ff476d');
       return;
     }
 
     if (!amountNumber || amountNumber < 10) {
-      showButtonState('請輸入至少 10 USDC', '#ff476d');
+      showButtonState('最小下單金額為 10 USDC', '#ff476d');
       return;
     }
 
     if (amountNumber > 50000) {
-      showButtonState('交易金額不可超過上限', '#ff476d');
+      showButtonState('下單金額超出限制', '#ff476d');
       return;
     }
 
+    const idempotencyKey = idempotencyKeyRef.current ?? createIdempotencyKey('trade');
+    idempotencyKeyRef.current = idempotencyKey;
+
     try {
-      setBtnState({ text: '交易送出中...', bg: '#d9aa43' });
+      setSubmitting(true);
+      setBtnState({ text: '提交中...', bg: '#d9aa43' });
       await placeTrade({
         marketId: market.id,
         side: tradeSide,
         amount: amountNumber,
-      });
-      setBtnState({ text: '交易已送出', bg: '#00d66f' });
+      }, idempotencyKey);
+      setBtnState({ text: '下單成功', bg: '#00d66f' });
       setAmount('');
       setQuotedOdds(null);
+      idempotencyKeyRef.current = null;
     } catch (err) {
-      showButtonState(err?.message || '交易失敗', '#ff476d');
+      showButtonState(err?.message || '下單失敗', '#ff476d');
       return;
+    } finally {
+      setSubmitting(false);
     }
 
     window.setTimeout(() => setBtnState({ text: '', bg: '' }), 2500);
@@ -134,6 +145,7 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
   }
 
   function addQuickBet(value) {
+    idempotencyKeyRef.current = null;
     const nextAmount = amountNumber + value;
     setAmount(String(nextAmount));
   }
@@ -142,7 +154,7 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
     <div className="trade-panel trade-panel--revamp">
       <div className="trade-panel__header">
         <div>
-          <h3>立即交易</h3>
+          <h3>建立交易</h3>
         </div>
       </div>
 
@@ -152,7 +164,7 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
       </div>
 
       {!user && (
-        <p className="trade-panel__login-hint">請先登入後再下單</p>
+        <p className="trade-panel__login-hint">登入後即可交易</p>
       )}
 
       <div className="trade-panel__side-switch">
@@ -180,8 +192,8 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
         </div>
 
         <div className="trade-panel__field-head">
-          <label htmlFor="tradeAmount">交易金額</label>
-          <span className="trade-panel__balance-inline">可用餘額 {balance} USDC</span>
+          <label htmlFor="tradeAmount">下單金額</label>
+          <span className="trade-panel__balance-inline">餘額 {balance} USDC</span>
         </div>
         <div className="trade-panel__input-box">
           <input
@@ -190,8 +202,11 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
             min="0"
             step="1"
             value={amount}
-            placeholder="請輸入交易金額"
-            onChange={(event) => setAmount(event.target.value)}
+            placeholder="輸入金額"
+            onChange={(event) => {
+              idempotencyKeyRef.current = null;
+              setAmount(event.target.value);
+            }}
           />
           <span>USDC</span>
         </div>
@@ -206,7 +221,7 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
 
         <div className="trade-panel__summary">
           <div>
-            <span>預估持有股數</span>
+            <span>預估份額</span>
             <strong>{shares.toFixed(4)}</strong>
           </div>
           <div>
@@ -224,11 +239,11 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
           data-market-id={marketId}
           type="button"
         >
-          {btnState.text || `買入 ${tradeSide}`}
+          {btnState.text || (submitting ? '提交中...' : `買入 ${tradeSide}`)}
         </button>
 
         <p className="trade-panel__risk-text">
-          <i className="fa-solid fa-triangle-exclamation" /> 預測市場具有風險，請在了解規則與風險後再進行交易。
+          <i className="fa-solid fa-triangle-exclamation" /> 相同提交意圖的重試會沿用同一組 idempotency key。
         </p>
       </div>
     </div>
