@@ -89,6 +89,7 @@
 @media (max-width: 768px) {
   .trade-main-column:has(.current-affairs-market-card) { min-width: 0; }
   .current-affairs-market-card { width: 100%; min-width: 0; padding: 20px; }
+  .current-affairs-overview { grid-template-columns: minmax(0, 1fr); gap: 24px; }
   .current-affairs-showcase {
     height: 220px;
     margin-bottom: 24px;
