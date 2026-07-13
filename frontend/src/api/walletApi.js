@@ -7,3 +7,7 @@ export function getWallet() {
 export function getWalletTransactions(page = 0) {
   return getApi(`/api/wallets/me/transactions?page=${page}`);
 }
+
+export function getAllWalletTransactions() {
+  return getApi('/api/wallets/me/transactions/all');
+}

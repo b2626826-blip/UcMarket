@@ -14,6 +14,8 @@ public interface WalletTransactionRepository extends JpaRepository<WalletTransac
 	// Harry 查明細：時間倒序、同秒用 id 倒序穩定排序（I-6）。Pageable 分頁
 	List<WalletTransaction> findByWalletIdOrderByCreatedAtDescIdDesc(UUID walletId, Pageable pageable);
 
+	List<WalletTransaction> findByWalletIdOrderByCreatedAtDescIdDesc(UUID walletId);
+
 	// Harry 全防重：這個 idemKey 寫過了沒（最多 0 或 1 筆）
 	Optional<WalletTransaction> findByIdempotencyKey(String idempotencyKey);
 

@@ -118,6 +118,14 @@ public class WalletService {
 
 	// ===== 查明細 =====
 	@Transactional(readOnly = true)
+	public List<WalletTransaction> getTransactions(UUID userId) {
+		Wallet wallet = walletRepository.findByUserId(userId)
+				.orElseThrow(() -> new WalletNotFoundException(userId));
+		return walletTransactionRepository
+				.findByWalletIdOrderByCreatedAtDescIdDesc(wallet.getId());
+	}
+
+	@Transactional(readOnly = true)
 	public List<WalletTransaction> getTransactions(UUID userId, int page) {
 		Wallet wallet = walletRepository.findByUserId(userId)
 				.orElseThrow(() -> new WalletNotFoundException(userId));

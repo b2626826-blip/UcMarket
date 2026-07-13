@@ -4,32 +4,37 @@ import Chart from 'chart.js/auto';
 // ══════════════════════════════════════════════════════════════════
 // 走勢圖 · Chart.js 邏輯(從 TrendCombined 抽成 hook)
 //   markup + 樣式在頁面 / test.module.css(.trend);這裡只管「畫圖 + 互動狀態」。
-//   回傳:canvasRef(掛 <canvas>)、baseOn/setBaseOn(期初基準開關)、
-//         以及上方大數字要顯示的 shownValue/diff/pct/up/dateLabel/base。
-//   ※ 動畫、Scrub 十字準線、期初紅綠對比 全部保留。
+//   ★ 吃 props:points = [{ x:交易時間戳(ms), y:結餘 }](已依時間排序)。
+//     每筆一點、放在「真實時間位置」(x 軸=時間/天),點之間平滑內插。
+//   回傳:canvasRef、baseOn/setBaseOn、上方大數字要顯示的 shownValue/diff/pct/up/dateLabel/base。
+//   ※ 揭示動畫、Scrub 十字準線、期初紅綠對比、淡軸線 全部保留。
 // ══════════════════════════════════════════════════════════════════
 const GOLD = '#d9aa43', GREEN = '#33e97f', RED = '#ff476d';
-const SERIES = [
-  { d: '6/12', v: 118000 }, { d: '6/13', v: 116500 }, { d: '6/14', v: 114200 },
-  { d: '6/15', v: 119000 }, { d: '6/16', v: 121500 }, { d: '6/17', v: 117800 },
-  { d: '6/18', v: 120400 }, { d: '6/19', v: 123600 }, { d: '6/20', v: 122100 },
-  { d: '6/21', v: 124000 }, { d: '6/22', v: 124700 }, { d: '6/23', v: 125430 },
-];
-const VALUES = SERIES.map((p) => p.v);
-const BASE = VALUES[0];
+const AXIS = '#8a8a8a';                          // 軸刻度文字(淡灰)
+const GRID = 'rgba(255,255,255,.08)';            // 橫格線(很淡)
+const fmtDate = (ms) => { const d = new Date(ms); return (d.getUTCMonth() + 1) + '/' + d.getUTCDate(); };
+const fmtMoney = (v) => (v >= 1000 ? '$' + Math.round(v / 1000) + 'k' : '$' + v);
 
-export function useTrendChart() {
+export function useTrendChart(points) {
   const canvasRef = useRef(null);
   const chartRef = useRef(null);
   const activeRef = useRef(null);
   const [active, setActive] = useState(null);
   const [baseOn, setBaseOn] = useState(false);
 
-  const last = SERIES.length - 1;
-  const shown = active == null ? last : active;
-  const diff = VALUES[shown] - BASE;
-  const pct = ((diff / BASE) * 100).toFixed(1);
+  const pts = Array.isArray(points) ? points : [];
+  const VALUES = pts.map((p) => p.y);
+  const n = VALUES.length;
+  const BASE = n ? VALUES[0] : 0;                 // 期初 = 第一筆結餘
+  const last = n - 1;
+  const shown = active == null ? last : Math.min(active, last);
+  const shownValue = n ? VALUES[shown] : 0;
+  const diff = shownValue - BASE;
+  const pct = BASE ? ((diff / BASE) * 100).toFixed(1) : '0.0';
   const up = diff >= 0;
+  // x 軸日期標籤格式隨範圍變:跨度 > 120 天 → 顯示「M月」;否則「M/D」
+  const spanDays = n >= 2 ? (pts[n - 1].x - pts[0].x) / 86400000 : 0;
+  const fmtTick = spanDays > 120 ? (ms) => (new Date(ms).getUTCMonth() + 1) + '月' : fmtDate;
 
   useEffect(() => {
     const ctx = canvasRef.current.getContext('2d');
@@ -39,12 +44,12 @@ export function useTrendChart() {
 
     const dataset = baseOn
       ? {
-          data: VALUES, borderWidth: 3, tension: 0.35, pointRadius: 0, pointHoverRadius: 0,
+          data: pts, borderWidth: 3, tension: 0.35, pointRadius: 0, pointHoverRadius: 0,
           fill: { target: { value: BASE }, above: 'rgba(51,233,127,.18)', below: 'rgba(255,71,109,.18)' },
           segment: { borderColor: (c) => (c.p1.parsed.y >= BASE ? GREEN : RED) },
         }
       : {
-          data: VALUES, borderColor: GOLD, backgroundColor: goldGrad, fill: true,
+          data: pts, borderColor: GOLD, backgroundColor: goldGrad, fill: true,
           borderWidth: 3, tension: 0.35, pointRadius: 0, pointHoverRadius: 0,
         };
 
@@ -95,7 +100,6 @@ export function useTrendChart() {
     };
 
     // 「由左到右揭示」動畫:用連續 clip 逐像素露出線條 → 絲滑,跟資料點數無關(無節點顆粒感)。
-    // reveal 0→1 由下面的 requestAnimationFrame 驅動;plugin 每幀依 reveal 裁切繪圖區。
     let reveal = 0, revealRaf = null;
     const revealPlugin = {
       id: 'reveal',
@@ -112,13 +116,29 @@ export function useTrendChart() {
 
     chartRef.current = new Chart(ctx, {
       type: 'line',
-      data: { labels: SERIES.map((p) => p.d), datasets: [dataset] },
+      data: { datasets: [dataset] },             // 每筆 {x,y};x 軸依真實時間定位
       options: {
         responsive: true, maintainAspectRatio: false,
-        animation: false,                        // 關掉 Chart.js 內建動畫,改用下面的 clip 揭示
+        animation: false,                        // 關掉內建動畫,改用下面的 clip 揭示
         interaction: { mode: 'index', intersect: false },
         plugins: { legend: { display: false }, tooltip: { enabled: false } },
-        scales: { x: { display: false }, y: { display: false } },
+        scales: {
+          // x 軸:時間(以毫秒 linear 定位,免裝 date adapter),刻度格式化成日期
+          x: {
+            type: 'linear',
+            min: n ? pts[0].x : undefined,        // 夾住資料頭尾 → 消除 Chart.js linear 軸自動留的前後空白
+            max: n ? pts[n - 1].x : undefined,
+            grid: { display: false },            // 時間軸不畫縱格線
+            border: { display: false },
+            ticks: { color: AXIS, font: { size: 11 }, maxTicksLimit: 6, autoSkip: true, callback: (v) => fmtTick(v) },
+          },
+          // y 軸:金額,淡橫格線 + $ 刻度
+          y: {
+            grid: { color: GRID, drawTicks: false },
+            border: { display: false },
+            ticks: { color: AXIS, font: { size: 11 }, maxTicksLimit: 5, padding: 8, callback: (v) => fmtMoney(v) },
+          },
+        },
         onHover: (e, els) => {
           const idx = els.length ? els[0].index : null;
           if (idx !== activeRef.current) { activeRef.current = idx; setActive(idx); }
@@ -147,12 +167,12 @@ export function useTrendChart() {
       if (revealRaf) cancelAnimationFrame(revealRaf);
       chartRef.current?.destroy();
     };
-  }, [baseOn]);
+  }, [points, baseOn]);
 
   return {
     canvasRef, baseOn, setBaseOn,
-    shownValue: VALUES[shown], diff, pct, up,
-    dateLabel: active == null ? '至今' : SERIES[shown].d,
+    shownValue, diff, pct, up,
+    dateLabel: (active == null || !n) ? '至今' : fmtDate(pts[shown].x),
     base: BASE,
   };
 }
