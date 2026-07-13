@@ -7,6 +7,25 @@ export function getMarkets({ page = 0, size = 20 } = {}) {
   return getApi('/api/markets?' + params.toString());
 }
 
+export function getMarketsByCategory(category) {
+  return getApi(`/api/markets?category=${encodeURIComponent(category)}`);
+}
+
+export function getMarketOdds(id) {
+  return getApi('/api/markets/' + id + '/odds');
+}
+
+export function getMarketPriceHistory(id, from, to) {
+  const params = new URLSearchParams();
+  if (from) params.append('from', from);
+  if (to) params.append('to', to);
+  return getApi('/api/markets/' + id + '/price-history?' + params.toString());
+}
+
+export function placeTrade(request) {
+  return postApi('/api/trades', request);
+}
+
 export function getMarketDetail(id) {
   return getApi('/api/markets/' + id);
 }

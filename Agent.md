@@ -103,7 +103,7 @@ no_price = yes_pool / (yes_pool + no_pool)
 ### 3.3 前端正式化
 
 - 決定正式前端建置方式，原規劃是 React + JavaScript，樣式可用 Bootstrap 或 Tailwind。
-- 目前沒有可直接引用的 `公版/`；正式前端先以 `docs/系統設計/網站架構.md` 與 `frontend/前端資料夾檔案內容.md` 作為頁面和資料夾依據。
+- 目前沒有可直接引用的 `公版/`；正式前端先以 `docs/系統設計/網站架構.md` 與 `frontend/docs/前端資料夾檔案內容.md` 作為頁面和資料夾依據。
 - 優先完成市場列表、市場詳情、交易面板、登入狀態、錢包與持倉頁。
 - 前端只透過 REST API 溝通，不直接操作資料庫。
 

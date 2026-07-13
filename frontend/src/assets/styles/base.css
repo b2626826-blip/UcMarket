@@ -331,6 +331,25 @@ img{ max-width:100%; }
 .markets-dashboard-page{ padding-top:40px; }
 .home-dashboard{ padding-bottom:36px; align-items:stretch; }
 
+.weather-section-divider{
+  display:flex; align-items:center; gap:16px; margin:32px 0 24px; color:#555; font-size:13px;
+}
+.weather-section-divider::before,
+.weather-section-divider::after{
+  content:''; flex:1; height:1px; background:rgba(255,255,255,.08);
+}
+.weather-section-divider span{ flex-shrink:0; }
+
+.view-all-weather{ display:flex; justify-content:center; margin-top:32px; }
+.view-all-weather-link{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:12px 28px; border-radius:999px;
+  border:1px solid var(--gold); color:var(--gold);
+  font-size:15px; font-weight:600; text-decoration:none;
+  transition:all .2s ease;
+}
+.view-all-weather-link:hover{ background:rgba(217,170,67,.12); }
+
 @media(max-width:768px){
   .trend-carousel-header{ align-items:center; }
   .trend-carousel-header h2{ font-size:20px; }
