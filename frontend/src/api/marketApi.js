@@ -3,12 +3,12 @@ import { CURRENT_EVENT_CATEGORY, CURRENT_EVENT_CATEGORY_CODE } from '../types/ma
 import { getApi, postApi } from './client';
 
 export function getMarkets({ page = 0, size = 20 } = {}) {
-  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  const params = new URLSearchParams({ page: String(page), size: String(size), status: 'ACTIVE' });
   return getApi('/api/markets?' + params.toString());
 }
 
 export function getMarketsByCategory(category) {
-  return getApi(`/api/markets?category=${encodeURIComponent(category)}`);
+  return getApi(`/api/markets?category=${encodeURIComponent(category)}&status=ACTIVE`);
 }
 
 export function getMarketOdds(id) {
@@ -26,8 +26,12 @@ export function getMarketPriceHistory(id, from, to) {
   return getApi('/api/markets/' + id + '/price-history?' + params.toString());
 }
 
-export function placeTrade(request) {
-  return postApi('/api/trades', request);
+export function placeTrade(request, idempotencyKey) {
+  return postApi(
+    '/api/trades',
+    request,
+    { headers: { 'Idempotency-Key': idempotencyKey } }
+  );
 }
 
 export function getMarketDetail(id) {

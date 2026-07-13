@@ -61,8 +61,7 @@ public class MarketController {
 	public List<MarketResponse> listMarkets(
 			@RequestParam(defaultValue = "0") int page,
 			@RequestParam(defaultValue = "20") int size,
-			@RequestParam(required = false) String category,
-			@RequestParam(required = false) MarketStatus status) {
+			@RequestParam(required = false) String category) {
 		var pageable = PageRequest.of(
 				Math.max(page, 0),
 				Math.max(size, 1),
@@ -70,23 +69,13 @@ public class MarketController {
 
 		List<Market> markets;
 		if (category != null && !category.isBlank()) {
-			if (status != null) {
-				markets = marketRepository
-						.findByCategoryAndStatus(category, status, pageable)
-						.getContent();
-				return toResponses(markets);
-			}
-
-			markets = marketRepository.findByCategory(category, pageable).getContent();
+			markets = marketRepository
+					.findByCategoryAndStatus(category, MarketStatus.ACTIVE, pageable)
+					.getContent();
 			return toResponses(markets);
 		}
 
-		if (status != null) {
-			markets = marketRepository.findByStatus(status, pageable).getContent();
-			return toResponses(markets);
-		}
-
-		markets = marketRepository.findAll(pageable).getContent();
+		markets = marketRepository.findByStatus(MarketStatus.ACTIVE, pageable).getContent();
 		return toResponses(markets);
 	}
 

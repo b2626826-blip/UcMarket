@@ -93,12 +93,13 @@ class MarketControllerTest {
     }
 
     @Test
-    void listMarkets_shouldReturnAllMarkets() throws Exception {
+    void listMarkets_shouldReturnOnlyActiveMarketsByDefault() throws Exception {
         Market m = createMarket(MarketStatus.ACTIVE);
         UUID id = UUID.randomUUID();
         ReflectionTestUtils.setField(m, "id", id);
         m.setImageUrl("https://example.com/image.jpg");
-        when(marketRepository.findAll(any(Pageable.class))).thenReturn(new PageImpl<>(List.of(m)));
+        when(marketRepository.findByStatus(eq(MarketStatus.ACTIVE), any(Pageable.class)))
+                .thenReturn(new PageImpl<>(List.of(m)));
         when(tradeRepository.findVolumesByMarketIds(any())).thenReturn(List.of(new MarketVolume() {
             @Override
             public UUID getMarketId() {
@@ -116,14 +117,17 @@ class MarketControllerTest {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].volume").value(250.50))
                 .andExpect(jsonPath("$[0].imageUrl").value("https://example.com/image.jpg"));
+
+        verify(marketRepository).findByStatus(eq(MarketStatus.ACTIVE), any(Pageable.class));
     }
 
     @Test
     void listMarkets_shouldFilterByCategory() throws Exception {
         Market market = createMarket(MarketStatus.ACTIVE);
 
-        when(marketRepository.findByCategory(
+        when(marketRepository.findByCategoryAndStatus(
                 eq("CURRENT_AFFAIRS"),
+                eq(MarketStatus.ACTIVE),
                 any(Pageable.class)))
                 .thenReturn(new PageImpl<>(List.of(market)));
 
@@ -133,13 +137,14 @@ class MarketControllerTest {
                 .andExpect(jsonPath("$.length()").value(1))
                 .andExpect(jsonPath("$[0].volume").value(0));
 
-        verify(marketRepository).findByCategory(
+        verify(marketRepository).findByCategoryAndStatus(
                 eq("CURRENT_AFFAIRS"),
+                eq(MarketStatus.ACTIVE),
                 any(Pageable.class));
     }
 
     @Test
-    void listMarkets_shouldFilterByStatus() throws Exception {
+    void listMarkets_shouldIgnoreRequestedNonPublicStatus() throws Exception {
         Market market = createMarket(MarketStatus.ACTIVE);
 
         when(marketRepository.findByStatus(
@@ -148,13 +153,11 @@ class MarketControllerTest {
                 .thenReturn(new PageImpl<>(List.of(market)));
 
         mockMvc.perform(get("/api/markets")
-                .param("status", "ACTIVE"))
+                .param("status", "PENDING"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1));
 
-        verify(marketRepository).findByStatus(
-                eq(MarketStatus.ACTIVE),
-                any(Pageable.class));
+        verify(marketRepository).findByStatus(eq(MarketStatus.ACTIVE), any(Pageable.class));
     }
 
     @Test
@@ -241,7 +244,7 @@ class MarketControllerTest {
     }
 
     @Test
-    void listMarkets_shouldFilterByCategoryAndStatus() throws Exception {
+    void listMarkets_shouldReturnOnlyActiveMarketsForCategory() throws Exception {
         Market market = createMarket(MarketStatus.ACTIVE);
 
         when(marketRepository.findByCategoryAndStatus(
@@ -251,8 +254,7 @@ class MarketControllerTest {
                 .thenReturn(new PageImpl<>(List.of(market)));
 
         mockMvc.perform(get("/api/markets")
-                .param("category", "CURRENT_AFFAIRS")
-                .param("status", "ACTIVE"))
+                .param("category", "CURRENT_AFFAIRS"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(1));
 

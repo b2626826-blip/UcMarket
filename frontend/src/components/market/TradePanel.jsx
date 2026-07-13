@@ -1,7 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import useAuthStore from '../../store/authStore';
+import useWalletStore from '../../store/walletStore';
 import useGlowEffect from '../../hooks/useGlowEffect';
 import { getMarketOdds, getTradeQuote, placeTrade } from '../../api/marketApi';
+import { createIdempotencyKey } from '../../utils/idempotency';
 import './TradePanel.css';
 
 const FALLBACK_ODDS = {
@@ -13,11 +15,15 @@ const QUICK_BETS = [10, 50, 100, 500];
 
 export default function TradePanel({ marketId, market, side, onSideChange }) {
   const user = useAuthStore((state) => state.user);
+  const walletBalance = useWalletStore((state) => state.balance);
+  const fetchWallet = useWalletStore((state) => state.fetchWallet);
   const [internalSide, setInternalSide] = useState('YES');
   const [amount, setAmount] = useState('');
   const [btnState, setBtnState] = useState({ text: '', bg: '' });
   const [marketOdds, setMarketOdds] = useState(null);
   const [quotedOdds, setQuotedOdds] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const idempotencyKeyRef = useRef(null);
 
   useGlowEffect('.trade-panel');
 
@@ -25,11 +31,12 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
   const setTradeSide = (nextSide) => {
     if (onSideChange) onSideChange(nextSide);
     else setInternalSide(nextSide);
+    idempotencyKeyRef.current = null;
   };
 
   const amountNumber = Number(amount) || 0;
   const marketTitle = market?.title || `市場 #${marketId}`;
-  const balance = formatCurrency(resolveBalance(user));
+  const balance = formatCurrency(walletBalance);
   const liveOdds = resolveDisplayedOdds({
     quotedOdds,
     marketOdds,
@@ -38,10 +45,15 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
   });
   const shares = liveOdds > 0 ? amountNumber / liveOdds : 0;
   const estimatedPayout = shares * liveOdds;
-  const canSubmit = Boolean(user && market?.id);
+  const canSubmit = Boolean(user && marketId && !submitting);
+
+  useEffect(() => {
+    if (user) fetchWallet();
+  }, [fetchWallet, user]);
 
   useEffect(() => {
     let active = true;
+    idempotencyKeyRef.current = null;
 
     if (!marketId) {
       setMarketOdds(null);
@@ -95,7 +107,7 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
       return;
     }
 
-    if (!market?.id) {
+    if (!marketId) {
       showButtonState('找不到可交易的市場', '#ff476d');
       return;
     }
@@ -110,19 +122,27 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
       return;
     }
 
+    const idempotencyKey = idempotencyKeyRef.current ?? createIdempotencyKey('trade');
+    idempotencyKeyRef.current = idempotencyKey;
+
     try {
+      setSubmitting(true);
       setBtnState({ text: '交易送出中...', bg: '#d9aa43' });
       await placeTrade({
-        marketId: market.id,
+        marketId,
         side: tradeSide,
         amount: amountNumber,
-      });
+      }, idempotencyKey);
+      await fetchWallet();
       setBtnState({ text: '交易已送出', bg: '#00d66f' });
       setAmount('');
       setQuotedOdds(null);
+      idempotencyKeyRef.current = null;
     } catch (err) {
       showButtonState(err?.message || '交易失敗', '#ff476d');
       return;
+    } finally {
+      setSubmitting(false);
     }
 
     window.setTimeout(() => setBtnState({ text: '', bg: '' }), 2500);
@@ -134,6 +154,7 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
   }
 
   function addQuickBet(value) {
+    idempotencyKeyRef.current = null;
     const nextAmount = amountNumber + value;
     setAmount(String(nextAmount));
   }
@@ -191,7 +212,10 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
             step="1"
             value={amount}
             placeholder="請輸入交易金額"
-            onChange={(event) => setAmount(event.target.value)}
+            onChange={(event) => {
+              idempotencyKeyRef.current = null;
+              setAmount(event.target.value);
+            }}
           />
           <span>USDC</span>
         </div>
@@ -224,7 +248,7 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
           data-market-id={marketId}
           type="button"
         >
-          {btnState.text || `買入 ${tradeSide}`}
+          {btnState.text || (submitting ? '交易送出中...' : `買入 ${tradeSide}`)}
         </button>
 
         <p className="trade-panel__risk-text">
@@ -270,23 +294,6 @@ function resolveFallbackOdds(market, side) {
 
 function clampOdds(value) {
   return Math.min(5, Math.max(1.5, value));
-}
-
-function resolveBalance(user) {
-  const candidates = [
-    user?.balance,
-    user?.walletBalance,
-    user?.wallet?.balance,
-  ];
-
-  for (const candidate of candidates) {
-    const numericValue = Number(candidate);
-    if (Number.isFinite(numericValue)) {
-      return numericValue;
-    }
-  }
-
-  return 0;
 }
 
 function formatCurrency(value) {
