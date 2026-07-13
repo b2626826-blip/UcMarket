@@ -388,12 +388,14 @@ class RankingRepositoryTest {
 
 		jdbcTemplate.update("""
 				INSERT INTO market_price_history (
+					id,
 					market_id,
 					yes_price,
 					no_price,
-					trade_volume
+					trade_volume,
+					recorded_at
 				)
-				VALUES (?, ?, ?, ?)
+				VALUES (random_uuid(), ?, ?, ?, ?, CURRENT_TIMESTAMP)
 				""",
 				marketId,
 				0.70,

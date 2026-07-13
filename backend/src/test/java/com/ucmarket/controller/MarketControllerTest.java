@@ -76,8 +76,6 @@ class MarketControllerTest {
     private UserRepository userRepository;
     @MockitoBean
     private PriceHistoryService priceHistoryService;
-    @MockitoBean
-    private TradeRepository tradeRepository;
 
     private static final UUID AUTH_USER_ID = UUID.randomUUID();
 
