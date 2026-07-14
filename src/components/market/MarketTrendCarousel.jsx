@@ -1,64 +1,65 @@
-import { useEffect, useRef, useState } from 'react';
-import Chart from 'chart.js/auto';
-
-const MONTHS = ['1月', '2月', '3月', '4月', '5月', '6月', '7月', '8月', '9月', '10月', '11月', '12月'];
+import { useEffect, useState } from 'react';
+import politicsPreview from '../../assets/trend-carousel-politics-preview.png';
 
 const trendSlides = [
   {
-    category: '加密貨幣',
+    category: '\u52a0\u5bc6\u8ca8\u5e63',
     icon: 'fa-bitcoin-sign',
-    title: '比特幣會在 2027 年前突破 200,000 美元嗎？',
-    subtitle: '市場信心持續升溫，YES 機率逐月走高',
-    yes: [38, 42, 45, 49, 54, 59, 63, 68, 72, 76, 79, 82],
+    title: '\u6bd4\u7279\u5e63\u6703\u5728 2027 \u5e74\u524d\u7a81\u7834 200,000 \u7f8e\u5143\u55ce\uff1f',
+    subtitle: '\u5e02\u5834\u4fe1\u5fc3\u6301\u7e8c\u5347\u6eab\uff0cYES \u6a5f\u7387\u9010\u6708\u8d70\u9ad8',
   },
   {
-    category: '金融政策',
+    category: '\u91d1\u878d\u653f\u7b56',
     icon: 'fa-building-columns',
-    title: 'Fed 會在 2026 年底前降息兩次以上嗎？',
-    subtitle: '通膨與就業數據牽動市場降息預期',
-    yes: [46, 48, 51, 55, 53, 58, 61, 64, 62, 67, 70, 73],
+    title: 'Fed \u6703\u5728 2026 \u5e74\u5e95\u524d\u518d\u6b21\u964d\u606f\u55ce\uff1f',
+    subtitle: '\u901a\u81a8\u653e\u7de9\u8207\u5c31\u696d\u6578\u64da\uff0c\u6b63\u5728\u62c9\u9ad8\u5e02\u5834\u62bc\u6ce8',
   },
   {
-    category: '國際政治',
+    category: '\u570b\u969b\u653f\u6cbb',
     icon: 'fa-landmark-flag',
-    title: '共和黨會贏得下一屆美國總統大選嗎？',
-    subtitle: '選情波動加劇，兩方機率持續拉鋸',
-    yes: [51, 49, 52, 48, 54, 56, 53, 57, 59, 58, 61, 64],
+    title: '2026 \u7f8e\u570b\u671f\u4e2d\u9078\u8209\u6703\u51fa\u73fe\u653f\u9ee8\u7ffb\u76e4\u55ce\uff1f',
+    subtitle: '\u767d\u5bae\u8207\u570b\u6703\u89d2\u529b\u5347\u6eab\uff0c\u9078\u60c5\u6b63\u5728\u5feb\u901f\u8b8a\u5316',
   },
   {
-    category: '體育賽事',
+    category: '\u9ad4\u80b2\u8cfd\u4e8b',
     icon: 'fa-basketball',
-    title: '湖人隊能拿下下一屆 NBA 總冠軍嗎？',
-    subtitle: '交易與傷病消息讓奪冠賠率快速變動',
-    yes: [32, 35, 39, 37, 42, 46, 44, 49, 53, 51, 56, 60],
+    title: '\u54ea\u4e00\u652f\u7403\u968a\u6700\u6709\u6a5f\u6703\u596a\u4e0b\u4e0b\u4e00\u5ea7 NBA \u51a0\u8ecd\uff1f',
+    subtitle: '\u6230\u529b\u3001\u50b7\u75c5\u8207\u4ea4\u6613\u52d5\u614b\uff0c\u6301\u7e8c\u63a8\u52d5\u76e4\u52e2\u6ce2\u52d5',
   },
   {
-    category: '天氣氣候',
+    category: '\u5929\u6c23\u6c23\u5019',
     icon: 'fa-cloud-rain',
-    title: '本週台北降雨天數會超過三天嗎？',
-    subtitle: '依最新氣象模型與市場交易即時更新',
-    yes: [58, 62, 60, 66, 70, 68, 73, 77, 74, 79, 83, 86],
+    title: '\u4eca\u5e74\u98b1\u98a8\u5b63\u6703\u51fa\u73fe\u66f4\u591a\u5f37\u70c8\u98b1\u98a8\u4fb5\u53f0\u55ce\uff1f',
+    subtitle: '\u6d77\u6eab\u8207\u74b0\u6d41\u8b8a\u5316\uff0c\u8b93\u6975\u7aef\u6c23\u5019\u6a5f\u7387\u518d\u5347\u9ad8',
   },
 ];
+
+const previousLabel = '\u4e0a\u4e00\u500b\u9810\u6e2c\u4e3b\u984c';
+const nextLabel = '\u4e0b\u4e00\u500b\u9810\u6e2c\u4e3b\u984c';
+const topicLabel = '\u9810\u6e2c\u4e3b\u984c';
+const taipeiLabel = '\u53f0\u5317\u6642\u9593 (UTC+8)';
+const yesLabel = 'YES \u50f9\u683c';
+const noLabel = 'NO \u50f9\u683c';
+const imageAlt = '2026 \u7f8e\u570b\u671f\u4e2d\u9078\u8209\u9810\u6e2c\u8f2a\u64ad\u9810\u89bd\u5716';
 
 export default function MarketTrendCarousel() {
   const [activeIndex, setActiveIndex] = useState(0);
   const [taipeiTime, setTaipeiTime] = useState('');
-  const canvasRef = useRef(null);
-  const chartRef = useRef(null);
   const slide = trendSlides[activeIndex];
 
   useEffect(() => {
     const updateTime = () => {
-      setTaipeiTime(new Date().toLocaleString('zh-TW', {
-        timeZone: 'Asia/Taipei',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-        hour: '2-digit',
-        minute: '2-digit',
-        second: '2-digit',
-      }));
+      setTaipeiTime(
+        new Date().toLocaleString('zh-TW', {
+          timeZone: 'Asia/Taipei',
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+          hour: '2-digit',
+          minute: '2-digit',
+          second: '2-digit',
+        }),
+      );
     };
 
     updateTime();
@@ -71,98 +72,15 @@ export default function MarketTrendCarousel() {
       setActiveIndex((index) => (index + 1) % trendSlides.length);
     }, 6500);
     return () => clearInterval(timer);
-  }, [activeIndex]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
-
-    const context = canvas.getContext('2d');
-    const gradient = context.createLinearGradient(0, 0, 0, 400);
-    gradient.addColorStop(0, 'rgba(217, 170, 67, 0.38)');
-    gradient.addColorStop(1, 'rgba(217, 170, 67, 0)');
-    const noData = slide.yes.map((value) => 100 - value);
-
-    if (chartRef.current) chartRef.current.destroy();
-    chartRef.current = new Chart(context, {
-      type: 'line',
-      data: {
-        labels: MONTHS,
-        datasets: [
-          {
-            label: 'YES 價格',
-            data: slide.yes,
-            borderColor: '#d9aa43',
-            backgroundColor: gradient,
-            fill: true,
-            tension: 0.42,
-            borderWidth: 3,
-            pointRadius: 4,
-            pointHoverRadius: 7,
-            pointBackgroundColor: '#d9aa43',
-          },
-          {
-            label: 'NO 價格',
-            data: noData,
-            borderColor: '#00d66f',
-            backgroundColor: 'transparent',
-            fill: false,
-            tension: 0.42,
-            borderWidth: 2,
-            pointRadius: 3,
-            pointHoverRadius: 6,
-            pointBackgroundColor: '#00d66f',
-          },
-        ],
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: { duration: 650 },
-        plugins: {
-          legend: { display: false },
-          tooltip: {
-            backgroundColor: '#111',
-            titleColor: '#fff',
-            bodyColor: '#d9aa43',
-            borderColor: 'rgba(217,170,67,.35)',
-            borderWidth: 1,
-            padding: 12,
-          },
-        },
-        scales: {
-          x: { ticks: { color: '#888' }, grid: { color: 'rgba(255,255,255,.04)' } },
-          y: {
-            min: 0,
-            max: 100,
-            ticks: { color: '#888', callback: (value) => `${value}%` },
-            grid: { color: 'rgba(255,255,255,.06)' },
-          },
-        },
-      },
-    });
-
-    return () => {
-      if (chartRef.current) {
-        chartRef.current.destroy();
-        chartRef.current = null;
-      }
-    };
-  }, [slide]);
-
-  const showPrevious = () => {
-    setActiveIndex((index) => (index - 1 + trendSlides.length) % trendSlides.length);
-  };
-
-  const showNext = () => {
-    setActiveIndex((index) => (index + 1) % trendSlides.length);
-  };
+  }, []);
 
   return (
     <div className="chart-card trend-carousel">
       <div className="trend-carousel-header">
         <div className="chart-title">
-          <div className="chart-icon"><i className={`fa-solid ${slide.icon}`}></i></div>
+          <div className="chart-icon">
+            <i className={`fa-solid ${slide.icon}`}></i>
+          </div>
           <div>
             <span className="trend-carousel-category">{slide.category}</span>
             <h2>{slide.title}</h2>
@@ -171,40 +89,52 @@ export default function MarketTrendCarousel() {
         </div>
 
         <div className="trend-carousel-arrows">
-          <button type="button" onClick={showPrevious} aria-label="上一個預測主題">
+          <button
+            type="button"
+            onClick={() => setActiveIndex((index) => (index - 1 + trendSlides.length) % trendSlides.length)}
+            aria-label={previousLabel}
+          >
             <i className="fa-solid fa-chevron-left"></i>
           </button>
-          <button type="button" onClick={showNext} aria-label="下一個預測主題">
+          <button
+            type="button"
+            onClick={() => setActiveIndex((index) => (index + 1) % trendSlides.length)}
+            aria-label={nextLabel}
+          >
             <i className="fa-solid fa-chevron-right"></i>
           </button>
         </div>
       </div>
 
       <div className="chart-labels">
-        <span className="yes-dot"><i className="fa-solid fa-circle"></i> YES 價格</span>
-        <span className="no-dot"><i className="fa-solid fa-circle"></i> NO 價格</span>
+        <span className="yes-dot">
+          <i className="fa-solid fa-circle"></i> {yesLabel}
+        </span>
+        <span className="no-dot">
+          <i className="fa-solid fa-circle"></i> {noLabel}
+        </span>
       </div>
 
-      <div className="chart-container trend-carousel-chart">
-        <canvas ref={canvasRef}></canvas>
+      <div className="chart-container trend-carousel-chart trend-carousel-image-frame">
+        <img className="trend-carousel-image" src={politicsPreview} alt={imageAlt} />
       </div>
 
       <div className="trend-carousel-footer">
-        <div className="trend-carousel-dots" role="tablist" aria-label="預測主題">
+        <div className="trend-carousel-dots" role="tablist" aria-label={topicLabel}>
           {trendSlides.map((item, index) => (
             <button
               type="button"
               key={item.category}
               className={index === activeIndex ? 'active' : ''}
               onClick={() => setActiveIndex(index)}
-              aria-label={`顯示${item.category}預測`}
+              aria-label={`\u986f\u793a${item.category}\u9810\u6e2c`}
               aria-selected={index === activeIndex}
             ></button>
           ))}
         </div>
 
         <div className="chart-time">
-          <span>台北時間 (UTC+8)</span>
+          <span>{taipeiLabel}</span>
           <strong>{taipeiTime || '--'}</strong>
         </div>
       </div>
