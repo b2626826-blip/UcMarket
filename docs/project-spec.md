@@ -1,6 +1,6 @@
 # UcMarket 專題規格書
 
-> 文件定位：產品規格與未來方向。已完成範圍、實際 API、路由與資料表請以 [current-implementation.md](current-implementation.md) 為準；本文件標示「進階版」的內容不在目前程式碼或 DDL。
+> 文件定位：產品規格與未來方向。已完成範圍、實際 API、路由與資料表請以 [current-implementation.md](current-implementation.md) 為準；本文件標示「進階版」的內容不在目前程式碼或 DDL。自動化第一階段採 Java／Spring Boot，不導入 n8n。
 
 ## 1. 專題名稱
 
@@ -144,18 +144,26 @@ MVP 階段先支援二元市場。每個市場只有兩個結果：
 
 ## 8. 價格機制
 
-專題版建議使用簡化的 Yes/No 流動池模型。
+目前實作使用簡化的 Yes/No 流動池與賠率模型。
 
 每個市場有兩個池：
 
 - yes_pool：Yes 流動性
 - no_pool：No 流動性
 
-價格計算：
+畫面與價格歷史使用 pool 比例：
 
 ```text
-yes_price = no_pool / (yes_pool + no_pool)
-no_price = yes_pool / (yes_pool + no_pool)
+yes_price = yes_pool / (yes_pool + no_pool)
+no_price = no_pool / (yes_pool + no_pool)
+```
+
+下單試算使用同一側 pool 的十進位賠率，並限制在 `1.5` 至 `5.0`：
+
+```text
+yes_odds = clamp((yes_pool + no_pool) / yes_pool, 1.5, 5.0)
+no_odds = clamp((yes_pool + no_pool) / no_pool, 1.5, 5.0)
+shares = amount / odds
 ```
 
 當使用者買入 Yes：
@@ -208,6 +216,7 @@ no_price = yes_pool / (yes_pool + no_pool)
 | status | enum | draft / pending / active / closed / resolved / rejected / canceled |
 | result | enum | yes / no / null；MVP 二元市場使用 |
 | result_value | numeric | 實際結算數值；次數型市場使用 |
+| metadata | jsonb | 天氣等系統市場的結構化條件，可為 null |
 | yes_pool | numeric | Yes 流動池；MVP 二元市場使用 |
 | no_pool | numeric | No 流動池；MVP 二元市場使用 |
 | created_at | timestamp | 建立時間 |
@@ -276,6 +285,7 @@ no_price = yes_pool / (yes_pool + no_pool)
 | option_id | uuid | 目前 repository 用來篩選 binary row；現值為 null |
 | yes_price | numeric | Yes 價格；MVP 二元市場使用 |
 | no_price | numeric | No 價格；MVP 二元市場使用 |
+| option_price | numeric | 未來多選項市場價格；目前可為 null |
 | trade_volume | numeric | 成交量 |
 | recorded_at | timestamp | 紀錄時間 |
 
@@ -301,6 +311,9 @@ no_price = yes_pool / (yes_pool + no_pool)
 - `POST /api/markets`：提交市場
 - `PUT /api/markets/{id}`：編輯 DRAFT 市場
 - `POST /api/markets/{id}/submit`：送審
+- `POST /api/markets/{id}/cancel`：取消可取消的市場
+- `GET /api/markets/{id}/odds`：取得目前 Yes／No 賠率、pool 與成交量
+- `POST /api/markets/{id}/trades/quote`：交易試算
 - `GET /api/current-affairs/markets`：時事市場分頁列表
 
 ### Trading
@@ -310,6 +323,7 @@ no_price = yes_pool / (yes_pool + no_pool)
 - `GET /api/positions/me/open`：我的未結算持倉
 - `GET /api/wallets/me/balance`：錢包餘額
 - `GET /api/wallets/me/transactions`：錢包流水
+- `GET /api/wallets/me/transactions/all`：全部錢包流水
 
 ### Admin
 
@@ -318,6 +332,7 @@ no_price = yes_pool / (yes_pool + no_pool)
 - `POST /api/admin/markets/{id}/reject`：拒絕市場
 - `POST /api/admin/markets/{id}/request-changes`：要求修改
 - `POST /api/admin/markets/{id}/resolve`：結算市場
+- `POST /api/admin/weather/resolve`：手動觸發符合條件的天氣市場自動結算
 
 ### Ranking
 
@@ -374,6 +389,8 @@ no_price = yes_pool / (yes_pool + no_pool)
 - 使用者管理
 
 ## 12. 自動規則檢查器
+
+第一階段自動化架構與工作包以 `系統設計/自動化系統規劃.md` 為準：排程、通知工作、寄信與重試直接放在 Spring Boot；n8n 不納入第一階段。現有排程已涵蓋市場自動截止、價格 snapshot、天氣市場建立與天氣市場結算，但一般市場的自動預審與通知工作仍未實作。
 
 建立市場時可先做簡單檢查：
 

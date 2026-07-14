@@ -34,10 +34,11 @@ PostgreSQL
 
 ### Frontend 前端
 
-- React
+- React + Vite
 - JavaScript
-- Bootstrap 或 Tailwind CSS
-- Axios / Fetch 串接後端 REST API
+- React Router、Zustand、Bootstrap、Chart.js
+- Fetch 串接後端 REST API
+- Firebase Web SDK（OAuth）
 
 ### Backend 後端
 
@@ -46,6 +47,8 @@ PostgreSQL
 - Spring MVC
 - Spring Security
 - Spring Data JPA / Hibernate
+- Flyway
+- Firebase Admin SDK
 - RESTful API
 
 ### Database 資料庫
@@ -59,11 +62,11 @@ PostgreSQL
 
 ### Automation 自動化流程
 
-- n8n
-- 交易成功通知
-- 每日熱門市場報表
-- 市場截止提醒
-- 管理員異常通知
+- Spring `@Scheduled`
+- 逾期市場自動關閉
+- ACTIVE 市場價格 snapshot
+- 天氣市場啟動時／每日建立與自動結算
+- 第一階段通知工作規劃採 Java／Spring Boot；n8n 不納入目前實作
 
 ### Dev / Portfolio 工程化與作品集
 
@@ -79,7 +82,7 @@ PostgreSQL
 - 使用者註冊、登入、登出
 - 虛擬點數錢包
 - 市場列表與市場詳細頁
-- Yes / No 份額買賣
+- Yes / No BUY 交易
 - 簡化版價格機制
 - 使用者提交預測盤
 - 管理員審核市場
@@ -97,10 +100,10 @@ MVP 階段先支援二元市場，也就是每個市場只有 Yes / No 兩個交
 
 - 會員系統：註冊、登入、登出、權限控管
 - 市場系統：市場列表、詳情、建立、審核、狀態管理
-- 交易系統：買入 / 賣出、交易紀錄、價格計算
+- 交易系統：BUY 下單、交易紀錄、價格／賠率計算；SELL 尚未實作
 - 錢包系統：餘額查詢、扣款、退款、錢包異動紀錄
 - 後台系統：會員管理、市場審核、市場結算、報表查看
-- n8n 自動化：通知、排程報表、截止提醒、異常通知
+- 自動化系統：Spring 排程、天氣市場建立／結算、價格 snapshot；通知工作尚未實作
 
 ## 開發階段
 
@@ -124,21 +127,22 @@ MVP 階段先支援二元市場，也就是每個市場只有 Yes / No 兩個交
 
 ### 第三階段：加入作品集亮點
 
-- 整合 n8n Webhook 通知
-- 建立每日報表 workflow
-- 建立市場截止提醒 workflow
+- 依 `docs/系統設計/自動化系統規劃.md` 建立可靠通知工作、寄信與重試
+- 建立每日報表與市場截止提醒排程
 - 加入 Docker
 - 撰寫 README 與架構圖
 - 準備 Demo 帳號與展示流程
 
 ## 後端資料庫設定
 
-後端預設連線到本機 PostgreSQL：
+正式 schema 由 Flyway 管理，目前 migration 到 `V5`。空白資料庫啟動時會自動套用 `backend/src/main/resources/db/migration/`；既有資料庫首次納管請先閱讀 [Flyway migration 操作手冊](backend/src/main/resources/Flyway-migration-操作手冊.md)，不要自行修改已套用的 migration。
 
-```properties
-spring.datasource.url=${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/ucmarket}
-spring.datasource.username=${SPRING_DATASOURCE_USERNAME:postgres}
-spring.datasource.password=${SPRING_DATASOURCE_PASSWORD:post}
+後端 datasource 預設值集中在 `backend/src/main/resources/application.properties`。團隊與部署環境建議用下列環境變數覆蓋，不在 README 複製或固定密碼：
+
+```bash
+SPRING_DATASOURCE_URL=jdbc:postgresql://localhost:5432/ucmarket
+SPRING_DATASOURCE_USERNAME=postgres
+SPRING_DATASOURCE_PASSWORD=your-password
 ```
 
 團隊共用的 `application.properties` 不要改成個人帳號。每個人如果本機 PostgreSQL 帳號、密碼或 port 不同，請用環境變數覆蓋。
@@ -187,6 +191,7 @@ $env:SPRING_DATASOURCE_PASSWORD=$null
 - 工作計劃書：[docs/工作計劃書/UcMarket工作計劃.md](docs/工作計劃書/UcMarket工作計劃.md)
 - 技術架構：[docs/系統設計/技術架構.md](docs/系統設計/技術架構.md)
 - 網站架構：[docs/系統設計/網站架構.md](docs/系統設計/網站架構.md)
+- 自動化系統規劃：[docs/系統設計/自動化系統規劃.md](docs/系統設計/自動化系統規劃.md)
 - 資料庫設計：
   - ER 圖：[docs/資料庫設計/ucmarket-er-diagram.md](docs/資料庫設計/ucmarket-er-diagram.md)
   - DDL：[docs/資料庫設計/ucmarket-ddl.sql](docs/資料庫設計/ucmarket-ddl.sql)

@@ -13,7 +13,11 @@ backend/
 ├─ src/main/resources/
 │  ├─ application.properties
 │  └─ db/migration/
-│     └─ V1__initial_schema.sql
+│     ├─ V1__initial_schema.sql
+│     ├─ V2__add_market_image_url.sql
+│     ├─ V3__add_market_metadata.sql
+│     ├─ V4__add_weather_system_user.sql
+│     └─ V5__add_market_price_history_option_price.sql
 └─ pom.xml
 
 docs/資料庫設計/
@@ -21,6 +25,10 @@ docs/資料庫設計/
 ```
 
 - `V1__initial_schema.sql`：新空白 PostgreSQL 資料庫的初始結構。
+- `V2`：補上市場圖片欄位。
+- `V3`：補上市場 metadata，供天氣等系統市場保存結構化條件。
+- `V4`：建立天氣自動化使用的系統使用者。
+- `V5`：補上價格歷史的 `option_price` 欄位。
 - `ucmarket-ddl.sql`：目前 schema 的閱讀用參考文件；需與 migrations 的最終結果保持一致。
 - `flyway_schema_history`：Flyway 在目標資料庫建立的版本紀錄表，不要手動修改。
 
