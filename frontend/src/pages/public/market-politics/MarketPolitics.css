@@ -299,7 +299,7 @@ ol{
 
     .wallet-footer .footer-grid{
         grid-template-columns:1fr;
-        gap:35px;
+        gap:12px;
     }
 
     .wallet-footer .footer-bottom{
@@ -1441,6 +1441,7 @@ ol{
     display:flex;
     justify-content:space-between;
     align-items:center;
+    gap:8px;
 
     padding:0 14px;
 
@@ -1461,6 +1462,14 @@ ol{
 
     border-color:rgba(217,170,67,.35);
 
+}
+
+.sort-btn span{
+    white-space:nowrap;
+}
+
+.sort-btn i{
+    flex-shrink:0;
 }
 
 .sort-menu{
@@ -1648,4 +1657,28 @@ ol{
 
     transform:scale(.95);
 
+}
+
+@media(max-width:768px){
+    .navbar{ height:auto; min-height:72px; padding:18px 20px 0; flex-wrap:wrap; row-gap:14px; }
+    .nav-menu{ order:3; display:flex; width:100%; justify-content:center; gap:24px; padding:12px 0; border-top:1px solid var(--border); }
+    .nav-toggle{ width:40px; height:40px; display:inline-flex; align-items:center; justify-content:center; background:transparent; color:var(--gold); font-size:20px; }
+    .nav-right{ display:none; order:4; width:100%; flex-direction:column; align-items:center; gap:0; padding:0 0 12px; border-top:1px solid var(--border); text-align:center; }
+    .nav-right--open{ display:flex; }
+    .nav-right--open > a{ display:block; }
+    .nav-right > a, .nav-right .register-btn, .nav-right #user-display{ padding:12px 0; }
+    .nav-right .register-btn{ width:100%; text-align:center; background:transparent; color:#c1c1c1; font-weight:400; border-radius:0; }
+
+    .politics-layout{ grid-template-columns:1fr; }
+    .trade-sidebar{ grid-column:auto; position:static; top:auto; min-width:0; }
+}
+
+@media(max-width:576px){
+    .market-page{ width:calc(100% - 32px); padding-top:24px; }
+    .market-search{ flex-direction:column; align-items:stretch; }
+    .search-box{ width:100%; max-width:none; }
+    .sort-dropdown{ width:auto; align-self:flex-start; display:inline-block; }
+    .sort-btn{ width:auto; display:inline-flex; justify-content:flex-start; }
+    .sort-menu{ width:max-content; min-width:100%; }
+    .pagination .page-btn{ min-width:auto; padding:0 12px; }
 }

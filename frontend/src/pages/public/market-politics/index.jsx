@@ -88,7 +88,7 @@ export default function MarketPolitics() {
   const [amount, setAmount] = useState("");
   const [activeCategory, setActiveCategory] = useState("all");
   const [activeSearch, setActiveSearch] = useState("");
-  const [activeSort, setActiveSort] = useState("預設排序");
+  const [activeSort, setActiveSort] = useState("排序");
   const [sortOpen, setSortOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
 
