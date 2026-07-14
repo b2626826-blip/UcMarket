@@ -1,0 +1,188 @@
+erDiagram
+    USERS ||--|| WALLETS : owns
+    USERS ||--o{ USER_SESSIONS : logs_in
+    USERS ||--o{ USER_OAUTH_ACCOUNTS : links
+    USERS ||--o{ MARKETS : creates
+    USERS ||--o{ MARKETS : approves
+    USERS ||--o{ MARKETS : resolves
+    USERS ||--o{ MARKET_REVIEWS : reviews
+    USERS ||--o{ TRADES : places
+    USERS ||--o{ POSITIONS : holds
+    USERS ||--o{ USER_PORTFOLIO_SNAPSHOTS : snapshots
+    USERS ||--o{ NOTIFICATIONS : receives
+    USERS ||--o{ ADMIN_LOGS : performs
+    WALLETS ||--o{ WALLET_TRANSACTIONS : records
+    MARKETS ||--o{ MARKET_REVIEWS : has_reviews
+    MARKETS ||--o{ MARKET_OPTIONS : has_options
+    MARKETS ||--o{ TRADES : has_trades
+    MARKETS ||--o{ POSITIONS : has_positions
+    MARKETS ||--o{ MARKET_PRICE_HISTORY : has_price_history
+    MARKETS ||--o{ NOTIFICATIONS : may_reference
+    MARKET_OPTIONS |o--o{ TRADES : option_target
+    MARKET_OPTIONS |o--o{ POSITIONS : option_position
+    MARKET_OPTIONS |o--o{ MARKET_PRICE_HISTORY : option_price
+
+    USERS {
+        uuid id PK
+        varchar code UK
+        varchar username UK
+        varchar email UK
+        varchar password_hash
+        varchar role
+        varchar status
+        integer reputation
+        timestamp last_login_at
+        text avatar_url
+        text bio
+        timestamp created_at
+        timestamp updated_at
+    }
+    USER_SESSIONS {
+        uuid id PK
+        uuid user_id FK
+        varchar refresh_token_hash UK
+        timestamp expires_at
+        timestamp revoked_at
+        varchar ip_address
+        timestamp created_at
+    }
+    USER_OAUTH_ACCOUNTS {
+        uuid id PK
+        uuid user_id FK
+        varchar provider "GOOGLE / FACEBOOK / GITHUB"
+        varchar provider_uid "UK with provider"
+        varchar email
+        timestamp created_at
+    }
+    WALLETS {
+        uuid id PK
+        uuid user_id FK
+        numeric balance
+        numeric locked_balance
+        integer version
+        timestamp created_at
+        timestamp updated_at
+    }
+    WALLET_TRANSACTIONS {
+        uuid id PK
+        uuid wallet_id FK
+        varchar type
+        numeric amount
+        numeric balance_after
+        varchar reference_type
+        uuid reference_id
+        varchar idempotency_key UK
+        jsonb metadata
+        timestamp created_at
+    }
+    MARKETS {
+        uuid id PK
+        varchar code UK
+        uuid creator_id FK
+        varchar title
+        text description
+        varchar category
+        varchar market_type
+        text source_url
+        text resolution_rule
+        timestamp close_at
+        varchar status
+        varchar result
+        numeric result_value
+        numeric yes_pool
+        numeric no_pool
+        timestamp approved_at
+        uuid approved_by FK
+        timestamp resolved_at
+        uuid resolved_by FK
+        timestamp created_at
+        timestamp updated_at
+    }
+    MARKET_REVIEWS {
+        uuid id PK
+        varchar code UK
+        uuid market_id FK
+        uuid reviewer_id FK
+        varchar status
+        text comment
+        timestamp created_at
+    }
+    MARKET_OPTIONS {
+        uuid id PK
+        uuid market_id FK
+        varchar label
+        numeric min_value
+        numeric max_value
+        numeric pool
+        integer sort_order
+        boolean is_winning_option
+    }
+    TRADES {
+        uuid id PK
+        varchar code UK
+        uuid user_id FK
+        uuid market_id FK
+        uuid option_id FK
+        varchar side
+        varchar action
+        numeric amount
+        numeric price
+        numeric shares
+        timestamp created_at
+    }
+    POSITIONS {
+        uuid id PK
+        uuid user_id FK
+        uuid market_id FK
+        uuid option_id FK
+        numeric yes_shares
+        numeric no_shares
+        numeric yes_cost
+        numeric no_cost
+        numeric shares
+        numeric cost
+        varchar status
+        timestamp updated_at
+    }
+    MARKET_PRICE_HISTORY {
+        uuid id PK
+        uuid market_id FK
+        uuid option_id FK
+        numeric yes_price
+        numeric no_price
+        numeric option_price
+        numeric trade_volume
+        timestamp recorded_at
+    }
+    USER_PORTFOLIO_SNAPSHOTS {
+        uuid id PK
+        uuid user_id FK
+        numeric wallet_balance
+        numeric position_value
+        numeric total_asset_value
+        numeric realized_profit
+        numeric unrealized_profit
+        timestamp recorded_at
+    }
+    NOTIFICATIONS {
+        uuid id PK
+        uuid user_id FK
+        uuid market_id FK
+        varchar type
+        varchar title
+        text message
+        varchar reference_type
+        uuid reference_id
+        timestamp read_at
+        timestamp created_at
+    }
+    ADMIN_LOGS {
+        uuid id PK
+        varchar code UK
+        uuid admin_user_id FK
+        varchar action
+        varchar target_type
+        uuid target_id
+        jsonb metadata
+        timestamp created_at
+    }
