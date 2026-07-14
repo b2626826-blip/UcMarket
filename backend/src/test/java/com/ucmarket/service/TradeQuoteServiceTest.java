@@ -38,25 +38,27 @@ class TradeQuoteServiceTest {
 	}
 
 	@Test
-	void getQuote_yes_shouldCalculateConstantProductQuote() {
+	void getQuote_yes_shouldMatchExecutableTradeCalculation() {
 		Market market = marketWithPools("100", "200");
 
 		TradeQuoteResponse result = tradeQuoteService.getQuote(
 				market, MarketSide.YES, new BigDecimal("50"));
 
-		assertThat(result.odds()).isEqualByComparingTo("4.1250");
+		assertThat(result.odds()).isEqualByComparingTo("3.0000");
 		assertThat(result.amount()).isEqualByComparingTo("50");
+		assertThat(result.shares()).isEqualByComparingTo("16.66666667");
 	}
 
 	@Test
-	void getQuote_no_shouldCalculateConstantProductQuote() {
+	void getQuote_no_shouldMatchExecutableTradeCalculation() {
 		Market market = marketWithPools("100", "200");
 
 		TradeQuoteResponse result = tradeQuoteService.getQuote(
 				market, MarketSide.NO, new BigDecimal("50"));
 
-		assertThat(result.odds()).isEqualByComparingTo("2.1250");
+		assertThat(result.odds()).isEqualByComparingTo("1.5000");
 		assertThat(result.amount()).isEqualByComparingTo("50");
+		assertThat(result.shares()).isEqualByComparingTo("33.33333333");
 	}
 
 	private Market marketWithPools(String yesPool, String noPool) {
