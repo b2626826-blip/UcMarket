@@ -20,6 +20,24 @@
   margin-top: 24px;
 }
 
+.create-market-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.create-market-field-link {
+  color: var(--brand-gold);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.create-market-field-link:hover {
+  text-decoration: underline;
+}
+
 .create-market-date-picker {
   display: flex;
   align-items: center;
@@ -178,6 +196,11 @@
   .market-preview {
     padding: 22px;
     border-radius: 22px;
+  }
+
+  .create-market-field-head {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .market-preview h2 {
