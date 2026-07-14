@@ -32,7 +32,8 @@ public record MarketResponse(
 		BigDecimal noPool,
 		LocalDateTime createdAt,
 		LocalDateTime updatedAt,
-		BigDecimal volume) {
+		BigDecimal volume,
+		String metadata) {
 
 	public static MarketResponse from(Market market, BigDecimal volume) {
 		return new MarketResponse(
@@ -41,6 +42,7 @@ public record MarketResponse(
 				market.getMarketType(), market.getCreatorId(), market.getCreatorCode(), market.getCloseAt(),
 				market.getStatus(), market.getResult(), market.getResultValue(), market.getApprovedAt(),
 				market.getApprovedBy(), market.getResolvedAt(), market.getResolvedBy(), market.getYesPool(),
-				market.getNoPool(), market.getCreatedAt(), market.getUpdatedAt(), volume);
+				market.getNoPool(), market.getCreatedAt(), market.getUpdatedAt(), volume,
+				market.getMetadata());
 	}
 }

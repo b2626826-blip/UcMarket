@@ -488,19 +488,13 @@ export default function HomePage() {
           )}
 
           {category === '天氣' && !weatherLoading && !weatherError &&
-            weatherMarkets.map((group) => (
-              <WeatherEventCard key={group.id} group={group} />
-            ))}
-
-          {category === '天氣' && !weatherLoading && !weatherError && weatherIndividuals.length > 0 && (
-            <div className="weather-section-divider">
-              <span>其他天氣事件</span>
-            </div>
-          )}
-
-          {category === '天氣' && !weatherLoading && !weatherError &&
             weatherIndividuals.map((item) => (
               <WeatherEventCard key={item.id} group={item} />
+            ))}
+
+          {category === '天氣' && !weatherLoading && !weatherError &&
+            weatherMarkets.map((group) => (
+              <WeatherEventCard key={group.id} group={group} />
             ))}
 
           {category === CURRENT_EVENT_CATEGORY && currentEventLoading && (

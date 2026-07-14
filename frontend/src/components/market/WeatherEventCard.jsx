@@ -18,9 +18,27 @@ function formatCloseAt(value) {
   return `${month}/${day} ${hh}:${mm}`;
 }
 
+function resolveYesProbability(group) {
+  if (group.yesProbability != null && !Number.isNaN(Number(group.yesProbability))) {
+    return Math.round(Number(group.yesProbability));
+  }
+  if (group.yesPrice != null && !Number.isNaN(Number(group.yesPrice))) {
+    return Math.round(Number(group.yesPrice) * 100);
+  }
+  const yesPool = Number(group.yesPool || 0);
+  const noPool = Number(group.noPool || 0);
+  const total = yesPool + noPool;
+  if (total > 0) return Math.round((yesPool / total) * 100);
+  return 50;
+}
+
 export default function WeatherEventCard({ group }) {
   const isIndividual = !group.city;
   const icon = isIndividual ? 'fa-cloud' : (group.metric === 'monthlyRain' ? 'fa-cloud-rain' : 'fa-cloud-sun');
+  const yesProbability = resolveYesProbability(group);
+  const noProbability = group.noProbability != null && !Number.isNaN(Number(group.noProbability))
+    ? Math.round(Number(group.noProbability))
+    : 100 - yesProbability;
 
   return (
     <Link className="weather-event-card" to={`/markets/weather/${group.id}`}>
@@ -32,7 +50,7 @@ export default function WeatherEventCard({ group }) {
           <div className="weather-event-card__summary">
             <div className="weather-event-card__tags">
               <span>天氣</span>
-              {isIndividual ? <span>其他</span> : <><span>{group.city}</span><span>{getMetricLabel(group.metric)}</span></>}
+              {isIndividual ? <span>個人盤口</span> : <><span>{group.city}</span><span>{getMetricLabel(group.metric)}</span></>}
             </div>
             <h2>{group.title}</h2>
           </div>
@@ -40,12 +58,12 @@ export default function WeatherEventCard({ group }) {
 
         <div className="weather-event-card__probability">
           <div className="weather-event-card__probability-labels">
-            <span>YES {group.yesProbability}%</span>
-            <span>NO {group.noProbability}%</span>
+            <span>YES {yesProbability}%</span>
+            <span>NO {noProbability}%</span>
           </div>
           <div className="weather-event-card__probability-bar">
-            <span style={{ width: `${group.yesProbability}%` }} />
-            <span style={{ width: `${group.noProbability}%` }} />
+            <span style={{ width: `${yesProbability}%` }} />
+            <span style={{ width: `${noProbability}%` }} />
           </div>
         </div>
 

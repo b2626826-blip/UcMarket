@@ -276,6 +276,46 @@
   color: #4d94ff;
 }
 
+.weather-inline-chart-section {
+  margin-top: 36px;
+  padding-top: 28px;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.weather-inline-chart-section--top {
+  margin-top: 28px;
+  margin-bottom: 8px;
+  padding-top: 0;
+  border-top: none;
+}
+
+.weather-market-chart-card.is-compact {
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-top: 0;
+}
+
+.weather-market-chart-card.is-compact .weather-market-chart-header {
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.weather-inline-chart-header h3 {
+  font-size: 18px;
+  margin-bottom: 6px;
+}
+
+.weather-inline-chart-header p {
+  color: #8f8f8f;
+  font-size: 14px;
+  margin-bottom: 16px;
+}
+
+.weather-inline-chart {
+  min-height: 280px;
+}
+
 /* Rules section */
 .weather-rules-card {
   background: #090909;

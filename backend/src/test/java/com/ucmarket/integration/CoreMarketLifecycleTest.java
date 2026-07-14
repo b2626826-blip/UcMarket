@@ -116,7 +116,7 @@ class CoreMarketLifecycleTest {
 				positionService,
 				priceHistoryService
 		);
-		marketController = new MarketController(marketRepository, tradeRepository, marketService, tradeQuoteService);
+		marketController = new MarketController(marketRepository, tradeRepository, marketService, tradeQuoteService, priceHistoryService);
 		tradeController = new TradeController(tradeService);
 	}
 
