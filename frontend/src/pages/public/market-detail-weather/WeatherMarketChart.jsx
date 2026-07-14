@@ -21,16 +21,14 @@ function formatTimeLabel(date, range) {
   return `${mo}/${d}`;
 }
 
-function buildLabels(history, range, hours) {
+function sampleHistory(history, range, hours) {
   const cutoff = new Date(Date.now() - hours * 60 * 60 * 1000);
   const filtered = history.filter((h) => new Date(h.recordedAt) >= cutoff);
   if (filtered.length === 0) return [];
 
   const maxTicks = range === '1H' ? 6 : range === '6H' ? 6 : 8;
   const step = Math.max(1, Math.floor(filtered.length / maxTicks));
-  return filtered
-    .filter((_, idx) => idx % step === 0 || idx === filtered.length - 1)
-    .map((h) => formatTimeLabel(new Date(h.recordedAt), range));
+  return filtered.filter((_, idx) => idx % step === 0 || idx === filtered.length - 1);
 }
 
 function findClosestPrice(history, targetTime, hours) {
@@ -52,7 +50,24 @@ function findClosestPrice(history, targetTime, hours) {
   return closest.yesPrice;
 }
 
-export default function WeatherMarketChart({ markets, selectedId, metric, onSelectMarket }) {
+function thresholdLabel(metric, threshold) {
+  if (threshold == null || threshold === '') return 'YES';
+  return metric === 'maxTemp' ? `≥ ${threshold}°C` : `≥ ${threshold}%`;
+}
+
+function legendLabel(metric, threshold) {
+  if (threshold == null || threshold === '') return 'YES';
+  return metric === 'maxTemp' ? `${threshold}°C` : `${threshold}%`;
+}
+
+export default function WeatherMarketChart({
+  markets,
+  selectedId,
+  metric,
+  onSelectMarket,
+  mode = 'threshold',
+  compact = false,
+}) {
   const canvasRef = useRef(null);
   const chartRef = useRef(null);
   const [range, setRange] = useState('1D');
@@ -60,19 +75,19 @@ export default function WeatherMarketChart({ markets, selectedId, metric, onSele
   const [loading, setLoading] = useState(false);
 
   const hours = RANGES.find((r) => r.label === range).hours;
+  const isSingle = mode === 'single';
+  const marketKey = markets.map((m) => m.id).join(',');
 
   useEffect(() => {
     if (markets.length === 0) return;
     let cancelled = false;
     setLoading(true);
 
-    const toIso = new Date().toISOString();
-    const fromIso = new Date(Date.now() - hours * 60 * 60 * 1000).toISOString();
-
+    // ponytail: omit from/to — UTC ISO Z breaks LocalDateTime window (empty []). 1H/6H/1D filtered client-side.
     Promise.all(
       markets.map((m) =>
-        getMarketPriceHistory(m.id, fromIso, toIso)
-          .then((data) => ({ id: m.id, data }))
+        getMarketPriceHistory(m.id)
+          .then((data) => ({ id: m.id, data: Array.isArray(data) ? data : [] }))
           .catch(() => ({ id: m.id, data: [] }))
       )
     ).then((results) => {
@@ -88,34 +103,33 @@ export default function WeatherMarketChart({ markets, selectedId, metric, onSele
     return () => {
       cancelled = true;
     };
-  }, [markets, hours]);
+  }, [marketKey, markets]);
 
   const { labels, datasets } = useMemo(() => {
     if (markets.length === 0) return { labels: [], datasets: [] };
 
     const selectedMarket = markets.find((m) => m.id === selectedId) || markets[0];
     const selectedHistory = histories[selectedMarket?.id] || [];
-    const labels = buildLabels(selectedHistory, range, hours);
+    const sampled = sampleHistory(selectedHistory, range, hours);
+    const labels = sampled.map((h) => formatTimeLabel(new Date(h.recordedAt), range));
 
     const datasets = markets.map((m, idx) => {
       const history = histories[m.id] || [];
       const color = COLORS[idx % COLORS.length];
       const isSelected = m.id === selectedId;
 
-      const data = labels.map((_, labelIdx) => {
-        const targetTime = selectedHistory[labelIdx]?.recordedAt;
-        if (!targetTime) return null;
-        const price = findClosestPrice(history, targetTime, hours);
+      const data = sampled.map((point) => {
+        const price = findClosestPrice(history, point.recordedAt, hours);
         return price != null ? Number(price) : null;
       });
 
       return {
-        label: metric === 'maxTemp' ? `≥ ${m.threshold}°C` : `≥ ${m.threshold}%`,
+        label: thresholdLabel(metric, m.threshold),
         data,
         borderColor: color,
         backgroundColor: color,
         borderWidth: isSelected ? 3 : 2,
-        pointRadius: 0,
+        pointRadius: data.length <= 1 ? 4 : 0,
         pointHoverRadius: 4,
         tension: 0.3,
         spanGaps: true,
@@ -184,18 +198,21 @@ export default function WeatherMarketChart({ markets, selectedId, metric, onSele
   if (markets.length === 0) return null;
 
   return (
-    <div className="weather-market-chart-card">
+    <div className={`weather-market-chart-card${compact ? ' is-compact' : ''}`}>
       <div className="weather-market-chart-header">
-        <div>
-          <h3>
-            <i className="fa-solid fa-chart-line"></i> 預測價格走勢
-          </h3>
-          <p>各門檻事件的 YES 機率變化</p>
-        </div>
+        {!compact && (
+          <div>
+            <h3>
+              <i className="fa-solid fa-chart-line"></i> 預測價格走勢
+            </h3>
+            <p>{isSingle ? 'YES 機率變化' : '各門檻事件的 YES 機率變化'}</p>
+          </div>
+        )}
         <div className="weather-chart-range">
           {RANGES.map((r) => (
             <button
               key={r.label}
+              type="button"
               className={range === r.label ? 'active' : ''}
               onClick={() => setRange(r.label)}
             >
@@ -205,31 +222,35 @@ export default function WeatherMarketChart({ markets, selectedId, metric, onSele
         </div>
       </div>
 
-      <div className="weather-chart-legend">
-        {markets.map((m, idx) => {
-          const color = COLORS[idx % COLORS.length];
-          const prob = m.yesPrice != null ? (m.yesPrice * 100).toFixed(1) : '--';
-          const isSelected = m.id === selectedId;
-          return (
-            <button
-              key={m.id}
-              className={isSelected ? 'active' : ''}
-              onClick={() => onSelectMarket?.(m)}
-              type="button"
-            >
-              <i style={{ backgroundColor: color }}></i>
-              <span>
-                {metric === 'maxTemp' ? `${m.threshold}°C` : `${m.threshold}%`} {prob}%
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {!isSingle && (
+        <div className="weather-chart-legend">
+          {markets.map((m, idx) => {
+            const color = COLORS[idx % COLORS.length];
+            const prob = m.yesPrice != null ? (m.yesPrice * 100).toFixed(1) : '--';
+            const isSelected = m.id === selectedId;
+            return (
+              <button
+                key={m.id}
+                className={isSelected ? 'active' : ''}
+                onClick={() => onSelectMarket?.(m)}
+                type="button"
+              >
+                <i style={{ backgroundColor: color }}></i>
+                <span>
+                  {legendLabel(metric, m.threshold)} {prob}%
+                </span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="weather-market-chart-body">
         {loading && <div style={{ color: '#888', textAlign: 'center', padding: 40 }}>載入中...</div>}
         {!loading && labels.length === 0 && (
-          <div style={{ color: '#888', textAlign: 'center', padding: 40 }}>暫無價格資料</div>
+          <div style={{ color: '#888', textAlign: 'center', padding: 40 }}>
+            尚無成交或價格快照，交易後會出現走勢
+          </div>
         )}
         {!loading && labels.length > 0 && <canvas ref={canvasRef}></canvas>}
       </div>

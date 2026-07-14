@@ -1,5 +1,5 @@
 import { useParams, Link } from 'react-router-dom';
-import { useState, useEffect, useRef, useCallback } from 'react';
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import Chart from 'chart.js/auto';
 import DetailPageTemplate from '../../../components/common/DetailPageTemplate';
 import useGlowEffect from '../../../hooks/useGlowEffect';
@@ -60,7 +60,45 @@ function getCurrentMonthDisplay() {
 
 // ---- Threshold event list ----
 
-function ThresholdEventList({ markets, selectedId, onSelect, onOpenChart, onOpenWeatherChart, closeDate, showWeatherChart }) {
+function formatCloseAtLabel(value) {
+  if (!value) return '';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return String(value);
+  return d.toLocaleString('zh-TW', { hour12: false });
+}
+
+function volumeFromTotal(totalVolume) {
+  const n = Number(totalVolume) || 0;
+  if (n >= 1000000) return `$${(n / 1000000).toFixed(1)}M`;
+  if (n >= 1000) return `$${(n / 1000).toFixed(1)}K`;
+  return `$${n.toFixed(0)}`;
+}
+
+async function withMarketOdds(market) {
+  try {
+    const odds = await getMarketOdds(market.id);
+    return {
+      ...market,
+      yesPrice: Number(odds.yesOdds) ? 1 / Number(odds.yesOdds) : 0.5,
+      noPrice: Number(odds.noOdds) ? 1 / Number(odds.noOdds) : 0.5,
+      volume: volumeFromTotal(odds.totalVolume),
+    };
+  } catch {
+    return { ...market, yesPrice: 0.5, noPrice: 0.5, volume: '$0' };
+  }
+}
+
+function ThresholdEventList({
+  markets,
+  selectedId,
+  onSelect,
+  onOpenChart,
+  onOpenWeatherChart,
+  closeDate,
+  showWeatherChart,
+  showPriceChartToggle = true,
+}) {
+  const showToggles = showPriceChartToggle || showWeatherChart;
   return (
     <div className="weather-event-section">
       <div className="weather-event-section-header">
@@ -68,24 +106,28 @@ function ThresholdEventList({ markets, selectedId, onSelect, onOpenChart, onOpen
           <h3>可選擇的預測事件</h3>
           <p>點擊 YES 或 NO 直接設定下注方向與賠率</p>
         </div>
-        <div className="weather-chart-toggles">
-          <button
-            className="weather-chart-toggle"
-            onClick={onOpenChart}
-            type="button"
-          >
-            <i className="fa-solid fa-chart-line"></i> 查看價格走勢
-          </button>
-          {showWeatherChart && (
-            <button
-              className="weather-chart-toggle"
-              onClick={onOpenWeatherChart}
-              type="button"
-            >
-              <i className="fa-solid fa-cloud-sun"></i> 查看天氣預報
-            </button>
-          )}
-        </div>
+        {showToggles && (
+          <div className="weather-chart-toggles">
+            {showPriceChartToggle && (
+              <button
+                className="weather-chart-toggle"
+                onClick={onOpenChart}
+                type="button"
+              >
+                <i className="fa-solid fa-chart-line"></i> 查看價格走勢
+              </button>
+            )}
+            {showWeatherChart && (
+              <button
+                className="weather-chart-toggle"
+                onClick={onOpenWeatherChart}
+                type="button"
+              >
+                <i className="fa-solid fa-cloud-sun"></i> 查看天氣預報
+              </button>
+            )}
+          </div>
+        )}
       </div>
       <div className="weather-event-list">
         {markets.map((m) => {
@@ -357,10 +399,13 @@ export default function WeatherDetailPage() {
     setUuidError(null);
     let cancelled = false;
     getMarketDetail(id)
-      .then((market) => {
+      .then(async (market) => {
         if (cancelled) return;
         const meta = parseMetadata(market);
-        setUuidMarket(market);
+        const hasMeta = !!(meta.city && meta.date && meta.metric);
+        const nextMarket = hasMeta ? market : await withMarketOdds(market);
+        if (cancelled) return;
+        setUuidMarket(nextMarket);
         setUuidMeta(meta);
         setRegion({
           city: meta.city,
@@ -454,32 +499,9 @@ export default function WeatherDetailPage() {
 
         const withOdds = await Promise.all(
           filtered.map(async (m) => {
-            try {
-              const odds = await getMarketOdds(m.id);
-              const meta = parseMetadata(m);
-              const totalVolume = Number(odds.totalVolume) || 0;
-              const volumeText = totalVolume >= 1000000
-                ? `$${(totalVolume / 1000000).toFixed(1)}M`
-                : totalVolume >= 1000
-                  ? `$${(totalVolume / 1000).toFixed(1)}K`
-                  : `$${totalVolume.toFixed(0)}`;
-              return {
-                ...m,
-                threshold: meta.threshold,
-                yesPrice: Number(odds.yesOdds) ? 1 / Number(odds.yesOdds) : 0.5,
-                noPrice: Number(odds.noOdds) ? 1 / Number(odds.noOdds) : 0.5,
-                volume: volumeText,
-              };
-            } catch {
-              const meta = parseMetadata(m);
-              return {
-                ...m,
-                threshold: meta.threshold,
-                yesPrice: 0.5,
-                noPrice: 0.5,
-                volume: '$0',
-              };
-            }
+            const meta = parseMetadata(m);
+            const enriched = await withMarketOdds(m);
+            return { ...enriched, threshold: meta.threshold };
           })
         );
 
@@ -520,6 +542,11 @@ export default function WeatherDetailPage() {
   const closeDate = isMonthlyRain
     ? getCurrentMonthClose()
     : (targetDay?.date || '');
+
+  const manualChartMarkets = useMemo(
+    () => (uuidMarket ? [uuidMarket] : []),
+    [uuidMarket],
+  );
 
   return (
     <DetailPageTemplate
@@ -598,6 +625,34 @@ export default function WeatherDetailPage() {
                   <i className="fa-solid fa-circle"></i> LIVE
                 </div>
               </div>
+
+              <div className="weather-inline-chart-section weather-inline-chart-section--top">
+                <div className="weather-inline-chart-header">
+                  <h3>預測價格走勢</h3>
+                  <p>YES 機率變化</p>
+                </div>
+                <div className="weather-modal-chart weather-inline-chart">
+                  <WeatherMarketChart
+                    markets={manualChartMarkets}
+                    selectedId={selectedMarket?.id || uuidMarket.id}
+                    mode="single"
+                    compact
+                    onSelectMarket={(m) => setSelectedMarket(m)}
+                  />
+                </div>
+              </div>
+
+              <ThresholdEventList
+                markets={manualChartMarkets}
+                selectedId={selectedMarket?.id || uuidMarket.id}
+                onSelect={(m, side) => {
+                  setSelectedMarket(m);
+                  if (side) setTradeSide(side);
+                }}
+                showPriceChartToggle={false}
+                showWeatherChart={false}
+                closeDate={formatCloseAtLabel(uuidMarket.closeAt)}
+              />
             </div>
           )}
 

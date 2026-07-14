@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getMarketsByCategory } from '../../../api/marketApi';
 import { groupWeatherMarkets, parseMetadata } from '../../../utils/weatherHelpers';
 import WeatherEventCard from '../../../components/market/WeatherEventCard';
@@ -13,6 +13,9 @@ export default function WeatherListPage() {
   const [error, setError] = useState('');
   const [selectedCity, setSelectedCity] = useState('全部');
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(false);
+  const pillTrackRef = useRef(null);
 
   useEffect(() => {
     setLoading(true);
@@ -49,12 +52,43 @@ export default function WeatherListPage() {
   }, [groups]);
 
   const pills = useMemo(() => {
-    const list = ['全部', ...cities];
-    if (individuals.length > 0) list.push('其他');
+    const list = ['全部'];
+    if (individuals.length > 0) list.push('個人盤口');
+    list.push(...cities);
     return list;
   }, [cities, individuals]);
 
-  const isOtherFilter = selectedCity === '其他';
+  const updateScrollState = useCallback(() => {
+    const el = pillTrackRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    setCanScrollLeft(el.scrollLeft > 2);
+    setCanScrollRight(max > 2 && el.scrollLeft < max - 2);
+  }, []);
+
+  useEffect(() => {
+    const el = pillTrackRef.current;
+    if (!el) return;
+    updateScrollState();
+    el.addEventListener('scroll', updateScrollState, { passive: true });
+    const ro = typeof ResizeObserver !== 'undefined' ? new ResizeObserver(updateScrollState) : null;
+    ro?.observe(el);
+    window.addEventListener('resize', updateScrollState);
+    return () => {
+      el.removeEventListener('scroll', updateScrollState);
+      ro?.disconnect();
+      window.removeEventListener('resize', updateScrollState);
+    };
+  }, [pills, updateScrollState]);
+
+  const scrollPills = (dir) => {
+    const el = pillTrackRef.current;
+    if (!el) return;
+    const step = Math.max(el.clientWidth * 0.7, 160);
+    el.scrollBy({ left: dir * step, behavior: 'smooth' });
+  };
+
+  const isOtherFilter = selectedCity === '個人盤口';
   const isAllFilter = selectedCity === '全部';
 
   const filteredGroups = useMemo(() => {
@@ -79,17 +113,39 @@ export default function WeatherListPage() {
         <p>選擇城市，查看該地區未來天氣預測事件</p>
       </div>
 
-      <div className="weather-city-filter">
-        {pills.map((pill) => (
-          <button
-            key={pill}
-            className={selectedCity === pill ? 'active' : ''}
-            onClick={() => handlePillClick(pill)}
-            type="button"
-          >
-            {pill}
-          </button>
-        ))}
+      <div className={`weather-city-filter${canScrollLeft ? ' is-left' : ''}${canScrollRight ? ' is-right' : ''}`}>
+        <button
+          type="button"
+          className="weather-city-filter__arrow weather-city-filter__arrow--left"
+          aria-label="向左捲動篩選"
+          disabled={!canScrollLeft}
+          onClick={() => scrollPills(-1)}
+        >
+          <i className="fa-solid fa-chevron-left" aria-hidden="true" />
+        </button>
+
+        <div className="weather-city-filter__track" ref={pillTrackRef}>
+          {pills.map((pill) => (
+            <button
+              key={pill}
+              className={selectedCity === pill ? 'active' : ''}
+              onClick={() => handlePillClick(pill)}
+              type="button"
+            >
+              {pill}
+            </button>
+          ))}
+        </div>
+
+        <button
+          type="button"
+          className="weather-city-filter__arrow weather-city-filter__arrow--right"
+          aria-label="向右捲動篩選"
+          disabled={!canScrollRight}
+          onClick={() => scrollPills(1)}
+        >
+          <i className="fa-solid fa-chevron-right" aria-hidden="true" />
+        </button>
       </div>
 
       {loading && <p className="weather-list-loading">載入中...</p>}
@@ -99,40 +155,25 @@ export default function WeatherListPage() {
         <p className="weather-list-empty">沒有符合條件的天氣市場。</p>
       )}
 
-      {!loading && !error && (
+      {!loading && !error && ((showIndividuals && individuals.length > 0) || displayed.length > 0) && (
         <>
-          {displayed.length > 0 && (
-            <>
-              <div className="market-grid">
-                {displayed.map((group) => (
-                  <WeatherEventCard key={group.id} group={group} />
-                ))}
-              </div>
-              {hasMore && (
-                <div className="load-more-wrapper">
-                  <button
-                    className="load-more-btn"
-                    onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
-                    type="button"
-                  >
-                    載入更多
-                  </button>
-                </div>
-              )}
-            </>
-          )}
-
-          {showIndividuals && individuals.length > 0 && displayed.length > 0 && (
-            <div className="weather-section-divider">
-              <span>其他天氣事件</span>
-            </div>
-          )}
-
-          {showIndividuals && individuals.length > 0 && (
-            <div className="market-grid">
-              {individuals.map((item) => (
-                <WeatherEventCard key={item.id} group={item} />
-              ))}
+          <div className="market-grid">
+            {showIndividuals && individuals.map((item) => (
+              <WeatherEventCard key={item.id} group={item} />
+            ))}
+            {displayed.map((group) => (
+              <WeatherEventCard key={group.id} group={group} />
+            ))}
+          </div>
+          {hasMore && (
+            <div className="load-more-wrapper">
+              <button
+                className="load-more-btn"
+                onClick={() => setVisibleCount((c) => c + PAGE_SIZE)}
+                type="button"
+              >
+                載入更多
+              </button>
             </div>
           )}
         </>

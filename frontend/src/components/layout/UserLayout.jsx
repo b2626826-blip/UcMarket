@@ -17,6 +17,7 @@ export default function UserLayout() {
   const [authTab, setAuthTab] = useState('login');
   const [navActionsOpen, setNavActionsOpen] = useState(false);
   const [openFooterSection, setOpenFooterSection] = useState(null);
+  const [avatarBroken, setAvatarBroken] = useState(false);
 
   const openLogin = useCallback(() => { setAuthTab('login'); setAuthOpen(true); }, []);
   const openRegister = useCallback(() => { setAuthTab('register'); setAuthOpen(true); }, []);
@@ -25,6 +26,10 @@ export default function UserLayout() {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  useEffect(() => {
+    setAvatarBroken(false);
+  }, [user?.avatarUrl]);
 
   useEffect(() => {
     if (location.hash) {
@@ -64,7 +69,16 @@ export default function UserLayout() {
             <div id="nav-actions" className={`nav-right${navActionsOpen ? ' nav-right--open' : ''}`} onClick={closeNavActions}>
               {user ? (
                 <>
-                  <span id="user-display" style={{ color: 'var(--gold)', fontWeight: 700 }}>{user.username || user.email}</span>
+                  <span id="user-display" className="user-display">
+                    <span className="user-display__avatar" aria-hidden="true">
+                      {user.avatarUrl && !avatarBroken ? (
+                        <img src={user.avatarUrl} alt="" onError={() => setAvatarBroken(true)} />
+                      ) : (
+                        <span>{(user.username || user.email || 'U').trim().charAt(0).toUpperCase()}</span>
+                      )}
+                    </span>
+                    <span className="user-display__name">{user.username || user.email}</span>
+                  </span>
                   {isAdmin && <Link to="/admin/dashboard" target="UcmarketAdmin" rel="noreferrer">管理員</Link>}
                   <Link to="/markets/new">建立市場</Link>
                   <Link to="/portfolio">儀表板</Link>
