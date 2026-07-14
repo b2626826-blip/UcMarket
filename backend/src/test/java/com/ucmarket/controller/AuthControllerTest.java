@@ -41,7 +41,7 @@ class AuthControllerTest {
     void register_shouldReturn201() throws Exception {
         RegisterRequest request = new RegisterRequest("newuser", "new@test.com", "password123");
         AuthResponse response = new AuthResponse("access", "refresh", 604800L,
-                new UserInfo(UUID.randomUUID(), "newuser", "new@test.com", "USER", "ACTIVE", 0, null, null));
+                new UserInfo(UUID.randomUUID(), "newuser", "new@test.com", "USER", "ACTIVE", 0, null, null, true, null));
 
         when(authService.register(any())).thenReturn(response);
 
@@ -67,7 +67,7 @@ class AuthControllerTest {
     void login_shouldReturn200() throws Exception {
         LoginRequest request = new LoginRequest("user@test.com", "password");
         AuthResponse response = new AuthResponse("access-token", "refresh", 604800L,
-                new UserInfo(UUID.randomUUID(), "user", "user@test.com", "USER", "ACTIVE", 0, null, null));
+                new UserInfo(UUID.randomUUID(), "user", "user@test.com", "USER", "ACTIVE", 0, null, null, true, null));
 
         when(authService.login(any())).thenReturn(response);
 
@@ -106,7 +106,7 @@ class AuthControllerTest {
     void firebaseLogin_shouldReturn200() throws Exception {
         FirebaseLoginRequest request = new FirebaseLoginRequest("fake-id-token", "GOOGLE");
         AuthResponse response = new AuthResponse("access", "refresh", 604800L,
-                new UserInfo(UUID.randomUUID(), "googleuser", "user@gmail.com", "USER", "ACTIVE", 0, null, null));
+                new UserInfo(UUID.randomUUID(), "googleuser", "user@gmail.com", "USER", "ACTIVE", 0, null, null, false, null));
 
         when(firebaseAuthService.loginWithFirebase(any())).thenReturn(response);
 

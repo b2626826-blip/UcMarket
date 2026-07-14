@@ -8,7 +8,7 @@ export function getMarkets({ page = 0, size = 20 } = {}) {
 }
 
 export function getMarketsByCategory(category) {
-  return getApi(`/api/markets?category=${encodeURIComponent(category)}&status=ACTIVE`);
+  return getApi(`/api/markets?category=${encodeURIComponent(category)}&size=1000`);
 }
 
 export function getMarketOdds(id) {

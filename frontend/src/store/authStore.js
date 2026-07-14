@@ -1,5 +1,12 @@
 import { create } from 'zustand';
-import { getCurrentUser, login as apiLogin, register as apiRegister, logout as apiLogout } from '../api/authApi';
+import {
+  getCurrentUser,
+  login as apiLogin,
+  register as apiRegister,
+  logout as apiLogout,
+  updateProfile as apiUpdateProfile,
+  changePassword as apiChangePassword,
+} from '../api/authApi';
 import { firebaseLogin as apiFirebaseLogin } from '../api/oauthApi';
 import { setToken, getToken } from '../api/client';
 
@@ -73,6 +80,30 @@ const useAuthStore = create((set) => ({
     } catch { /* ignore */ }
     setToken(null);
     set({ user: null, initialized: true });
+  },
+
+  updateProfile: async (profile) => {
+    set({ loading: true, error: null });
+    try {
+      const data = await apiUpdateProfile(profile);
+      const user = data.user || data;
+      set({ user, loading: false });
+      return user;
+    } catch (err) {
+      set({ error: err.message, loading: false });
+      throw err;
+    }
+  },
+
+  changePassword: async (oldPassword, newPassword) => {
+    set({ loading: true, error: null });
+    try {
+      await apiChangePassword(oldPassword, newPassword);
+      set({ loading: false });
+    } catch (err) {
+      set({ error: err.message, loading: false });
+      throw err;
+    }
   },
 
   clearError: () => set({ error: null }),

@@ -227,7 +227,7 @@ export default function HomePage() {
             <p role="alert">{currentEventError}</p>
           )}
 
-        {category === '天氣' && !weatherLoading && !weatherError && (weatherMarkets.length > 0 || weatherIndividuals.length > 0) && (
+        {category === '天氣' && (
           <div className="view-all-weather">
             <Link to="/markets/weather" className="view-all-weather-link">
               查看全部天氣市場 <i className="fa-solid fa-arrow-right"></i>
@@ -531,16 +531,18 @@ export default function HomePage() {
             ))}
         </div>
 
-        <div className="view-all-weather">
-          <Link to="/markets/politics" className="view-all-weather-link">
-            查看更多 <i className="fa-solid fa-arrow-right"></i>
-          </Link>
-        </div>
+        {category === '政治' && (
+          <div className="view-all-weather">
+            <Link to="/markets/politics" className="view-all-weather-link">
+              查看更多 <i className="fa-solid fa-arrow-right"></i>
+            </Link>
+          </div>
+        )}
 
-        {category === '天氣' && !weatherLoading && !weatherError && (weatherMarkets.length > 0 || weatherIndividuals.length > 0) && (
+        {category === '天氣' && (
           <div className="view-all-weather">
             <Link to="/markets/weather" className="view-all-weather-link">
-              查看全部天氣市場 <i className="fa-solid fa-arrow-right"></i>
+              查看更多 <i className="fa-solid fa-arrow-right"></i>
             </Link>
           </div>
         )}

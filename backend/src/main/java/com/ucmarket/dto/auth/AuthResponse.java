@@ -1,5 +1,6 @@
 package com.ucmarket.dto.auth;
 
+import java.time.LocalDateTime;
 import java.util.UUID;
 
 public record AuthResponse(
@@ -8,5 +9,6 @@ public record AuthResponse(
     long expiresIn,
     UserInfo user
 ) {
-    public record UserInfo(UUID id, String username, String email, String role, String status, int reputation, String avatarUrl, String bio) {}
+    public record UserInfo(UUID id, String username, String email, String role, String status, int reputation,
+            String avatarUrl, String bio, boolean hasPassword, LocalDateTime createdAt) {}
 }
