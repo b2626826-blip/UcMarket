@@ -30,12 +30,18 @@
 | `authApi.test.js` | `api/authApi.js` | `login`/`register` body、`getCurrentUser`/`checkAdminSession`/`logout` URL |
 | `adminApi.test.js` | `api/adminApi.js` | 有/無 `params` 的 query string、`suspendUser`/`unsuspendUser` POST body null |
 | `tradeApi.test.js` | `api/tradeApi.js` | `getTrades`/`createTrade`/`getAdminTransactions` URL 與 body |
-| `walletApi.test.js` | `api/walletApi.js` | `getWallet`、`getWalletTransactions` 預設/指定 page |
+| `walletApi.test.js` | `api/walletApi.js` | `getWallet`、分頁與全部錢包流水 |
 | `positionApi.test.js` | `api/positionApi.js` | `getPositions`/`getPositionDetail` URL |
 | `oauthApi.test.js` | `api/oauthApi.js` | `firebaseLogin` POST body |
-| `weatherApi.test.js` | `api/weatherApi.js` | 無 API key → mock 資料；有 key 成功 → `parseForecast`；HTTP 失敗 / fetch reject / location 不符 → fallback mock |
+| `weatherApi.test.js` | `pages/public/market-detail-weather/weatherApi.js` | 無 API key → mock 資料；有 key 成功 → `parseForecast`；HTTP 失敗 / fetch reject / location 不符 → fallback mock |
+| `authInitialization.test.jsx` | `store/authStore.js` / guard 初始化 | token 還原與登入初始化狀態 |
+| `homeCurrentEvents.test.js` | 首頁時事資料 | 首頁取得與整理時事市場 |
+| `currentEventMarketCard.test.jsx`、`marketCard.test.jsx` | 市場卡片 | 欄位、導頁與顯示規則 |
+| `tradePanel.test.jsx` | `components/market/TradePanel.jsx` | quote、下單與錯誤狀態 |
+| `rankingsPage.test.jsx` | 排行榜頁 | metric 切換與資料顯示 |
+| `userLayoutFooter.test.jsx` | 使用者 layout | Footer 與主要 layout 行為 |
 
-> 註：`api/weatherApi.js` 為 orphan，與實際使用的 `pages/public/market-detail-weather/weatherApi.js` 邏輯逐字相同，測此份等同覆蓋該邏輯。
+> 天氣預報邏輯只有 `pages/public/market-detail-weather/weatherApi.js` 一份；舊的 `src/api/weatherApi.js` 已移除。
 
 ---
 
@@ -82,3 +88,4 @@ TEST_ADMIN_EMAIL=... TEST_ADMIN_PASSWORD=... npm run test:int
 | `positionApi.getPositions()` | `GET /api/positions` | 只有 `/api/positions/me`、`/me/open`、`/market/{id}` |
 | `tradeApi.getTrades()` | `GET /api/trades` | `/api/trades` 只有 `@PostMapping`（無列表 GET） |
 | `positionApi.getPositionDetail()` | `GET /api/positions/{id}` | 無此路由（未寫測試，連帶記錄） |
+| `marketApi.getMarketPriceHistory()` | `GET /api/markets/{id}/price-history` | 前端已宣告，但後端尚無讀取 route |
