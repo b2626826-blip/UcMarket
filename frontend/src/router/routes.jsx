@@ -21,6 +21,7 @@ import PositionsPage from "../pages/member/positions";
 import TradeHistoryPage from "../pages/member/trade-history";
 import RankingsPage from "../pages/member/rankings";
 import CreateMarketPage from "../pages/member/create-market";
+import ProfilePage from "../pages/member/profile";
 
 import DashboardPage from "../pages/admin/dashboard";
 import MarketsPage from "../pages/admin/markets";
@@ -56,6 +57,7 @@ const router = createBrowserRouter([
       { path: "positions", element: (<AuthGuard><PositionsPage /></AuthGuard>) },
       { path: "trades", element: (<AuthGuard><TradeHistoryPage /></AuthGuard>) },
       { path: "markets/new", element: (<AuthGuard><CreateMarketPage /></AuthGuard>) },
+      { path: "profile", element: (<AuthGuard><ProfilePage /></AuthGuard>) },
     ],
   },
   {

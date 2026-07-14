@@ -45,6 +45,7 @@ async function handleResponse(res) {
     apiError.status = res.status;
     throw apiError;
   }
+  if (res.status === 204) return null;
   return res.json();
 }
 
