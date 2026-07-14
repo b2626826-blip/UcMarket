@@ -1,5 +1,6 @@
 import { useParams } from 'react-router-dom';
 import { useEffect, useState } from 'react';
+import { getMarketDetail } from '../../../api/marketApi';
 import DetailPageTemplate from '../../../components/common/DetailPageTemplate';
 import useGlowEffect from '../../../hooks/useGlowEffect';
 import './SportsDetailPage.css';
@@ -14,23 +15,6 @@ const STATUS_LABEL = {
 const CATEGORY_ICON = {
   運動: 'fa-futbol', 政治: 'fa-landmark', 天氣: 'fa-cloud-sun',
   時事: 'fa-newspaper', 經濟: 'fa-chart-line',
-};
-
-// 範例資料：欄位名稱與後端 /api/markets/:id 回傳一致。
-// 之後接 API：用 useState + useEffect + getMarketDetail(id) 取代這個常數即可，畫面不用改。
-const SAMPLE_MARKET = {
-  id: 7,
-  code: 'MK-000007',
-  category: '運動',
-  title: '統一獅本場會擊敗樂天桃猿嗎？',
-  description: '中華職棒例行賽，統一獅主場對戰樂天桃猿。',
-  marketType: 'BINARY',
-  sourceUrl: 'https://www.cpbl.com.tw/',
-  resolutionRule: '依中華職棒官方最終比分結算，統一獅獲勝則此市場結算為 YES。',
-  closeAt: '2026-07-10T18:30',
-  status: 'ACTIVE',
-  yesPool: 5800,
-  noPool: 4200,
 };
 
 // YES/NO 價格是用池子算出來的，不是建立者填的
@@ -215,7 +199,7 @@ function RelatedContent({ title, category }) {
         <div className="video-grid">
           {videos.map((v) => (
             <a key={v.videoId} className="video-card"
-               href={`https://www.youtube.com/watch?v=${v.videoId}`} target="_blank" rel="noreferrer">
+              href={`https://www.youtube.com/watch?v=${v.videoId}`} target="_blank" rel="noreferrer">
               <div className="video-thumb">
                 <img src={`https://i.ytimg.com/vi/${v.videoId}/hqdefault.jpg`} alt="" loading="lazy" />
                 <span className="video-play"><i className="fa-solid fa-play"></i></span>
@@ -238,15 +222,54 @@ function RelatedContent({ title, category }) {
 
 export default function SportsDetailPage() {
   const { id } = useParams();
+  const [market, setMarket] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   useGlowEffect('.trade-market-card, .trade-panel');
 
-  const market = SAMPLE_MARKET; // TODO: 接 API → getMarketDetail(id)
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError('');
+
+    getMarketDetail(id)
+      .then((data) => {
+        if (!active) return;
+        if (!['運動', 'sports'].includes(String(data?.category).toLowerCase())) {
+          throw new Error('這筆資料不是運動市場');
+        }
+        setMarket(data);
+      })
+      .catch((requestError) => {
+        if (active) setError(requestError.message || '市場詳情載入失敗');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  if (loading || error || !market) {
+    return (
+      <DetailPageTemplate id={id} subtitle="運動賽事預測市場" marketId={id} tradePanel={<div className='trade-panel'><p>
+        {loading ? '市場資料載入中…' : '此市場目前無法交易'}
+      </p></div>}>
+        <p style={{ padding: '48px 16px', textAlign: 'center', color: error ? '#ff476d' : '#8f8f8f' }}>
+          {loading ? '運動市場載入中...' : error || '找不到運動市場'}
+        </p>
+      </DetailPageTemplate>
+    );
+  }
+
   const price = priceFromPools(market.yesPool, market.noPool);
   const isBinary = market.marketType === 'BINARY';
   const icon = CATEGORY_ICON[market.category] || 'fa-medal';
 
   return (
-    <DetailPageTemplate id={id} subtitle={market.title} marketId={market.id ?? id}>
+    <DetailPageTemplate id={id} subtitle={market.title} marketId={market.id ?? id} market={market}>
       <div className="trade-market-card">
         <div className="trade-card-header">
           <div>
