@@ -146,7 +146,17 @@ export default function CreateMarketPage() {
             </div>
             {form.category === '金融' && (
               <div className="form-group">
-                <label className="form-label">TradingView K線圖</label>
+                <div className="create-market-field-head">
+                  <label className="form-label">TradingView K線圖</label>
+                  <a
+                    className="create-market-field-link"
+                    href="https://www.tradingview.com/widget-docs/widgets/charts/advanced-chart/"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    點我選擇嵌入內容
+                  </a>
+                </div>
                 <input
                   className="form-control"
                   placeholder="請貼上 TradingView K線圖網址或嵌入內容"
