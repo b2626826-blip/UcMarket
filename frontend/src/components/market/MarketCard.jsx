@@ -36,7 +36,6 @@ export default function MarketCard({ market, onClickTrade }) {
       <Link to={detailPath} style={{ display: 'block' }}>
         <div className="market-footer">
           <span>Volume {market.volume}</span>
-          <span>{market.traders} traders</span>
         </div>
       </Link>
     </div>

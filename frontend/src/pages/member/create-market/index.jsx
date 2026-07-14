@@ -16,7 +16,7 @@ function formatCloseAt(value) {
 }
 
 export default function CreateMarketPage() {
-  const [form, setForm] = useState({ title: '', description: '', category: '', marketType: 'BINARY', sourceUrl: '', resolutionRule: '', closeAt: '' });
+  const [form, setForm] = useState({ title: '', description: '', category: '', marketType: 'BINARY', sourceUrl: '', tradingViewChart: '', resolutionRule: '', closeAt: '' });
   const [closeAtText, setCloseAtText] = useState('選擇日期時間');
   const [errors, setErrors] = useState({});
   const { showToast } = useUiStore();
@@ -73,7 +73,7 @@ export default function CreateMarketPage() {
       const market = await createMarket(buildBody());
       await submitMarket(market.id);
       showToast('success', '送審成功');
-      setForm({ title: '', description: '', category: '', marketType: 'BINARY', sourceUrl: '', resolutionRule: '', closeAt: '' });
+      setForm({ title: '', description: '', category: '', marketType: 'BINARY', sourceUrl: '', tradingViewChart: '', resolutionRule: '', closeAt: '' });
       setCloseAtText('選擇日期時間');
       setErrors({});
     } catch (err) { showToast('danger', '送審失敗', err.message); }
@@ -126,6 +126,27 @@ export default function CreateMarketPage() {
               <label className="form-label">資料來源 URL *</label>
               <input className={`form-control ${errors.sourceUrl ? 'is-invalid' : ''}`} placeholder="https://" value={form.sourceUrl} onChange={(e) => setField('sourceUrl', e.target.value)} />
             </div>
+            {form.category === '金融' && (
+              <div className="form-group">
+                <div className="create-market-field-head">
+                  <label className="form-label">TradingView K線圖</label>
+                  <a
+                    className="create-market-field-link"
+                    href="https://www.tradingview.com/widget-docs/widgets/charts/advanced-chart/"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    點我選擇嵌入內容
+                  </a>
+                </div>
+                <input
+                  className="form-control"
+                  placeholder="請貼上 TradingView K線圖網址或嵌入內容"
+                  value={form.tradingViewChart}
+                  onChange={(e) => setField('tradingViewChart', e.target.value)}
+                />
+              </div>
+            )}
             <div className="form-group">
               <label className="form-label">裁決規則 *</label>
               <textarea className={`form-control ${errors.resolutionRule ? 'is-invalid' : ''}`} rows={2} placeholder="請輸入此市場的結算規則" value={form.resolutionRule} onChange={(e) => setField('resolutionRule', e.target.value)} />
@@ -170,6 +191,9 @@ export default function CreateMarketPage() {
             <div><dt>市場類型</dt><dd>{marketTypeLabels[form.marketType]}</dd></div>
             <div><dt>截止時間</dt><dd>{formatCloseAt(form.closeAt)}</dd></div>
             <div><dt>資料來源</dt><dd>{form.sourceUrl || '尚未提供'}</dd></div>
+            {form.category === '金融' && (
+              <div><dt>TradingView K線圖</dt><dd>{form.tradingViewChart || '尚未提供'}</dd></div>
+            )}
             <div><dt>裁決規則</dt><dd>{form.resolutionRule || '尚未提供'}</dd></div>
           </dl>
         </aside>

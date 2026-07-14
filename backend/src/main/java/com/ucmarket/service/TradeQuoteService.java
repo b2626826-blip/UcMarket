@@ -13,26 +13,9 @@ import com.ucmarket.entity.MarketSide;
 public class TradeQuoteService {
 
 	public TradeQuoteResponse getQuote(Market market, MarketSide side, BigDecimal amount) {
-		BigDecimal yesPool = market.getYesPool();
-		BigDecimal noPool = market.getNoPool();
-		BigDecimal k = yesPool.multiply(noPool);
-
-		BigDecimal newYesPool;
-		BigDecimal newNoPool;
-		if (side == MarketSide.YES) {
-			newNoPool = noPool.add(amount);
-			newYesPool = k.divide(newNoPool, 18, RoundingMode.HALF_UP);
-		} else {
-			newYesPool = yesPool.add(amount);
-			newNoPool = k.divide(newYesPool, 18, RoundingMode.HALF_UP);
-		}
-
-		BigDecimal newTotal = newYesPool.add(newNoPool);
-		BigDecimal odds = side == MarketSide.YES
-				? newTotal.divide(newYesPool, 4, RoundingMode.HALF_UP)
-				: newTotal.divide(newNoPool, 4, RoundingMode.HALF_UP);
-
-		return new TradeQuoteResponse(odds, amount);
+		BigDecimal odds = getMarketOdds(market, side);
+		BigDecimal shares = amount.divide(odds, 8, RoundingMode.HALF_UP);
+		return new TradeQuoteResponse(odds, amount, shares);
 	}
 
 	public BigDecimal getMarketOdds(Market market, MarketSide side) {
