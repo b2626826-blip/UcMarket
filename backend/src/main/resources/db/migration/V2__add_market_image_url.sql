@@ -1,2 +1,2 @@
--- ALTER TABLE markets
---     ADD COLUMN image_url TEXT;
+ALTER TABLE markets
+    ADD COLUMN image_url TEXT;
