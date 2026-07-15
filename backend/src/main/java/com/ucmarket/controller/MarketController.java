@@ -2,6 +2,7 @@ package com.ucmarket.controller;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -23,6 +24,9 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ucmarket.dto.CreateMarketRequest;
 import com.ucmarket.dto.MarketOddsResponse;
 import com.ucmarket.dto.MarketResponse;
@@ -52,14 +56,18 @@ public class MarketController {
 	private final MarketService marketService;
 	private final TradeQuoteService tradeQuoteService;
 	private final PriceHistoryService priceHistoryService;
+	private final ObjectMapper objectMapper;
+	private static final String FINANCE_CATEGORY = "金融";
+	private static final TypeReference<Map<String, Object>> METADATA_TYPE = new TypeReference<>() {};
 
 	public MarketController(MarketRepository marketRepository, TradeRepository tradeRepository, MarketService marketService,
-			TradeQuoteService tradeQuoteService, PriceHistoryService priceHistoryService) {
+			TradeQuoteService tradeQuoteService, PriceHistoryService priceHistoryService, ObjectMapper objectMapper) {
 		this.marketRepository = marketRepository;
 		this.tradeRepository = tradeRepository;
 		this.marketService = marketService;
 		this.tradeQuoteService = tradeQuoteService;
 		this.priceHistoryService = priceHistoryService;
+		this.objectMapper = objectMapper;
 	}
 
 	@GetMapping
@@ -105,6 +113,7 @@ public class MarketController {
 				request.sourceUrl(), request.resolutionRule(), request.closeAt());
 		market.setCreatorId(user.getId());
 		market.setImageUrl(request.imageUrl());
+		mergeFinanceMetadata(market, request.category(), request.tradingViewSymbol());
 
 		return marketRepository.save(market);
 	}
@@ -144,10 +153,71 @@ public class MarketController {
 		if (request.marketType() != null) market.setMarketType(request.marketType());
 		if (request.sourceUrl() != null) market.setSourceUrl(request.sourceUrl());
 		if (request.imageUrl() != null) market.setImageUrl(request.imageUrl());
+		String category = request.category() != null ? request.category() : market.getCategory();
+		if (isFinanceCategory(category)) {
+			String tradingViewSymbol = request.tradingViewSymbol() != null
+					? request.tradingViewSymbol()
+					: readTradingViewSymbol(market.getMetadata());
+			mergeFinanceMetadata(market, category, tradingViewSymbol);
+		}
 		if (request.resolutionRule() != null) market.setResolutionRule(request.resolutionRule());
 		if (request.closeAt() != null) market.setCloseAt(request.closeAt());
 
 		return marketRepository.save(market);
+	}
+
+	private void mergeFinanceMetadata(Market market, String category, String tradingViewSymbol) {
+		if (!isFinanceCategory(category)) {
+			return;
+		}
+
+		Map<String, Object> metadata = parseMetadata(market.getMetadata());
+		metadata.put("type", "FINANCE");
+
+		String normalizedSymbol = normalizeTradingViewSymbol(tradingViewSymbol);
+		if (normalizedSymbol == null) {
+			metadata.remove("tradingViewSymbol");
+		} else {
+			metadata.put("tradingViewSymbol", normalizedSymbol);
+		}
+
+		market.setMetadata(writeMetadata(metadata));
+	}
+
+	private boolean isFinanceCategory(String category) {
+		return FINANCE_CATEGORY.equals(category);
+	}
+
+	private String normalizeTradingViewSymbol(String tradingViewSymbol) {
+		if (tradingViewSymbol == null) {
+			return null;
+		}
+		String normalized = tradingViewSymbol.trim();
+		return normalized.isEmpty() ? null : normalized;
+	}
+
+	private String readTradingViewSymbol(String rawMetadata) {
+		Object tradingViewSymbol = parseMetadata(rawMetadata).get("tradingViewSymbol");
+		return tradingViewSymbol instanceof String value ? value : null;
+	}
+
+	private Map<String, Object> parseMetadata(String rawMetadata) {
+		if (rawMetadata == null || rawMetadata.isBlank()) {
+			return new LinkedHashMap<>();
+		}
+		try {
+			return new LinkedHashMap<>(objectMapper.readValue(rawMetadata, METADATA_TYPE));
+		} catch (JsonProcessingException e) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Market metadata is invalid JSON", e);
+		}
+	}
+
+	private String writeMetadata(Map<String, Object> metadata) {
+		try {
+			return objectMapper.writeValueAsString(metadata);
+		} catch (JsonProcessingException e) {
+			throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Failed to serialize market metadata", e);
+		}
 	}
 
 	private List<MarketResponse> toResponses(List<Market> markets) {

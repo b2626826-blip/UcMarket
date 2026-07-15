@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -116,7 +117,14 @@ class CoreMarketLifecycleTest {
 				positionService,
 				priceHistoryService
 		);
-		marketController = new MarketController(marketRepository, tradeRepository, marketService, tradeQuoteService, priceHistoryService);
+		marketController = new MarketController(
+				marketRepository,
+				tradeRepository,
+				marketService,
+				tradeQuoteService,
+				priceHistoryService,
+				Jackson2ObjectMapperBuilder.json().build()
+		);
 		tradeController = new TradeController(tradeService);
 	}
 
@@ -143,6 +151,7 @@ class CoreMarketLifecycleTest {
 						"TEST",
 						"BINARY",
 						"https://example.com/result",
+						null,
 						null,
 						"Resolve YES when the scenario completes.",
 						LocalDateTime.now().plusDays(1)

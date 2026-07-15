@@ -186,7 +186,7 @@ class MarketControllerTest {
     @Test
     void createMarket_shouldReturn201() throws Exception {
         CreateMarketRequest request = new CreateMarketRequest(
-                "New Market", "Desc", "CURRENT_AFFAIRS", null, "https://example.com/news", "https://example.com/image.jpg", null,
+                "New Market", "Desc", "CURRENT_AFFAIRS", null, "https://example.com/news", "https://example.com/image.jpg", null, null,
                 LocalDateTime.now().plusDays(7));
 
         Market saved = new Market("New Market", "Desc", "CURRENT_AFFAIRS", null, "https://example.com/news", null,
@@ -208,7 +208,7 @@ class MarketControllerTest {
     @Test
     void createMarket_shouldReturn400_whenValidationFails() throws Exception {
         CreateMarketRequest request = new CreateMarketRequest(
-                "", "Desc", "Cat", null, null, null, null, null);
+                "", "Desc", "Cat", null, null, null, null, null, null);
 
         mockMvc.perform(post("/api/markets")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -219,7 +219,7 @@ class MarketControllerTest {
     @Test
     void createMarket_shouldReturn400_whenSourceUrlIsMalformed() throws Exception {
         CreateMarketRequest request = new CreateMarketRequest(
-                "New Market", "Desc", "CURRENT_AFFAIRS", null, "not a url", null, null,
+                "New Market", "Desc", "CURRENT_AFFAIRS", null, "not a url", null, null, null,
                 LocalDateTime.now().plusDays(7));
 
         mockMvc.perform(post("/api/markets")
@@ -232,7 +232,7 @@ class MarketControllerTest {
     void createMarket_shouldReturn400_whenImageUrlIsMalformed() throws Exception {
         CreateMarketRequest request = new CreateMarketRequest(
                 "New Market", "Desc", "CURRENT_AFFAIRS", null, "https://example.com/news", "not a url",
-                null, LocalDateTime.now().plusDays(7));
+                null, null, LocalDateTime.now().plusDays(7));
 
         mockMvc.perform(post("/api/markets")
                 .contentType(MediaType.APPLICATION_JSON)
@@ -245,6 +245,57 @@ class MarketControllerTest {
         mockMvc.perform(put("/api/markets/{id}", UUID.randomUUID())
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"sourceUrl\":\"not a url\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void createMarket_shouldPersistFinanceMetadata() throws Exception {
+        CreateMarketRequest request = new CreateMarketRequest(
+                "AAPL Market", "Desc", "金融", "BINARY", "https://example.com/news", null,
+                "NASDAQ:AAPL", null, LocalDateTime.now().plusDays(7));
+
+        when(marketRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        mockMvc.perform(post("/api/markets")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.metadata").value("{\"type\":\"FINANCE\",\"tradingViewSymbol\":\"NASDAQ:AAPL\"}"));
+
+        ArgumentCaptor<Market> marketCaptor = ArgumentCaptor.forClass(Market.class);
+        verify(marketRepository).save(marketCaptor.capture());
+        assertEquals("{\"type\":\"FINANCE\",\"tradingViewSymbol\":\"NASDAQ:AAPL\"}", marketCaptor.getValue().getMetadata());
+    }
+
+    @Test
+    void updateMarket_shouldMergeFinanceMetadataAndKeepExistingKeys() throws Exception {
+        UUID id = UUID.randomUUID();
+        Market market = new Market("Title", "Desc", "金融", "BINARY", "https://example.com/news", "Rule",
+                LocalDateTime.now().plusDays(7));
+        ReflectionTestUtils.setField(market, "id", id);
+        ReflectionTestUtils.setField(market, "creatorId", AUTH_USER_ID);
+        ReflectionTestUtils.setField(market, "status", MarketStatus.DRAFT);
+        market.setMetadata("{\"note\":\"keep\",\"tradingViewSymbol\":\"BINANCE:BTCUSDT\"}");
+
+        when(marketRepository.findById(id)).thenReturn(Optional.of(market));
+        when(marketRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+        mockMvc.perform(put("/api/markets/{id}", id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"tradingViewSymbol\":\"BINANCE:ETHUSDT\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.metadata").value("{\"note\":\"keep\",\"tradingViewSymbol\":\"BINANCE:ETHUSDT\",\"type\":\"FINANCE\"}"));
+    }
+
+    @Test
+    void createMarket_shouldRejectTradingViewEmbedHtml() throws Exception {
+        CreateMarketRequest request = new CreateMarketRequest(
+                "Finance Market", "Desc", "金融", "BINARY", "https://example.com/news", null,
+                "<script>widget</script>", null, LocalDateTime.now().plusDays(7));
+
+        mockMvc.perform(post("/api/markets")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
 

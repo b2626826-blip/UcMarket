@@ -1,21 +1,90 @@
+import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { getMarketDetail } from '../../../api/marketApi';
 import DetailPageTemplate from '../../../components/common/DetailPageTemplate';
 import TradingViewWidget from '../../../components/finance/TradingViewWidget';
 import TradingViewNewsWidget from '../../../components/finance/TradingViewNewsWidget';
 import './FinanceDetailPage.css';
 
+const STATUS_LABELS = {
+  DRAFT: '草稿',
+  PENDING: '審核中',
+  ACTIVE: '進行中',
+  CLOSED: '已截止',
+  RESOLVED: '已結算',
+  REJECTED: '已拒絕',
+  CANCELED: '已取消',
+};
+
+function parseMetadata(metadata) {
+  if (!metadata) return {};
+  try {
+    return typeof metadata === 'string' ? JSON.parse(metadata) : metadata;
+  } catch {
+    return {};
+  }
+}
+
+function formatDateTime(value) {
+  if (!value) return '未設定';
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '未設定' : date.toLocaleString('zh-TW', { hour12: false });
+}
+
 export default function FinanceDetailPage() {
   const { id } = useParams();
+  const [market, setMarket] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    let active = true;
+    setLoading(true);
+    setError('');
+
+    getMarketDetail(id)
+      .then((data) => {
+        if (!active) return;
+        if (data?.category !== '金融') {
+          throw new Error('這不是金融市場');
+        }
+        setMarket(data);
+      })
+      .catch((requestError) => {
+        if (active) setError(requestError.message || '金融市場載入失敗');
+      })
+      .finally(() => {
+        if (active) setLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [id]);
+
+  if (loading || error || !market) {
+    return (
+      <DetailPageTemplate id={id} subtitle="金融市場" marketId={id} tradePanel={<div />}>
+        <p style={{ padding: '48px 16px', textAlign: 'center', color: error ? '#ff476d' : '#8f8f8f' }}>
+          {loading ? '金融市場載入中...' : error || '找不到金融市場'}
+        </p>
+      </DetailPageTemplate>
+    );
+  }
+
+  const metadata = parseMetadata(market.metadata);
+  const tradingViewSymbol = metadata.tradingViewSymbol ?? '';
 
   return (
     <DetailPageTemplate
-      id={id}
-      subtitle="金融價格預測市場"
-      status="LIVE"
-      startTime="即日起開放交易"
-      settleTime="2025 年 12 月 31 日 23:59（UTC+8）"
-      settlementRule="本市場預測比特幣（BTC）現貨價格是否會於 2025 年 12 月 31 日 23:59（UTC+8）前首次突破並觸及 100,000 美元。若在截止時間前曾達到或超過 100,000 美元，即判定為 YES；否則為 NO。"
-      marketId={id}
+      id={market.code || id}
+      subtitle={market.description || '金融市場'}
+      status={STATUS_LABELS[market.status] || market.status}
+      settleTime={formatDateTime(market.closeAt)}
+      settlementRule={market.resolutionRule || '未提供裁決規則'}
+      marketId={market.id ?? id}
+      market={market}
+      category={market.title}
     >
       <div className="trade-market-card finance-market-card">
         <div className="trade-card-header" style={{ marginBottom: 24 }}>
@@ -23,13 +92,15 @@ export default function FinanceDetailPage() {
             <div className="market-type">
               <i className="fa-solid fa-chart-line"></i> Finance
             </div>
-            <h2 style={{ fontSize: 34, lineHeight: 1.35, marginTop: 14 }}>
-              BTCUSD 即時技術走勢
-            </h2>
+            <h2 style={{ fontSize: 34, lineHeight: 1.35, marginTop: 14 }}>{market.title}</h2>
             <p style={{ marginTop: 12, color: '#8f8f8f', lineHeight: 1.8 }}>
-              這裡作為 finance 主題的資訊主卡，可承接 TradingView 圖表、金融脈絡與後續 KOL 觀點整理。
+              {market.description || '此金融市場尚未提供描述。'}
             </p>
           </div>
+        </div>
+
+        <div style={{ marginBottom: 18, color: '#c7b27c' }}>
+          TradingView Symbol: {tradingViewSymbol || '尚未設定金融商品'}
         </div>
 
         <div
@@ -44,7 +115,7 @@ export default function FinanceDetailPage() {
             boxShadow: 'inset 0 0 0 1px rgba(217,170,67,.05)',
           }}
         >
-          <TradingViewWidget />
+          <TradingViewWidget symbol={tradingViewSymbol} />
         </div>
 
         <section
@@ -58,10 +129,10 @@ export default function FinanceDetailPage() {
         >
           <div style={{ marginBottom: 16 }}>
             <div className="market-type" style={{ marginBottom: 10 }}>
-              <i className="fa-regular fa-newspaper"></i> 消息面
+              <i className="fa-regular fa-newspaper"></i> 市場資訊
             </div>
             <p style={{ margin: 0, color: '#8f8f8f', lineHeight: 1.7 }}>
-              這裡直接嵌入 TradingView Top Stories，讓玩家看完 K 線後，能立即接續閱讀市場新聞。
+              這個頁面會直接使用 getMarketDetail(id) 取得標題、描述、狀態、截止時間、裁決規則與 metadata。
             </p>
           </div>
 

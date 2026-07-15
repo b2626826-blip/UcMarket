@@ -54,7 +54,7 @@ public class TradeService {
 
 		BigDecimal amount = request.amount();
 		BigDecimal currentOdds = tradeQuoteService.getMarketOdds(market, request.side());
-		if (currentOdds.compareTo(new BigDecimal("1.5")) < 0 || currentOdds.compareTo(new BigDecimal("5.0")) > 0) {
+		if (!OddsRules.isWithinRange(currentOdds)) {
 			throw new IllegalStateException("Trade odds are outside the allowed range");
 		}
 

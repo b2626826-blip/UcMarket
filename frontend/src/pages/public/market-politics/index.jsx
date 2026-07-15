@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getMarkets } from "../../../api/marketApi";
+import { getOddsFromPools } from "../../../utils/odds";
 import "./MarketPolitics.css";
 
 
@@ -33,6 +34,8 @@ function toPoliticsMarket(market) {
   const yesPool = Number(market.yesPool) || 0;
   const noPool = Number(market.noPool) || 0;
   const totalPool = yesPool + noPool;
+  const yesOdds = getOddsFromPools(yesPool, noPool, "YES") ?? 1.5;
+  const noOdds = getOddsFromPools(yesPool, noPool, "NO") ?? 1.5;
   const yesPrice = totalPool > 0 ? yesPool / totalPool : 0.5;
   const noPrice = 1 - yesPrice;
   const searchableText = `${market.title || ""} ${market.description || ""}`;
@@ -50,9 +53,9 @@ function toPoliticsMarket(market) {
       label: "市場機率",
       percent: `${Math.round(yesPrice * 100)}%`,
       yesMarket: market.title,
-      yesPrice,
+      yesOdds,
       noMarket: market.title,
-      noPrice,
+      noOdds,
     }],
     volume: `${formatCurrency(totalPool)} 流動池`,
     volumeValue: totalPool,
@@ -82,7 +85,7 @@ export default function MarketPolitics() {
   const [apiMarkets, setApiMarkets] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
-  const [currentPrice, setCurrentPrice] = useState(0.5);
+  const [currentPrice, setCurrentPrice] = useState(1.5);
   const [currentSide, setCurrentSide] = useState("YES");
   const [selectedMarket, setSelectedMarket] = useState(null);
   const [amount, setAmount] = useState("");
@@ -105,7 +108,7 @@ export default function MarketPolitics() {
         setApiMarkets(politicsMarkets);
         if (politicsMarkets[0]) {
           setSelectedMarket(politicsMarkets[0]);
-          setCurrentPrice(politicsMarkets[0].outcomes[0].yesPrice);
+          setCurrentPrice(politicsMarkets[0].outcomes[0].yesOdds);
         }
       })
       .catch((error) => {
@@ -119,6 +122,15 @@ export default function MarketPolitics() {
       active = false;
     };
   }, []);
+
+  useEffect(() => {
+    const outcome = selectedMarket?.outcomes?.[0];
+    if (!outcome) {
+      return;
+    }
+
+    setCurrentPrice(currentSide === "YES" ? outcome.yesOdds : outcome.noOdds);
+  }, [currentSide, selectedMarket]);
 
   const filteredMarkets = useMemo(() => {
     let result = apiMarkets.filter((market) => {
@@ -264,8 +276,8 @@ export default function MarketPolitics() {
                     <div className="outcome-row" key={outcome.label}>
                       <span>{outcome.label}</span>
                       <strong>{outcome.percent}</strong>
-                      <button type="button" className="yes-bet" onClick={() => chooseBet(market, "YES", outcome.yesPrice)}>Yes</button>
-                      <button type="button" className="no-bet" onClick={() => chooseBet(market, "NO", outcome.noPrice)}>No</button>
+                      <button type="button" className="yes-bet" onClick={() => chooseBet(market, "YES", outcome.yesOdds)}>Yes</button>
+                      <button type="button" className="no-bet" onClick={() => chooseBet(market, "NO", outcome.noOdds)}>No</button>
                     </div>
                   ))}
 
@@ -312,10 +324,10 @@ export default function MarketPolitics() {
             </div>
 
             <div className="bet-form">
-              <label>價格</label>
+              <label>賠率</label>
               <div className="bet-input-box">
                 <input value={currentPrice.toFixed(2)} readOnly />
-                <span>USDC</span>
+                <span>x</span>
               </div>
 
               <label>下注金額</label>
@@ -342,7 +354,7 @@ export default function MarketPolitics() {
               </button>
 
               <p className="risk-text">
-                <i className="fa-solid fa-triangle-exclamation" /> 預測市場涉及風險，下注前請確認方向與價格。
+                <i className="fa-solid fa-triangle-exclamation" /> 預測市場涉及風險，下注前請確認方向與賠率。
               </p>
             </div>
 
@@ -360,5 +372,5 @@ export default function MarketPolitics() {
 }
 
 function getHighestPrice(market) {
-  return Math.max(...market.outcomes.flatMap((item) => [item.yesPrice, item.noPrice]));
+  return Math.max(...market.outcomes.flatMap((item) => [item.yesOdds, item.noOdds]));
 }

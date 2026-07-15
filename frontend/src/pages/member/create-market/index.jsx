@@ -1,9 +1,12 @@
-import { useState } from 'react';
-import { createMarket, submitMarket } from '../../../api/marketApi';
+import { useEffect, useRef, useState } from 'react';
+import { createMarket, searchTradingViewSymbols, submitMarket } from '../../../api/marketApi';
 import Button from '../../../components/common/Button';
 import useUiStore from '../../../store/uiStore';
 import { CURRENT_EVENT_CATEGORY_CODE } from '../../../types/market';
 import './CreateMarketPage.css';
+
+const FINANCE_CATEGORY = '金融';
+const SYMBOL_SEARCH_DEBOUNCE_MS = 300;
 
 const marketTypeLabels = {
   BINARY: '二元（YES/NO）',
@@ -11,14 +14,34 @@ const marketTypeLabels = {
   MULTIPLE_CHOICE: '多選',
 };
 
+const initialForm = {
+  title: '',
+  description: '',
+  category: '',
+  marketType: 'BINARY',
+  sourceUrl: '',
+  tradingViewSymbol: '',
+  resolutionRule: '',
+  closeAt: '',
+};
+
 function formatCloseAt(value) {
   return value ? value.replace('T', ' ') : '尚未設定';
 }
 
+function isTradingViewEmbed(value) {
+  return /<[^>]+>|widget|script/i.test(value);
+}
+
 export default function CreateMarketPage() {
-  const [form, setForm] = useState({ title: '', description: '', category: '', marketType: 'BINARY', sourceUrl: '', tradingViewChart: '', resolutionRule: '', closeAt: '' });
+  const [form, setForm] = useState(initialForm);
   const [closeAtText, setCloseAtText] = useState('選擇日期時間');
   const [errors, setErrors] = useState({});
+  const [symbolSuggestions, setSymbolSuggestions] = useState([]);
+  const [symbolSearchOpen, setSymbolSearchOpen] = useState(false);
+  const [symbolSearchLoading, setSymbolSearchLoading] = useState(false);
+  const [symbolSearchMessage, setSymbolSearchMessage] = useState('');
+  const symbolBlurTimeoutRef = useRef(null);
   const { showToast } = useUiStore();
 
   function setField(k, v) { setForm((p) => ({ ...p, [k]: v })); setErrors((p) => ({ ...p, [k]: '' })); }
@@ -49,6 +72,9 @@ export default function CreateMarketPage() {
     if (!form.resolutionRule.trim()) e.resolutionRule = '請輸入裁決規則';
     if (!form.closeAt.trim()) e.closeAt = '請選擇截止時間';
     else if (new Date(form.closeAt) <= new Date()) e.closeAt = '截止時間必須晚於現在';
+    if (form.category === FINANCE_CATEGORY && isTradingViewEmbed(form.tradingViewSymbol)) {
+      e.tradingViewSymbol = '請輸入 TradingView 商品代碼，例如 NASDAQ:AAPL，不接受整段 embed HTML';
+    }
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -56,7 +82,28 @@ export default function CreateMarketPage() {
   function buildBody() {
     let closeAt = form.closeAt;
     if (closeAt && !/\d{2}:\d{2}$/.test(closeAt)) closeAt += ':00';
-    return { ...form, closeAt, description: form.description || null, sourceUrl: form.sourceUrl || null };
+    return {
+      ...form,
+      closeAt,
+      description: form.description || null,
+      sourceUrl: form.sourceUrl || null,
+      tradingViewSymbol: form.category === FINANCE_CATEGORY
+        ? (form.tradingViewSymbol.trim() || null)
+        : null,
+    };
+  }
+
+  function clearSymbolSearchState() {
+    setSymbolSuggestions([]);
+    setSymbolSearchOpen(false);
+    setSymbolSearchLoading(false);
+    setSymbolSearchMessage('');
+  }
+
+  function handleSymbolSelect(symbol) {
+    setField('tradingViewSymbol', symbol);
+    setSymbolSearchOpen(false);
+    setSymbolSearchMessage('');
   }
 
   async function handleSave() {
@@ -73,11 +120,58 @@ export default function CreateMarketPage() {
       const market = await createMarket(buildBody());
       await submitMarket(market.id);
       showToast('success', '送審成功');
-      setForm({ title: '', description: '', category: '', marketType: 'BINARY', sourceUrl: '', tradingViewChart: '', resolutionRule: '', closeAt: '' });
+      setForm(initialForm);
       setCloseAtText('選擇日期時間');
       setErrors({});
+      clearSymbolSearchState();
     } catch (err) { showToast('danger', '送審失敗', err.message); }
   }
+
+  useEffect(() => {
+    if (form.category !== FINANCE_CATEGORY) {
+      clearSymbolSearchState();
+      return undefined;
+    }
+
+    const query = form.tradingViewSymbol.trim();
+    if (!query || query.length < 2 || isTradingViewEmbed(query)) {
+      setSymbolSuggestions([]);
+      setSymbolSearchLoading(false);
+      setSymbolSearchMessage(query.length === 1 ? '至少輸入 2 個字元以搜尋代號' : '');
+      return undefined;
+    }
+
+    const controller = new AbortController();
+    const timer = window.setTimeout(async () => {
+      setSymbolSearchLoading(true);
+      setSymbolSearchMessage('');
+
+      try {
+        const results = await searchTradingViewSymbols(query, { signal: controller.signal });
+        setSymbolSuggestions(results.slice(0, 8));
+        setSymbolSearchOpen(true);
+        setSymbolSearchMessage(results.length === 0 ? '找不到相符的 TradingView 商品代碼' : '');
+      } catch (error) {
+        if (error.name === 'AbortError') return;
+        setSymbolSuggestions([]);
+        setSymbolSearchOpen(true);
+        setSymbolSearchMessage('暫時無法取得 TradingView 商品代碼建議');
+      } finally {
+        setSymbolSearchLoading(false);
+      }
+    }, SYMBOL_SEARCH_DEBOUNCE_MS);
+
+    return () => {
+      controller.abort();
+      window.clearTimeout(timer);
+    };
+  }, [form.category, form.tradingViewSymbol]);
+
+  useEffect(() => () => {
+    if (symbolBlurTimeoutRef.current) {
+      window.clearTimeout(symbolBlurTimeoutRef.current);
+    }
+  }, []);
 
   return (
     <div className="trade-wrapper" style={{ paddingTop: 40, paddingBottom: 90 }}>
@@ -126,25 +220,80 @@ export default function CreateMarketPage() {
               <label className="form-label">資料來源 URL *</label>
               <input className={`form-control ${errors.sourceUrl ? 'is-invalid' : ''}`} placeholder="https://" value={form.sourceUrl} onChange={(e) => setField('sourceUrl', e.target.value)} />
             </div>
-            {form.category === '金融' && (
+            {form.category === FINANCE_CATEGORY && (
               <div className="form-group">
                 <div className="create-market-field-head">
-                  <label className="form-label">TradingView K線圖</label>
+                  <label className="form-label">TradingView 商品代碼</label>
                   <a
                     className="create-market-field-link"
                     href="https://www.tradingview.com/widget-docs/widgets/charts/advanced-chart/"
                     target="_blank"
                     rel="noreferrer"
                   >
-                    點我選擇嵌入內容
+                    查看 TradingView 文件
                   </a>
                 </div>
-                <input
-                  className="form-control"
-                  placeholder="請貼上 TradingView K線圖網址或嵌入內容"
-                  value={form.tradingViewChart}
-                  onChange={(e) => setField('tradingViewChart', e.target.value)}
-                />
+
+                <div className="symbol-autocomplete">
+                  <input
+                    className={`form-control ${errors.tradingViewSymbol ? 'is-invalid' : ''}`}
+                    placeholder="例如 AAPL、Apple、ETH、台積電；可點選建議代號"
+                    value={form.tradingViewSymbol}
+                    autoComplete="off"
+                    onChange={(event) => {
+                      setField('tradingViewSymbol', event.target.value);
+                      setSymbolSearchOpen(true);
+                    }}
+                    onFocus={() => {
+                      if (symbolBlurTimeoutRef.current) {
+                        window.clearTimeout(symbolBlurTimeoutRef.current);
+                      }
+                      if (symbolSuggestions.length > 0 || symbolSearchMessage) {
+                        setSymbolSearchOpen(true);
+                      }
+                    }}
+                    onBlur={() => {
+                      symbolBlurTimeoutRef.current = window.setTimeout(() => {
+                        setSymbolSearchOpen(false);
+                      }, 120);
+                    }}
+                  />
+
+                  {(symbolSearchOpen || symbolSearchLoading || symbolSearchMessage) && (
+                    <div className="symbol-autocomplete__panel">
+                      {symbolSearchLoading && (
+                        <div className="symbol-autocomplete__status">搜尋中...</div>
+                      )}
+
+                      {!symbolSearchLoading && symbolSuggestions.map((item) => (
+                        <button
+                          key={`${item.symbol}-${item.description}`}
+                          type="button"
+                          className="symbol-autocomplete__item"
+                          onMouseDown={(event) => {
+                            event.preventDefault();
+                            handleSymbolSelect(item.symbol);
+                          }}
+                        >
+                          <span className="symbol-autocomplete__symbol">{item.symbol}</span>
+                          <span className="symbol-autocomplete__meta">
+                            {[item.description, item.type, item.exchange].filter(Boolean).join(' • ')}
+                          </span>
+                        </button>
+                      ))}
+
+                      {!symbolSearchLoading && symbolSearchMessage && (
+                        <div className="symbol-autocomplete__status">{symbolSearchMessage}</div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="create-market-field-help">
+                  輸入關鍵字後會提示相關代號，請選擇或填入 TradingView 商品代碼，例如 `NASDAQ:AAPL`。
+                </div>
+
+                {errors.tradingViewSymbol && <div className="invalid-feedback d-block">{errors.tradingViewSymbol}</div>}
               </div>
             )}
             <div className="form-group">
@@ -191,8 +340,8 @@ export default function CreateMarketPage() {
             <div><dt>市場類型</dt><dd>{marketTypeLabels[form.marketType]}</dd></div>
             <div><dt>截止時間</dt><dd>{formatCloseAt(form.closeAt)}</dd></div>
             <div><dt>資料來源</dt><dd>{form.sourceUrl || '尚未提供'}</dd></div>
-            {form.category === '金融' && (
-              <div><dt>TradingView K線圖</dt><dd>{form.tradingViewChart || '尚未提供'}</dd></div>
+            {form.category === FINANCE_CATEGORY && (
+              <div><dt>TradingView 商品代碼</dt><dd>{form.tradingViewSymbol || '尚未提供'}</dd></div>
             )}
             <div><dt>裁決規則</dt><dd>{form.resolutionRule || '尚未提供'}</dd></div>
           </dl>

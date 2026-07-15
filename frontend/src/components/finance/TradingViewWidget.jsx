@@ -1,10 +1,24 @@
 import { useEffect, useRef, memo } from 'react';
 
-function TradingViewWidget() {
+function buildSymbolUrl(symbol) {
+  if (!symbol) {
+    return 'https://www.tradingview.com/';
+  }
+
+  const [exchange, ...rest] = symbol.split(':');
+  const marketSymbol = rest.join(':');
+  if (!exchange || !marketSymbol) {
+    return `https://www.tradingview.com/symbols/${encodeURIComponent(symbol)}/`;
+  }
+
+  return `https://www.tradingview.com/symbols/${encodeURIComponent(marketSymbol)}/?exchange=${encodeURIComponent(exchange)}`;
+}
+
+function TradingViewWidget({ symbol }) {
   const containerRef = useRef(null);
 
   useEffect(() => {
-    if (!containerRef.current) return undefined;
+    if (!containerRef.current || !symbol) return undefined;
 
     containerRef.current.innerHTML = '';
 
@@ -26,7 +40,7 @@ function TradingViewWidget() {
         "locale": "zh_TW",
         "save_image": true,
         "style": "1",
-        "symbol": "BINANCE:BTCUSD",
+        "symbol": ${JSON.stringify(symbol)},
         "theme": "dark",
         "timezone": "Asia/Taipei",
         "backgroundColor": "#0F0F0F",
@@ -45,7 +59,18 @@ function TradingViewWidget() {
         containerRef.current.innerHTML = '';
       }
     };
-  }, []);
+  }, [symbol]);
+
+  if (!symbol) {
+    return (
+      <div
+        className="tradingview-widget-container"
+        style={{ height: '100%', width: '100%', display: 'grid', placeItems: 'center', color: '#8f8f8f' }}
+      >
+        尚未設定金融商品
+      </div>
+    );
+  }
 
   return (
     <div
@@ -59,7 +84,7 @@ function TradingViewWidget() {
       ></div>
       <div className="tradingview-widget-copyright">
         <a
-          href="https://tw.tradingview.com/symbols/BTCUSD/?exchange=BINANCE"
+          href={buildSymbolUrl(symbol)}
           rel="noopener nofollow"
           target="_blank"
         >

@@ -4,12 +4,8 @@ import useWalletStore from '../../store/walletStore';
 import useGlowEffect from '../../hooks/useGlowEffect';
 import { getMarketOdds, getTradeQuote, placeTrade } from '../../api/marketApi';
 import { createIdempotencyKey } from '../../utils/idempotency';
+import { getFallbackOdds, getOddsFromApiResponse, getOddsFromMarket } from '../../utils/odds';
 import './TradePanel.css';
-
-const FALLBACK_ODDS = {
-  YES: 1.82,
-  NO: 2.22,
-};
 
 const QUICK_BETS = [10, 50, 100, 500];
 
@@ -265,8 +261,8 @@ function resolveDisplayedOdds({ quotedOdds, marketOdds, market, side }) {
     return quoted;
   }
 
-  const backendOdds = Number(side === 'YES' ? marketOdds?.yesOdds : marketOdds?.noOdds);
-  if (Number.isFinite(backendOdds) && backendOdds > 0) {
+  const backendOdds = getOddsFromApiResponse(marketOdds, side);
+  if (backendOdds) {
     return backendOdds;
   }
 
@@ -274,26 +270,12 @@ function resolveDisplayedOdds({ quotedOdds, marketOdds, market, side }) {
 }
 
 function resolveFallbackOdds(market, side) {
-  if (!market) {
-    return FALLBACK_ODDS[side];
+  const marketOdds = getOddsFromMarket(market, side);
+  if (marketOdds) {
+    return marketOdds;
   }
 
-  const yesPool = Number(market.yesPool ?? 0);
-  const noPool = Number(market.noPool ?? 0);
-  const totalPool = yesPool + noPool;
-
-  if (totalPool > 0) {
-    const sidePool = side === 'YES' ? yesPool : noPool;
-    if (sidePool > 0) {
-      return clampOdds(totalPool / sidePool);
-    }
-  }
-
-  return FALLBACK_ODDS[side];
-}
-
-function clampOdds(value) {
-  return Math.min(5, Math.max(1.5, value));
+  return getFallbackOdds(side);
 }
 
 function formatCurrency(value) {
