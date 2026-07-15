@@ -2,7 +2,6 @@ package com.ucmarket.notification;
 
 import java.time.LocalDateTime;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.data.domain.Page;
@@ -14,15 +13,15 @@ import org.springframework.data.repository.query.Param;
 
 public interface NotificationJobRepository extends JpaRepository<NotificationJob, UUID> {
 
-    boolean exexistsByIdempotencyKey(String idempotencyKey);
+    boolean existsByIdempotencyKey(String idempotencyKey);
 
-    Optional<NotificationJob> findByStatus(NotificationJobStatus status, Pageable pageable);
+    Page<NotificationJob> findByStatus(NotificationJobStatus status, Pageable pageable);
 
     List<NotificationJob> findByMarketIdAndEventType(UUID marketId, NotificationEventType eventType);
 
     @Query("""
             select j.id from NotificationJob j
-            where j.stayus in
+            where j.status in
             ( com.ucmarket.notification.NotificationJobStatus.PENDING,
                 com.ucmarket.notification.NotificationJobStatus.RETRY)
                 and j.nextAttemptAt <= :now
@@ -32,13 +31,13 @@ public interface NotificationJobRepository extends JpaRepository<NotificationJob
 
     @Modifying(clearAutomatically = true)
     @Query("""
-            update NotificateionJob j
-            set j.status = com.ucmarket.notification.NotificationJobStatus.PROCESSING
+            update NotificationJob j
+            set j.status = com.ucmarket.notification.NotificationJobStatus.PROCESSING,
 
                 j.lockedAt = :now,
                 j.lockedBy = :workerId,
-                j.updateAt = :now
-            where j.status = com.ucmarket.notification.NotificationJobStatus.PROCESSING and l.lockedAt < :cutoff
+                j.updatedAt = :now
+            where j.status = com.ucmarket.notification.NotificationJobStatus.PROCESSING and j.lockedAt < :cutoff
             """)
 
     int reclaimTimedOtuJobs(@Param("cutoff") LocalDateTime cutoff, @Param("now") LocalDateTime now);
@@ -52,8 +51,7 @@ public interface NotificationJobRepository extends JpaRepository<NotificationJob
                 j.lockedBy = null,
                 j.updatedAt = :now
             where j.id = :id
-              and j.status in (com.ucmarket.notification.NotificationJobStatus.FAILED,
-                               com.ucmarket.notification.NotificationJobStatus.SENT)
+              and j.status = com.ucmarket.notification.NotificationJobStatus.FAILED
             """)
     int resetForResend(@Param("id") UUID id, @Param("now") LocalDateTime now);
 }
