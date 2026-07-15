@@ -5,7 +5,7 @@
 ## 1. 決策摘要
 
 - 核心交易、市場狀態、結算與錢包仍由 Spring Boot Service 層負責，不變。
-- 通知的可靠性保證（不漏發、不重發、重試、失敗紀錄）由 Java outbox（`notification_jobs`）負責，不變；WP0–WP4 照《自動化系統分工計畫》執行，不受本文件影響。
+- 通知的可靠性保證（不漏發、不重發、重試、失敗紀錄）由 Java outbox（`notification_jobs`）負責，不變；WP0–WP4 照《自動化系統規劃》第 13.4 節執行，不受本文件影響。
 - 通知的實際送出（Email、Discord、LINE、Telegram 等渠道）由 n8n 負責：`EmailSender` 的正式實作為 HTTP POST 到 n8n webhook。
 - 外部資料進出（賽果、報價、新聞、氣象）、系統監控告警、營運報表與社群發布由 n8n 負責。
 - n8n 一律透過後端 REST API 與專屬 service token 操作，不直連 PostgreSQL。
@@ -55,7 +55,7 @@ flowchart LR
 
 ### 階段一：Java outbox 垂直切片（進行中，不變）
 
-WP0–WP4 照《自動化系統分工計畫》執行，使用 `RecordingEmailSender` 驗收。本文件不改變其任何範圍與驗收條件。
+WP0–WP4 照《自動化系統規劃》第 13.4 節執行，使用 `RecordingEmailSender` 驗收。本文件不改變其任何範圍與驗收條件。
 
 ### 階段一．五：n8n 監控告警（可立即平行進行，零依賴）
 
@@ -106,11 +106,11 @@ WP0–WP4 照《自動化系統分工計畫》執行，使用 `RecordingEmailSen
 - 直接讀寫 PostgreSQL——繞過商業規則與 audit log，一律禁止。
 - 在資料庫交易內被同步呼叫——webhook 只由 Worker 在交易外觸發。
 
-## 8. 與既有文件的差異（需同步修改）
+## 8. 與主規劃的同步結果
 
-| # | 文件與原文 | 本規劃調整 | 原因 |
+| # | 原有差異 | 已同步決策 | 原因 |
 |---|---|---|---|
-| 1 | 《自動化系統規劃》第 9 節：「確認不再使用 n8n 後，可移除空目錄並更新原有技術架構文件中的 n8n 說明」；《自動化系統分工計畫》第 1 節收尾工作含「移除 `automation/n8n/`」 | 保留 `automation/n8n/workflows/` 目錄，改放 workflow JSON 匯出檔納入版控 | n8n 重新定位為周邊整合層，workflow 需要版控 |
-| 2 | 《自動化系統規劃》第 5 節：`EmailSender` 搭配「SMTP 或 Email Provider Adapter」 | 正式實作方向定為 `N8nWebhookEmailSender`，SMTP 由 n8n 端負責 | 渠道彈性集中在 n8n，後端零改動即可換渠道 |
+| 1 | 主規劃原建議移除 `automation/n8n/` | 保留 `automation/n8n/workflows/`，將 workflow JSON 匯出檔納入版控 | n8n 定位為周邊整合層，workflow 需要版控 |
+| 2 | 主規劃原將 `EmailSender` 導向 SMTP 或 Email Provider Adapter | 驗收使用 `RecordingEmailSender`；正式整合使用 `N8nWebhookEmailSender`，SMTP 由 n8n 端負責 | 渠道彈性集中在 n8n，後端無需因換渠道而改動 |
 
-上述差異僅影響 WP2 之後的一個新類別與收尾工作，不影響 WP0–WP4 的現行分工與驗收。
+上述決策已同步回《自動化系統規劃》；僅影響 WP2 之後的一個新類別與收尾工作，不影響 WP0–WP4 的現行分工與驗收。
