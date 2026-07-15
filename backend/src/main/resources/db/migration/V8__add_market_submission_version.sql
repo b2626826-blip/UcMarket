@@ -1,0 +1,2 @@
+ALTER TABLE markets
+    ADD COLUMN IF NOT EXISTS submission_version INTEGER NOT NULL DEFAULT 0;

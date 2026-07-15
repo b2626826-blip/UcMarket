@@ -10,6 +10,7 @@ import WeatherChartModal from './WeatherChartModal';
 import { fetchCityForecast } from './weatherApi';
 import { getMarketsByCategory, getMarketOdds, getMarketDetail } from '../../../api/marketApi';
 import { REGIONS, getRegionById, getRelatedRegions } from './regions';
+import { getOddsFromApiResponse, getOddsFromMarket } from '../../../utils/odds';
 import './WeatherDetailPage.css';
 
 // ---- helpers ----
@@ -75,16 +76,31 @@ function volumeFromTotal(totalVolume) {
 }
 
 async function withMarketOdds(market) {
+  const yesPool = Number(market.yesPool) || 0;
+  const noPool = Number(market.noPool) || 0;
+  const totalPool = yesPool + noPool;
+  const yesPrice = totalPool > 0 ? yesPool / totalPool : 0.5;
+  const noPrice = totalPool > 0 ? noPool / totalPool : 0.5;
+
   try {
     const odds = await getMarketOdds(market.id);
     return {
       ...market,
-      yesPrice: Number(odds.yesOdds) ? 1 / Number(odds.yesOdds) : 0.5,
-      noPrice: Number(odds.noOdds) ? 1 / Number(odds.noOdds) : 0.5,
+      yesPrice,
+      noPrice,
+      yesOdds: getOddsFromApiResponse(odds, 'YES') ?? getOddsFromMarket(market, 'YES') ?? 1.5,
+      noOdds: getOddsFromApiResponse(odds, 'NO') ?? getOddsFromMarket(market, 'NO') ?? 1.5,
       volume: volumeFromTotal(odds.totalVolume),
     };
   } catch {
-    return { ...market, yesPrice: 0.5, noPrice: 0.5, volume: '$0' };
+    return {
+      ...market,
+      yesPrice,
+      noPrice,
+      yesOdds: getOddsFromMarket(market, 'YES') ?? 1.5,
+      noOdds: getOddsFromMarket(market, 'NO') ?? 1.5,
+      volume: '$0',
+    };
   }
 }
 
@@ -131,8 +147,8 @@ function ThresholdEventList({
       </div>
       <div className="weather-event-list">
         {markets.map((m) => {
-          const yesOdds = m.yesPrice > 0 ? +(1 / m.yesPrice).toFixed(2) : 0;
-          const noOdds = m.noPrice > 0 ? +(1 / m.noPrice).toFixed(2) : 0;
+          const yesOdds = Number(m.yesOdds ?? getOddsFromMarket(m, 'YES') ?? 1.5);
+          const noOdds = Number(m.noOdds ?? getOddsFromMarket(m, 'NO') ?? 1.5);
           return (
             <div
               key={m.id}

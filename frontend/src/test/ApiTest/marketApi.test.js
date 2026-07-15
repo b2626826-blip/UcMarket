@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
   getMarkets, getMarketDetail, getCurrentEventMarkets,
-  getCurrentEventMarketDetail, getPagedCurrentEventMarkets, createMarket, rejectMarket,
+  getCurrentEventMarketDetail, getPagedCurrentEventMarkets, createMarket, rejectMarket, searchTradingViewSymbols,
 } from '../../api/marketApi';
 import { CURRENT_EVENT_CATEGORY, CURRENT_EVENT_CATEGORY_CODE } from '../../types/market';
 import { apiUrl, jsonResponse, installFetchMock } from './_helpers';
@@ -143,6 +143,44 @@ describe('marketApi.js', () => {
       const [url, options] = fetchMock.mock.calls[0];
       expect(url).toBe(apiUrl('/api/admin/markets/m1/reject'));
       expect(options.body).toBe(JSON.stringify({ comment: '不符規範' }));
+    });
+  });
+  it('searchTradingViewSymbols queries TradingView and normalizes result', async () => {
+    fetchMock.mockResolvedValueOnce(jsonResponse([
+      {
+        full_name: 'NASDAQ:AAPL',
+        symbol: 'AAPL',
+        exchange: 'NASDAQ',
+        description: 'Apple Inc',
+        type: 'stock',
+      },
+    ]));
+
+    const result = await searchTradingViewSymbols('AAPL');
+
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toContain('https://symbol-search.tradingview.com/symbol_search/?');
+    expect(url).toContain('text=AAPL');
+    expect(result).toEqual([
+      {
+        symbol: 'NASDAQ:AAPL',
+        exchange: 'NASDAQ',
+        description: 'Apple Inc',
+        type: 'stock',
+      },
+    ]);
+  });
+
+  it('searchTradingViewSymbols falls back to local catalog when remote search fails', async () => {
+    fetchMock.mockRejectedValueOnce(new Error('network down'));
+
+    const result = await searchTradingViewSymbols('台積電');
+
+    expect(result[0]).toEqual({
+      symbol: 'TPE:2330',
+      exchange: 'TPE',
+      description: '台積電',
+      type: 'stock',
     });
   });
 });

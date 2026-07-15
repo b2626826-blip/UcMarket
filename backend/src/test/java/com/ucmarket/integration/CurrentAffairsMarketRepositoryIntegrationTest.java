@@ -47,9 +47,9 @@ class CurrentAffairsMarketRepositoryIntegrationTest {
 		Market highVolume = saveActiveMarket(user, "P2 high-volume market");
 
 		tradeRepository.save(new Trade(user.getId(), lowVolume.getId(), MarketSide.YES, TradeAction.BUY,
-				new BigDecimal("1"), new BigDecimal("0.5"), new BigDecimal("2")));
+				new BigDecimal("1"), new BigDecimal("0.5"), new BigDecimal("2"), "ca-low-volume"));
 		tradeRepository.save(new Trade(user.getId(), highVolume.getId(), MarketSide.YES, TradeAction.BUY,
-				new BigDecimal("1000000"), new BigDecimal("0.5"), new BigDecimal("2000000")));
+				new BigDecimal("1000000"), new BigDecimal("0.5"), new BigDecimal("2000000"), "ca-high-volume"));
 
 		var markets = currentAffairsMarketRepository
 				.findPageWithVolume(MarketStatus.ACTIVE, "popular", PageRequest.of(0, 1));

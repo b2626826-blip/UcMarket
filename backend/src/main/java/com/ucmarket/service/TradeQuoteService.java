@@ -30,14 +30,6 @@ public class TradeQuoteService {
 			rawOdds = totalPool.divide(noPool, 4, RoundingMode.HALF_UP);
 		}
 
-		BigDecimal minOdds = new BigDecimal("1.5");
-		BigDecimal maxOdds = new BigDecimal("5.0");
-		if (rawOdds.compareTo(maxOdds) > 0) {
-			return maxOdds;
-		}
-		if (rawOdds.compareTo(minOdds) < 0) {
-			return minOdds;
-		}
-		return rawOdds;
+		return OddsRules.clamp(rawOdds);
 	}
 }
