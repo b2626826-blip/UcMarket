@@ -1,7 +1,5 @@
 # PostgreSQL 測試錯誤整理
 
-> 本檔只處理 PostgreSQL 連線／測試排錯。現行 schema 請見 `../ucmarket-ddl.sql` 與 `../../current-implementation.md`；後端一般測試使用 H2 PostgreSQL mode，不會驗證本機 PostgreSQL 帳密。
-
 ## 問題現象
 
 在 `backend` 目錄執行完整測試：

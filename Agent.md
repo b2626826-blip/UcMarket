@@ -147,7 +147,7 @@ shares = amount / odds
 - Controller 負責 request / response，不放商業邏輯。
 - Service 負責交易、錢包、結算等核心邏輯；需要一致性的流程要使用 transaction。
 - Repository 只處理資料存取。
-- 新 API 優先使用 DTO；目前仍有部分 controller 直接回傳 Entity，修改契約前要先檢查既有前端與測試。
+- DTO 作為 API 傳輸格式，不直接把 Entity 暴露給前端。
 - 表單輸入使用 validation，不把髒資料推進 Service。
 - 錢包扣款、交易建立、持倉更新、市場價格更新要考慮同一交易流程的一致性。
 - 結算與錢包異動要設計 idempotency 或其他防重機制。
@@ -157,8 +157,7 @@ shares = amount / odds
 
 - 以 PostgreSQL 為主。
 - 優先對齊 `docs/資料庫設計/ucmarket-ddl.sql` 與整合 ERD。
-- 目前 schema 使用 `users`、`user_sessions`、`user_oauth_accounts`、`wallets`、`wallet_transactions`、`markets`、`market_reviews`、`market_price_history`、`trades`、`positions`、`admin_logs`。
-- `market_options`、通知與資產快照是進階規劃，沒有程式碼與 DDL 前不可當成現有表。
+- 使用 `users`、`wallets`、`wallet_transactions`、`markets`、`market_reviews`、`market_price_history`、`market_options`、`trades`、`positions` 等核心表。
 - 金額、價格、份額不要用浮點數草率處理；後端與資料庫都要選擇能支援精準計算的型別。
 - 所有重要狀態欄位要有清楚 enum 或限制規則。
 - 任何會影響資產或結算的資料異動，都應留下可追蹤紀錄。

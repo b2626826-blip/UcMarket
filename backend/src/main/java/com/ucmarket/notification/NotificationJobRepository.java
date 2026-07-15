@@ -32,15 +32,15 @@ public interface NotificationJobRepository extends JpaRepository<NotificationJob
     @Modifying(clearAutomatically = true)
     @Query("""
             update NotificationJob j
-            set j.status = com.ucmarket.notification.NotificationJobStatus.PROCESSING,
-
-                j.lockedAt = :now,
-                j.lockedBy = :workerId,
+            set j.status = com.ucmarket.notification.NotificationJobStatus.RETRY,
+                j.nextAttemptAt = :now,
+                j.lockedAt = null,
+                j.lockedBy = null,
                 j.updatedAt = :now
-            where j.status = com.ucmarket.notification.NotificationJobStatus.PROCESSING and j.lockedAt < :cutoff
+            where j.status = com.ucmarket.notification.NotificationJobStatus.PROCESSING
+              and j.lockedAt < :cutoff
             """)
-
-    int reclaimTimedOtuJobs(@Param("cutoff") LocalDateTime cutoff, @Param("now") LocalDateTime now);
+    int reclaimTimedOutJobs(@Param("cutoff") LocalDateTime cutoff, @Param("now") LocalDateTime now);
 
     @Modifying(clearAutomatically = true)
     @Query("""

@@ -483,4 +483,74 @@ class WalletServiceTest {
 				.isInstanceOf(IdempotencyConflictException.class);
 		verify(walletTransactionRepository, never()).saveAndFlush(any());
 	}
+
+	// ========== adjust 管理員手動調整（沖帳）==========
+
+	@Test
+	@DisplayName("adjust CREDIT：ADJUSTMENT 型別、+金額、memo 寫入、refType=ADJUST")
+	void adjust_credit_writesAdjustmentWithMemo() {
+		UUID userId = UUID.randomUUID();
+		Wallet wallet = stubbedWallet(userId, "adj-c1");
+		when(walletTransactionRepository.saveAndFlush(any(WalletTransaction.class)))
+				.thenAnswer(inv -> inv.getArgument(0));
+
+		WalletTransaction tx = walletService.adjust(userId, "CREDIT", new BigDecimal("500"), "活動補發", "adj-c1");
+
+		assertThat(tx.getType()).isEqualTo(WalletTransactionType.ADJUSTMENT);
+		assertThat(tx.getAmount()).isEqualByComparingTo("500");
+		assertThat(tx.getMemo()).isEqualTo("活動補發");
+		assertThat(tx.getReferenceType()).isEqualTo("ADJUST");
+		assertThat(wallet.getBalance()).isEqualByComparingTo("500");
+	}
+
+	@Test
+	@DisplayName("adjust DEBIT：ADJUSTMENT 型別、-金額、memo 寫入")
+	void adjust_debit_writesNegativeAdjustmentWithMemo() {
+		UUID userId = UUID.randomUUID();
+		Wallet wallet = stubbedWallet(userId, "adj-d1");
+		wallet.applyCredit(new BigDecimal("1000"));
+		when(walletTransactionRepository.saveAndFlush(any(WalletTransaction.class)))
+				.thenAnswer(inv -> inv.getArgument(0));
+
+		WalletTransaction tx = walletService.adjust(userId, "DEBIT", new BigDecimal("300"), "扣回誤發", "adj-d1");
+
+		assertThat(tx.getType()).isEqualTo(WalletTransactionType.ADJUSTMENT);
+		assertThat(tx.getAmount()).isEqualByComparingTo("-300");
+		assertThat(tx.getMemo()).isEqualTo("扣回誤發");
+		assertThat(wallet.getBalance()).isEqualByComparingTo("700");
+	}
+
+	@Test
+	@DisplayName("adjust：空白原因 → IllegalArgument、連 DB 都不碰")
+	void adjust_blankReason_rejected() {
+		UUID userId = UUID.randomUUID();
+		assertThatThrownBy(() ->
+				walletService.adjust(userId, "CREDIT", new BigDecimal("100"), "   ", "adj-blank"))
+				.isInstanceOf(IllegalArgumentException.class);
+		verify(walletRepository, never()).findByUserIdForUpdate(any());
+	}
+
+	@Test
+	@DisplayName("adjust：非法 direction → IllegalArgument、不寫 tx")
+	void adjust_invalidDirection_rejected() {
+		UUID userId = UUID.randomUUID();
+		assertThatThrownBy(() ->
+				walletService.adjust(userId, "SIDEWAYS", new BigDecimal("100"), "測試", "adj-dir"))
+				.isInstanceOf(IllegalArgumentException.class);
+		verify(walletTransactionRepository, never()).saveAndFlush(any());
+	}
+
+	@Test
+	@DisplayName("deriveType：credit refType=ADJUST → ADJUSTMENT（memo 多載直接驗）")
+	void credit_adjustRefType_adjustmentWithMemo() {
+		UUID userId = UUID.randomUUID();
+		Wallet wallet = stubbedWallet(userId, "adj-c2");
+		when(walletTransactionRepository.saveAndFlush(any(WalletTransaction.class)))
+				.thenAnswer(inv -> inv.getArgument(0));
+
+		WalletTransaction tx = walletService.credit(userId, new BigDecimal("100"), "ADJUST", null, "adj-c2", "memo-x");
+
+		assertThat(tx.getType()).isEqualTo(WalletTransactionType.ADJUSTMENT);
+		assertThat(tx.getMemo()).isEqualTo("memo-x");
+	}
 }

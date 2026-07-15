@@ -5,7 +5,7 @@
 ALTER TABLE users ALTER COLUMN password_hash DROP NOT NULL;
 
 -- 記錄使用者綁定的第三方 OAuth 帳號
-CREATE TABLE IF NOT EXISTS user_oauth_accounts (
+CREATE TABLE user_oauth_accounts (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL,
     provider VARCHAR(32) NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS user_oauth_accounts (
     CONSTRAINT ck_oauth_provider CHECK (provider IN ('GOOGLE', 'FACEBOOK', 'GITHUB'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_oauth_user_id ON user_oauth_accounts (user_id);
-CREATE INDEX IF NOT EXISTS idx_oauth_email ON user_oauth_accounts (email);
+CREATE INDEX idx_oauth_user_id ON user_oauth_accounts (user_id);
+CREATE INDEX idx_oauth_email ON user_oauth_accounts (email);
 
 COMMENT ON TABLE user_oauth_accounts IS '使用者綁定的第三方 OAuth 帳號（Google / Facebook / GitHub）';

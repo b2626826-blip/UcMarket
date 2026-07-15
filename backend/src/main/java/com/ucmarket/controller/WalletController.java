@@ -41,7 +41,7 @@ public class WalletController {
 		return walletService.getTransactions(user.getId()).stream()
 				.map(tx -> new WalletTransactionResponse(
 						tx.getId(), tx.getType(), tx.getAmount(),
-						tx.getBalanceAfter(), tx.getReferenceType(), tx.getReferenceId(), tx.getCreatedAt()))
+						tx.getBalanceAfter(), tx.getReferenceType(), tx.getReferenceId(), tx.getMemo(), tx.getCreatedAt()))
 				.toList();
 	}
 
@@ -52,7 +52,7 @@ public class WalletController {
 	    return walletService.getTransactions(user.getId(), page).stream()
 	            .map(tx -> new WalletTransactionResponse(
 	                    tx.getId(), tx.getType(), tx.getAmount(),
-	                    tx.getBalanceAfter(), tx.getReferenceType(), tx.getReferenceId(), tx.getCreatedAt()))
+	                    tx.getBalanceAfter(), tx.getReferenceType(), tx.getReferenceId(), tx.getMemo(), tx.getCreatedAt()))
 	            .toList();
 	}
 }

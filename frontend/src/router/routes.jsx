@@ -27,6 +27,7 @@ import DashboardPage from "../pages/admin/dashboard";
 import MarketsPage from "../pages/admin/markets";
 import CreateMarketAdminPage from "../pages/admin/markets/create";
 import UsersPage from "../pages/admin/users";
+import AdjustmentsPage from "../pages/admin/adjustments";
 import AdminsPage from "../pages/admin/admins";
 import TransactionsPage from "../pages/admin/transactions";
 import SettingsPage from "../pages/admin/settings";
@@ -77,6 +78,7 @@ const router = createBrowserRouter([
       { path: "markets", element: <MarketsPage /> },
       { path: "markets/create", element: <CreateMarketAdminPage /> },
       { path: "users", element: <UsersPage /> },
+      { path: "adjustments", element: <AdjustmentsPage /> },
       { path: "admins", element: <AdminsPage /> },
       { path: "transactions", element: <TransactionsPage /> },
       { path: "settings", element: <SettingsPage /> },

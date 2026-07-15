@@ -61,6 +61,7 @@ function mapTx(tx) {
     balance: tx.balanceAfter,    // 結餘用後端的
     ref: tx.id,
     note: tx.referenceType || '',
+    memo: tx.memo || '',         // 沖帳原因(管理員填的,用戶看得到)
   };
 }
 export default function WalletPage() {
@@ -182,7 +183,7 @@ export default function WalletPage() {
   const [perPage, setPerPage] = useState(5);
   const [page, setPage] = useState(1);
   const [heatTip, setHeatTip] = useState(null);   // 熱力圖 hover 浮窗:{x,y,ds,amt} 或 null
-  const flowTabs = [['all', '全部'], ['buy', '登入送點'], ['sell', '賣出'], ['settle', '結算']];
+  const flowTabs = [['all', '全部'], ['bonus', '登入送點'], ['buy', '買入'], ['settle', '派彩'], ['adjust', '調整']];
   const FLOW_TODAY = ymdLocal(new Date());   // 真實今天(本地):讓 近7天/本月 對到正確日期
   const flowAddDays = (iso, n) => { const d = new Date(iso + 'T00:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10); };
   const flowPresets = [
@@ -372,7 +373,7 @@ export default function WalletPage() {
                           <div className="box">
                             <span>交易編號<b>{r.ref}</b></span>
                             <span>完整時間<b>{r.d} {r.time}</b></span>
-                            <span>說明<b>{r.note}</b></span>
+                            <span>說明<b>{r.memo || r.note}</b></span>
                             <span>狀態<b style={{ color: 'var(--color-green)' }}>已完成</b></span>
                           </div>
                         </td>

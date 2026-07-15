@@ -1,7 +1,5 @@
 # UcMarket
 
-> 目前程式碼基準、已實作功能、API、前端路由與資料庫範圍請先讀 [docs/current-implementation.md](docs/current-implementation.md)。本 README 保留產品定位與啟動入口；規劃中的功能不代表已完成。
-
 UcMarket 是一個以虛擬點數運作的「模擬預測市場」平台。使用者可以瀏覽未來事件市場，針對 Yes / No 結果進行預測交易，也可以提交自己的預測盤，經系統規則檢查與管理員審核後上架。
 
 本專題不處理真實金流、加密貨幣入金或實際賭博機制，重點放在預測市場產品的核心流程：市場建立、審核、交易、價格變動、資料視覺化、結果結算，以及前後端分離架構的完整實作。
@@ -172,20 +170,12 @@ cd backend
 ./mvnw test
 ```
 
-測試環境會讀取 `backend/src/test/resources/application.properties`，使用 H2 記憶體資料庫，不需要先啟動本機 PostgreSQL。若 Windows 使用者環境已設定 `SPRING_DATASOURCE_*`，Spring 仍會讓環境變數覆蓋測試設定；請先在目前 PowerShell process 清除後再跑：
+測試環境會讀取 `backend/src/test/resources/application.properties`，使用 H2 記憶體資料庫，不需要先啟動本機 PostgreSQL，也不要為了跑測試另外帶 `SPRING_DATASOURCE_URL`、`SPRING_DATASOURCE_USERNAME`、`SPRING_DATASOURCE_PASSWORD`。
 
-```powershell
-$env:SPRING_DATASOURCE_URL=$null
-$env:SPRING_DATASOURCE_USERNAME=$null
-$env:SPRING_DATASOURCE_PASSWORD=$null
-.\mvnw.cmd test
-```
-
-如果在專案根目錄直接執行 Maven wrapper，會因為 wrapper 位於 `backend/` 而失敗。
+如果在專案根目錄直接執行 `./mvnw test`，會因為根目錄沒有 `mvnw` 而失敗。
 
 ## 文件
 
-- 目前實作基準：[docs/current-implementation.md](docs/current-implementation.md)
 - 文件總覽：[docs/docsREADME.md](docs/docsREADME.md)
 - 專題規格書：[docs/project-spec.md](docs/project-spec.md)
 - 工作計劃書：[docs/工作計劃書/UcMarket工作計劃.md](docs/工作計劃書/UcMarket工作計劃.md)
@@ -195,6 +185,7 @@ $env:SPRING_DATASOURCE_PASSWORD=$null
 - 資料庫設計：
   - ER 圖：[docs/資料庫設計/ucmarket-er-diagram.md](docs/資料庫設計/ucmarket-er-diagram.md)
   - DDL：[docs/資料庫設計/ucmarket-ddl.sql](docs/資料庫設計/ucmarket-ddl.sql)
+  - DB 備份：[docs/資料庫設計/db-backups/](docs/資料庫設計/db-backups/)
 
 ## 前端規劃
 
