@@ -44,6 +44,9 @@ public class WalletTransaction {
 	@Column(name = "idempotency_key")
 	private String idempotencyKey;
 
+	@Column(name = "memo")
+	private String memo;
+
 	@Column(name = "created_at", nullable = false)
 	private LocalDateTime createdAt;
 
@@ -66,6 +69,21 @@ public class WalletTransaction {
 		this.referenceType = referenceType;
 		this.referenceId = referenceId;
 		this.idempotencyKey = idempotencyKey;
+	}
+
+	// 帶 memo 的建構子（沖帳用）；委派 7 參數版本後補上 memo
+	public WalletTransaction(
+			UUID walletId,
+			WalletTransactionType type,
+			BigDecimal amount,
+			BigDecimal balanceAfter,
+			String referenceType,
+			UUID referenceId,
+			String idempotencyKey,
+			String memo
+	) {
+		this(walletId, type, amount, balanceAfter, referenceType, referenceId, idempotencyKey);
+		this.memo = memo;
 	}
 
 	@PrePersist
@@ -109,5 +127,9 @@ public class WalletTransaction {
 
 	public LocalDateTime getCreatedAt() {
 		return createdAt;
+	}
+
+	public String getMemo() {
+		return memo;
 	}
 }

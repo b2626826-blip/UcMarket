@@ -42,10 +42,17 @@ public class WalletService {
 				.orElseThrow(() -> new IllegalStateException("wallet 應已存在 (upsert 後查不到): " + userId));
 	}
 
-	// ===== credit 入帳（全防重 query-first + 悲觀鎖）=====
+	// 原 5 參數版本：memo 預設 null（既有呼叫者不動）
 	@Transactional
 	public WalletTransaction credit(UUID userId, BigDecimal amount,
 			String refType, UUID refId, String idemKey) {
+		return credit(userId, amount, refType, refId, idemKey, null);
+	}
+
+	// ===== credit 入帳（全防重 query-first + 悲觀鎖）=====
+	@Transactional
+	public WalletTransaction credit(UUID userId, BigDecimal amount,
+			String refType, UUID refId, String idemKey, String memo) {
 		if (idemKey == null || idemKey.isBlank()) {
 			throw new IllegalArgumentException("credit 要求帶 idemKey（全防重）");
 		}
@@ -63,7 +70,7 @@ public class WalletService {
 		BigDecimal balanceAfter = wallet.getBalance();
 		// 團隊建構子順序：(walletId, type, amount, balanceAfter, referenceType, referenceId, idempotencyKey)
 		WalletTransaction tx = new WalletTransaction(
-				wallet.getId(), type, amount, balanceAfter, refType, refId, idemKey);
+				wallet.getId(), type, amount, balanceAfter, refType, refId, idemKey, memo);
 		try {
 			return walletTransactionRepository.saveAndFlush(tx);
 		} catch (DataIntegrityViolationException e) {
@@ -72,10 +79,17 @@ public class WalletService {
 		}
 	}
 
-	// ===== debit 扣款（鎖內檢查餘額 + 寫負號）=====
+	// 原 5 參數版本：memo 預設 null（既有呼叫者不動）
 	@Transactional
 	public WalletTransaction debit(UUID userId, BigDecimal amount,
 			String refType, UUID refId, String idemKey) {
+		return debit(userId, amount, refType, refId, idemKey, null);
+	}
+
+	// ===== debit 扣款（鎖內檢查餘額 + 寫負號）=====
+	@Transactional
+	public WalletTransaction debit(UUID userId, BigDecimal amount,
+			String refType, UUID refId, String idemKey, String memo) {
 		if (idemKey == null || idemKey.isBlank()) {
 			throw new IllegalArgumentException("debit 要求帶 idemKey（全防重）");
 		}
@@ -92,7 +106,7 @@ public class WalletService {
 		wallet.applyDebit(amount);
 		BigDecimal balanceAfter = wallet.getBalance();
 		WalletTransaction tx = new WalletTransaction(
-				wallet.getId(), type, amount.negate(), balanceAfter, refType, refId, idemKey);
+				wallet.getId(), type, amount.negate(), balanceAfter, refType, refId, idemKey, memo);
 		try {
 			return walletTransactionRepository.saveAndFlush(tx);
 		} catch (DataIntegrityViolationException e) {
@@ -114,6 +128,24 @@ public class WalletService {
 			throw new IdempotencyConflictException(idemKey);
 		}
 		return prev;
+	}
+
+	// ===== 管理員手動調整（沖帳）=====
+	// direction=CREDIT 加值、DEBIT 扣除；refType 固定 "ADJUST" → 型別 ADJUSTMENT；reason 進 memo（用戶看得到）。
+	// 全程走 credit/debit（同一交易寫流水 + 動餘額），維持「餘額 = 流水鏈」不變量；扣破負由 debit 擋。
+	@Transactional
+	public WalletTransaction adjust(UUID userId, String direction, BigDecimal amount, String reason, String idemKey) {
+		if (reason == null || reason.isBlank()) {
+			throw new IllegalArgumentException("調整原因不可為空");
+		}
+		if (direction == null) {
+			throw new IllegalArgumentException("direction 不可為 null");
+		}
+		return switch (direction.toUpperCase()) {
+			case "CREDIT" -> credit(userId, amount, "ADJUST", null, idemKey, reason);
+			case "DEBIT" -> debit(userId, amount, "ADJUST", null, idemKey, reason);
+			default -> throw new IllegalArgumentException("direction 必須是 CREDIT 或 DEBIT: " + direction);
+		};
 	}
 
 	// ===== 查明細 =====
@@ -160,11 +192,13 @@ public class WalletService {
 			return switch (refType) {
 				case "MARKET" -> WalletTransactionType.RESOLUTION_PAYOUT;
 				case "BONUS" -> WalletTransactionType.SIGNUP_BONUS;
+				case "ADJUST" -> WalletTransactionType.ADJUSTMENT;
 				default -> throw new IllegalArgumentException("credit 不支援的 refType: " + refType);
 			};
 		} else {
 			return switch (refType) {
 				case "TRADE" -> WalletTransactionType.TRADE_BUY;
+				case "ADJUST" -> WalletTransactionType.ADJUSTMENT;
 				default -> throw new IllegalArgumentException("debit 不支援的 refType: " + refType);
 			};
 		}
