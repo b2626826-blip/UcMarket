@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
 import org.springframework.http.ResponseEntity;
 import org.springframework.test.util.ReflectionTestUtils;
 
@@ -116,7 +117,14 @@ class CoreMarketLifecycleTest {
 				positionService,
 				priceHistoryService
 		);
-		marketController = new MarketController(marketRepository, tradeRepository, marketService, tradeQuoteService, priceHistoryService);
+		marketController = new MarketController(
+				marketRepository,
+				tradeRepository,
+				marketService,
+				tradeQuoteService,
+				priceHistoryService,
+				Jackson2ObjectMapperBuilder.json().build()
+		);
 		tradeController = new TradeController(tradeService);
 	}
 
@@ -132,7 +140,7 @@ class CoreMarketLifecycleTest {
 				new BigDecimal("1000.00"),
 				"BONUS",
 				null,
-				"signup:" + trader.getId()
+				"signup:seed-" + trader.getId()
 		);
 
 		Market market = marketController.createMarket(
@@ -143,6 +151,7 @@ class CoreMarketLifecycleTest {
 						"TEST",
 						"BINARY",
 						"https://example.com/result",
+						null,
 						null,
 						"Resolve YES when the scenario completes.",
 						LocalDateTime.now().plusDays(1)
@@ -165,6 +174,7 @@ class CoreMarketLifecycleTest {
 
 		ResponseEntity<Trade> response = tradeController.placeTrade(
 				trader,
+				"trade-core-1",
 				new TradeRequest(market.getId(), MarketSide.YES, new BigDecimal("20.00"))
 		);
 		Trade trade = response.getBody();
@@ -202,7 +212,7 @@ class CoreMarketLifecycleTest {
 						WalletTransactionType.TRADE_BUY,
 						WalletTransactionType.RESOLUTION_PAYOUT
 				);
-		assertThat(walletTransactions.get("TRADE_BUY_" + trade.getId()).getAmount())
+		assertThat(walletTransactions.get("trade-core-1").getAmount())
 				.isEqualByComparingTo("-20.00");
 		assertThat(walletTransactions.get("resolution:" + position.getId()).getAmount())
 				.isEqualByComparingTo("36.66");
@@ -293,7 +303,8 @@ class CoreMarketLifecycleTest {
 	}
 
 	private void stubTradeAndAuditRepositories() {
-		when(tradeRepository.save(any(Trade.class))).thenAnswer(invocation -> {
+		when(tradeRepository.findByIdempotencyKey(any(String.class))).thenReturn(Optional.empty());
+		when(tradeRepository.saveAndFlush(any(Trade.class))).thenAnswer(invocation -> {
 			Trade trade = invocation.getArgument(0);
 			ReflectionTestUtils.setField(trade, "id", UUID.randomUUID());
 			trades.add(trade);

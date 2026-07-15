@@ -90,6 +90,9 @@ public class Market {
 	@Column( name = "no_pool", nullable = false)
 	private BigDecimal noPool = BigDecimal.valueOf(100);
 	
+	@Column( name = "submission_version", nullable = false, columnDefinition = "integer not null default 0")
+	private int submissionVersion = 0;
+
 	@Column( name = "created_at", nullable = false)
 	private LocalDateTime createdAt;
 
@@ -274,6 +277,8 @@ public class Market {
 	public LocalDateTime getCreatedAt() {
 		return createdAt;
 	}
+
+	public int getSubmissionVersion() { return submissionVersion; }
 
 	public String getMetadata() { return metadata; }
 	public void setMetadata(String metadata) { this.metadata = metadata; }
