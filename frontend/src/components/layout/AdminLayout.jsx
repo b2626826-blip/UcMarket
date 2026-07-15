@@ -16,6 +16,7 @@ const navItems = [
   ]},
   { group: '用戶與交易', items: [
     { path: '/admin/users', icon: 'bi-people', label: '用戶清單' },
+    { path: '/admin/adjustments', icon: 'bi-cash-coin', label: '錢包調整' },
     { path: '/admin/transactions', icon: 'bi-credit-card', label: '交易紀錄' },
   ]},
   { group: '系統管理', items: [
