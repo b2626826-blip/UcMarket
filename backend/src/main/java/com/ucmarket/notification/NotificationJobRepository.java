@@ -54,4 +54,45 @@ public interface NotificationJobRepository extends JpaRepository<NotificationJob
               and j.status = com.ucmarket.notification.NotificationJobStatus.FAILED
             """)
     int resetForResend(@Param("id") UUID id, @Param("now") LocalDateTime now);
+
+    @Modifying
+    @Query(value = """
+            insert into notification_jobs (
+                id,
+                event_type,
+                recipient_user_id,
+                recipient_email,
+                market_id,
+                payload,
+                status,
+                attempt_count,
+                next_attempt_at,
+                idempotency_key,
+                created_at,
+                updated_at
+            )
+            values (
+                :id,
+                :eventType,
+                :recipientUserId,
+                :recipientEmail,
+                :marketId,
+                cast(:payload as jsonb),
+                'PENDING',
+                0,
+                current_timestamp,
+                :idempotencyKey,
+                current_timestamp,
+                current_timestamp
+            )
+            on conflict do nothing
+            """, nativeQuery = true)
+    int insertIfAbsent(
+            @Param("id") UUID id,
+            @Param("eventType") String eventType,
+            @Param("recipientUserId") UUID recipientUserId,
+            @Param("recipientEmail") String recipientEmail,
+            @Param("marketId") UUID marketId,
+            @Param("payload") String payload,
+            @Param("idempotencyKey") String idempotencyKey);
 }
