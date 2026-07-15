@@ -229,6 +229,18 @@ class MarketControllerTest {
     }
 
     @Test
+    void createMarket_shouldReturn400_whenImageUrlIsMalformed() throws Exception {
+        CreateMarketRequest request = new CreateMarketRequest(
+                "New Market", "Desc", "CURRENT_AFFAIRS", null, "https://example.com/news", "not a url",
+                null, LocalDateTime.now().plusDays(7));
+
+        mockMvc.perform(post("/api/markets")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
     void updateMarket_shouldReturn400_whenSourceUrlIsMalformed() throws Exception {
         mockMvc.perform(put("/api/markets/{id}", UUID.randomUUID())
                 .contentType(MediaType.APPLICATION_JSON)
