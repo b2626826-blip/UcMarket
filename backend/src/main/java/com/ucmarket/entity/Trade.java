@@ -50,13 +50,17 @@ public class Trade {
 	@Column(nullable = false)
 	private BigDecimal shares;
 
+	@Column(name = "idempotency_key", length = 128)
+	private String idempotencyKey;
+
 	@Column(name = "created_at", nullable = false)
 	private LocalDateTime createdAt;
 
 	protected Trade() {
 	}
 
-	public Trade(UUID userId, UUID marketId, MarketSide side, TradeAction action, BigDecimal amount, BigDecimal price, BigDecimal shares) {
+	public Trade(UUID userId, UUID marketId, MarketSide side, TradeAction action, BigDecimal amount, BigDecimal price,
+			BigDecimal shares, String idempotencyKey) {
 		this.userId = userId;
 		this.marketId = marketId;
 		this.side = side;
@@ -64,6 +68,7 @@ public class Trade {
 		this.amount = amount;
 		this.price = price;
 		this.shares = shares;
+		this.idempotencyKey = idempotencyKey;
 	}
 
 	@PrePersist
@@ -110,6 +115,10 @@ public class Trade {
 	
 	public BigDecimal getShares() {
 		return shares;
+	}
+
+	public String getIdempotencyKey() {
+		return idempotencyKey;
 	}
 
 	public LocalDateTime getCreatedAt() {

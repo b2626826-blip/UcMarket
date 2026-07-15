@@ -132,7 +132,7 @@ class CoreMarketLifecycleTest {
 				new BigDecimal("1000.00"),
 				"BONUS",
 				null,
-				"signup:" + trader.getId()
+				"signup:seed-" + trader.getId()
 		);
 
 		Market market = marketController.createMarket(
@@ -165,6 +165,7 @@ class CoreMarketLifecycleTest {
 
 		ResponseEntity<Trade> response = tradeController.placeTrade(
 				trader,
+				"trade-core-1",
 				new TradeRequest(market.getId(), MarketSide.YES, new BigDecimal("20.00"))
 		);
 		Trade trade = response.getBody();
@@ -202,7 +203,7 @@ class CoreMarketLifecycleTest {
 						WalletTransactionType.TRADE_BUY,
 						WalletTransactionType.RESOLUTION_PAYOUT
 				);
-		assertThat(walletTransactions.get("TRADE_BUY_" + trade.getId()).getAmount())
+		assertThat(walletTransactions.get("trade-core-1").getAmount())
 				.isEqualByComparingTo("-20.00");
 		assertThat(walletTransactions.get("resolution:" + position.getId()).getAmount())
 				.isEqualByComparingTo("36.66");
@@ -293,7 +294,8 @@ class CoreMarketLifecycleTest {
 	}
 
 	private void stubTradeAndAuditRepositories() {
-		when(tradeRepository.save(any(Trade.class))).thenAnswer(invocation -> {
+		when(tradeRepository.findByIdempotencyKey(any(String.class))).thenReturn(Optional.empty());
+		when(tradeRepository.saveAndFlush(any(Trade.class))).thenAnswer(invocation -> {
 			Trade trade = invocation.getArgument(0);
 			ReflectionTestUtils.setField(trade, "id", UUID.randomUUID());
 			trades.add(trade);

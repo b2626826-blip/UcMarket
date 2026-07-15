@@ -88,7 +88,11 @@ class TradeConcurrencyTest {
 		BigDecimal initialYesPool = marketRepository.findById(marketId).orElseThrow().getYesPool();
 
 		runConcurrently(threads, n ->
-				tradeService.placeTrade(userId, new TradeRequest(marketId, MarketSide.YES, amountPerTrade)));
+				tradeService.placeTrade(
+						userId,
+						new TradeRequest(marketId, MarketSide.YES, amountPerTrade),
+						"trade-concurrency-" + n
+				));
 
 		BigDecimal expectedYesPool = initialYesPool.add(amountPerTrade.multiply(new BigDecimal(threads)));
 		BigDecimal actualYesPool = marketRepository.findById(marketId).orElseThrow().getYesPool();
