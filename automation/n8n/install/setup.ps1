@@ -1,6 +1,6 @@
 ﻿# UcMarket n8n 一鍵啟動（Windows PowerShell）
 $ErrorActionPreference = "Stop"
-Set-Location $PSScriptRoot
+Set-Location (Split-Path $PSScriptRoot -Parent)   # compose 在上一層（automation/n8n/）
 
 Write-Host "[1/3] 檢查 Docker..."
 try { docker version --format '{{.Server.Version}}' | Out-Null }

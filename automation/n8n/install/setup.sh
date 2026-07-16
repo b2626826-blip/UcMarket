@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # UcMarket n8n 一鍵啟動（macOS / Linux）
 set -e
-cd "$(dirname "$0")"
+cd "$(dirname "$0")/.."   # compose 在上一層（automation/n8n/）
 
 echo "[1/3] 檢查 Docker..."
 if ! docker version --format '{{.Server.Version}}' >/dev/null 2>&1; then

@@ -1,14 +1,19 @@
 [佔位檔] automation/n8n/ 檔案清單 — 全數就位後刪除本檔
 
-已就位：
-docker-compose.yml   n8n 2.31.1 ＋ mailpit v1.30.4（版本釘死、port 全綁 127.0.0.1、host-gateway 補 Linux 相容）
-.gitignore           擋 .env
+結構原則：天天用的放根層，一次性的進 install/
+
+docker-compose.yml   根層＝日常運維檔（up/stop/logs 都在這層打）；頂層 name: n8n 釘死專案名（搬哪都認同一組容器/volume）
+                     版本：n8n 2.29.11（N-1 熟成版）＋ mailpit v1.30.4；port 全綁 127.0.0.1；host-gateway 補 Linux 相容
+.gitignore           擋 .env（對子資料夾也生效）
 .gitattributes       *.sh 強制 LF（mac 隊友 checkout 才跑得動）
 .env.example         環境變數範本（目前無必填）
-安裝部署.md          day-0 指南：前置／一鍵啟動／首次設定／驗證／日常操作／疑難排解
-setup.ps1            Windows 一鍵啟動（UTF-8 with BOM——PS 5.1 讀無 BOM 中文會亂碼，勿改存編碼）
-setup.sh             macOS/Linux 一鍵啟動
-workflows/           workflow JSON（各關卡驗綠後匯出，見資料夾內規劃）
+
+install/             一次性安裝工具
+  setup.ps1          Windows 一鍵啟動（UTF-8 with BOM——PS 5.1 讀無 BOM 中文會亂碼，勿改存編碼）
+  setup.sh           macOS/Linux 一鍵啟動
+  安裝部署.md        day-0 指南三層制：〇基礎說明(Docker/n8n/mailpit白話+全貌圖) → 一安裝步驟1~4(腳本/手動雙軌) → 二參考(日常/版本/疑難/安全)
+
+workflows/           workflow JSON（各關卡驗綠後匯出）
 
 待產出：
 runbook.md           關卡7   day-2 災難還原五步＋憑證重建＋告警去哪看＋掛了找誰
