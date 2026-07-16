@@ -6,6 +6,7 @@ import CreateMarketPage from '../../pages/member/create-market';
 const mocks = vi.hoisted(() => ({
   createMarket: vi.fn(),
   submitMarket: vi.fn(),
+  getMyMarkets: vi.fn(),
   searchTradingViewSymbols: vi.fn(),
   showToast: vi.fn(),
 }));
@@ -13,6 +14,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock('../../api/marketApi', () => ({
   createMarket: mocks.createMarket,
   submitMarket: mocks.submitMarket,
+  getMyMarkets: mocks.getMyMarkets,
   searchTradingViewSymbols: mocks.searchTradingViewSymbols,
 }));
 
@@ -41,6 +43,7 @@ describe('CreateMarketPage', () => {
 
     mocks.createMarket.mockResolvedValue({ id: 'market-1' });
     mocks.submitMarket.mockResolvedValue({});
+    mocks.getMyMarkets.mockResolvedValue([]);
     mocks.searchTradingViewSymbols.mockResolvedValue([
       {
         symbol: 'NASDAQ:AAPL',

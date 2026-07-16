@@ -272,6 +272,11 @@ export async function getCurrentEventMarketDetail(id) {
   return normalizeCurrentEventMarket(market);
 }
 
+export function getMyMarkets({ page = 0, size = 10 } = {}) {
+  const params = new URLSearchParams({ page: String(page), size: String(size) });
+  return getApi('/api/markets/me?' + params.toString());
+}
+
 export function createMarket(data) {
   return postApi('/api/markets', data);
 }
