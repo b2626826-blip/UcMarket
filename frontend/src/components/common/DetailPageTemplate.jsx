@@ -10,6 +10,7 @@ export default function DetailPageTemplate({
   status = '',
   settlementRule = '',
   category,
+  showHeroMain = true,
   heroLayout = 'left',
   heroBanner = null,
   heroExtras = null,
@@ -22,10 +23,11 @@ export default function DetailPageTemplate({
 }) {
   useGlowEffect('.trade-market-card, .trade-panel');
 
-  const heroContent = (
+  const shouldRenderDefaultHero = showHeroMain || heroBanner || heroExtras;
+  const heroContent = shouldRenderDefaultHero ? (
     <div className="trade-hero">
       {heroBanner}
-      <div className="detail-template-hero-main">
+      {showHeroMain && <div className="detail-template-hero-main">
         <h1>{category || `市場 #${id}`}</h1>
         <p>{subtitle}</p>
 
@@ -58,10 +60,10 @@ export default function DetailPageTemplate({
             <p>{settlementRule}</p>
           </div>
         )}
-      </div>
+      </div>}
       {heroExtras}
     </div>
-  );
+  ) : null;
 
   const heroNode = hero ?? heroContent;
 

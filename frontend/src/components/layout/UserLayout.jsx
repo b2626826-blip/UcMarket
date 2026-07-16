@@ -55,7 +55,6 @@ export default function UserLayout() {
               <Link to="/home" data-page="views/dashboard.html">市場</Link>
               <Link to="/rankings">排行榜</Link>
               <Link to={user ? '/wallet' : '/auth/login'}>錢包</Link>
-              <Link to={user ? '/positions' : '/auth/login'}>持倉</Link>
             </div>
             <button
               className="nav-toggle"
@@ -82,7 +81,6 @@ export default function UserLayout() {
                   </span>
                   {isAdmin && <Link to="/admin/dashboard" target="UcmarketAdmin" rel="noreferrer">管理員</Link>}
                   <Link to="/markets/new">建立市場</Link>
-                  <Link to="/portfolio">儀表板</Link>
                   <Link to="/positions">持倉</Link>
                   <Link to="/profile">個人資料</Link>
                   <a href="#logout" id="logout-link" onClick={(e) => { e.preventDefault(); logout(); }}>登出</a>

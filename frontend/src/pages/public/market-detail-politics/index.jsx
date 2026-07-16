@@ -49,7 +49,14 @@ export default function PoliticsDetailPage() {
 
   if (loading || error || !market) {
     return (
-      <DetailPageTemplate id={id} subtitle="政治事件預測市場" marketId={id}>
+      <DetailPageTemplate
+        id={id}
+        subtitle="政治事件預測市場"
+        marketId={id}
+        market={market}
+        showHeroMain={false}
+        tradePanel={<div />}
+      >
         <p className={`politics-detail-message${error ? " error" : ""}`}>
           {loading ? "政治市場載入中..." : error || "找不到政治市場"}
         </p>
@@ -64,7 +71,7 @@ export default function PoliticsDetailPage() {
   const noPrice = 1 - yesPrice;
 
   return (
-    <DetailPageTemplate id={market.code || id} subtitle="政治事件預測市場" marketId={id}>
+    <DetailPageTemplate id={market.code || id} subtitle="政治事件預測市場" marketId={id} market={market} showHeroMain={false}>
       <section className="politics-hero-banner">
         <img src={politicsBanner} alt="政治市場" />
         <div className="politics-hero-content">
