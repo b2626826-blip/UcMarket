@@ -148,13 +148,25 @@ export default function CurrentAffairsDetailPage() {
           </section>
 
           <section className="current-affairs-info__prices" aria-label="目前機率">
-            <div>
-              <span>YES</span>
-              <strong>{market.yesProbability}%</strong>
-            </div>
-            <div>
-              <span>NO</span>
-              <strong>{market.noProbability}%</strong>
+            <div className="current-affairs-odds-bar">
+              <div className="current-affairs-odds-bar__labels">
+                <span className="current-affairs-odds-bar__label current-affairs-odds-bar__label--yes">
+                  YES {market.yesProbability}%
+                </span>
+                <span className="current-affairs-odds-bar__label current-affairs-odds-bar__label--no">
+                  NO {market.noProbability}%
+                </span>
+              </div>
+              <div className="current-affairs-odds-bar__track">
+                <div
+                  className="current-affairs-odds-bar__yes"
+                  style={{ width: `${market.yesProbability}%` }}
+                />
+                <div
+                  className="current-affairs-odds-bar__no"
+                  style={{ width: `${market.noProbability}%` }}
+                />
+              </div>
             </div>
           </section>
         </div>

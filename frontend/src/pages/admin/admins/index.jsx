@@ -1,33 +1,56 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getAdminUsers, suspendUser, unsuspendUser } from '../../../api/adminApi';
 import useUiStore from '../../../store/uiStore';
 import StatusBadge from '../../../components/common/StatusBadge';
+import Pagination from '../../../components/admin/Pagination';
 import { formatTime } from '../../../utils/format';
 
+const PAGE_SIZE = 20;
+
 export default function AdminsPage() {
-  const [allAdmins, setAllAdmins] = useState([]);
+  const [admins, setAdmins] = useState([]);
   const [filters, setFilters] = useState({ keyword: '', status: '' });
+  const [applied, setApplied] = useState({ keyword: '', status: '' });
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
   const showToast = useUiStore((s) => s.showToast);
 
-  useEffect(() => { loadAdmins(); }, []);
-
-  async function loadAdmins() {
+  const loadAdmins = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getAdminUsers({ role: 'ADMIN' });
-      const list = Array.isArray(data) ? data : (data?.users || []);
-      setAllAdmins(list);
-    } catch { setAllAdmins([]); }
+      const data = await getAdminUsers({
+        role: 'ADMIN',
+        ...applied,
+        page,
+        size: PAGE_SIZE,
+      });
+      setAdmins(data?.content || []);
+      setTotalPages(data?.totalPages || 0);
+      setTotalElements(data?.totalElements || 0);
+    } catch {
+      setAdmins([]);
+      setTotalPages(0);
+      setTotalElements(0);
+    }
     setLoading(false);
+  }, [applied, page]);
+
+  useEffect(() => { loadAdmins(); }, [loadAdmins]);
+
+  function search(e) {
+    e?.preventDefault();
+    setPage(0);
+    setApplied({ ...filters });
   }
 
-  const filtered = allAdmins.filter((a) => {
-    const kw = filters.keyword.toLowerCase();
-    const byKw = !kw || ((a.code || '') + ' ' + (a.username || '') + ' ' + (a.email || '')).toLowerCase().includes(kw);
-    const byStatus = !filters.status || a.status === filters.status;
-    return byKw && byStatus;
-  });
+  function clearFilters() {
+    const empty = { keyword: '', status: '' };
+    setFilters(empty);
+    setApplied(empty);
+    setPage(0);
+  }
 
   async function handleSuspend(id) {
     if (!confirm('確定要停權此管理員嗎？')) return;
@@ -40,10 +63,6 @@ export default function AdminsPage() {
     catch (err) { showToast('danger', '失敗', err.message); }
   }
 
-  const total = allAdmins.length;
-  const active = allAdmins.filter((a) => a.status === 'ACTIVE').length;
-  const banned = allAdmins.filter((a) => a.status === 'BANNED').length;
-
   return (
     <>
       <div className="page-header mb-3">
@@ -52,19 +71,13 @@ export default function AdminsPage() {
       </div>
 
       <section className="admin-kpi-row mb-3">
-        {[
-          { label: '總管理員', val: total, cls: 'text-primary' },
-          { label: '啟用中', val: active, cls: 'text-success' },
-          { label: '停權中', val: banned, cls: 'text-danger' },
-        ].map((kpi, i) => (
-          <article key={i} className="admin-kpi-card">
-            <span className="kpi-label">{kpi.label}</span>
-            <span className={`kpi-value ${kpi.cls}`}>{loading ? '-' : kpi.val}</span>
-          </article>
-        ))}
+        <article className="admin-kpi-card">
+          <span className="kpi-label">符合條件</span>
+          <span className="kpi-value text-primary">{loading ? '-' : totalElements}</span>
+        </article>
       </section>
 
-      <form className="admin-filter-bar mb-3" onSubmit={(e) => e.preventDefault()}>
+      <form className="admin-filter-bar mb-3" onSubmit={search}>
         <div>
           <label className="form-label">關鍵字</label>
           <input className="form-control" type="search" placeholder="搜尋編號、名稱、Email" value={filters.keyword} onChange={(e) => setFilters({ ...filters, keyword: e.target.value })} />
@@ -79,12 +92,12 @@ export default function AdminsPage() {
         </div>
         <div className="d-flex gap-2">
           <button type="submit" className="btn btn-primary">搜尋</button>
-          <button type="button" className="btn btn-outline-secondary" onClick={() => setFilters({ keyword: '', status: '' })}>清除</button>
+          <button type="button" className="btn btn-outline-secondary" onClick={clearFilters}>清除</button>
         </div>
       </form>
 
       <section className="block-card">
-        <div className="block-card-header">管理員資料 ({filtered.length})</div>
+        <div className="block-card-header">管理員資料 ({totalElements})</div>
         <div className="block-card-body p-0">
           <div className="table-responsive">
             <table className="table align-middle mb-0 admin-data-table">
@@ -92,9 +105,11 @@ export default function AdminsPage() {
                 <tr><th>管理員編號</th><th>用戶名稱</th><th>Email</th><th>狀態</th><th>最後登入</th><th>建立時間</th><th>操作</th></tr>
               </thead>
               <tbody>
-                {!filtered.length ? (
+                {loading ? (
+                  <tr><td colSpan="7" className="text-center text-secondary py-4">載入中…</td></tr>
+                ) : !admins.length ? (
                   <tr><td colSpan="7" className="text-center text-secondary py-4">找不到符合條件的管理員。</td></tr>
-                ) : filtered.map((a) => (
+                ) : admins.map((a) => (
                   <tr key={a.id}>
                     <td className="fw-semibold small">{a.code || (a.id || '').substring(0, 8)}</td>
                     <td>{a.username || ''}</td>
@@ -116,6 +131,7 @@ export default function AdminsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} totalElements={totalElements} onChange={setPage} disabled={loading} />
         </div>
       </section>
     </>

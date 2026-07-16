@@ -8,8 +8,6 @@ import { formatTime } from '../../../utils/format';
 
 Chart.register(DoughnutController, ArcElement, Legend, Tooltip);
 
-const STATUS_LABEL = { PENDING: '待審核', ACTIVE: '進行中', CLOSED: '已截止', RESOLVED: '已結算', REJECTED: '已拒絕', DRAFT: '草稿', CANCELED: '已取消' };
-
 export default function DashboardPage() {
   const [stats, setStats] = useState(null);
   const [reviews, setReviews] = useState([]);
@@ -93,32 +91,32 @@ export default function DashboardPage() {
         <p className="text-secondary mb-0">事件審核儀表板，快速掌握平台狀態。</p>
       </div>
 
-      <section style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
+      <section className="admin-kpi-row mb-3">
         {[
           { tag: '待審核事件', num: st.pendingCount, cls: 'text-warning' },
           { tag: '進行中', num: st.activeCount, cls: 'text-success' },
           { tag: '已拒絕', num: st.rejectedCount, cls: 'text-danger' },
           { tag: '要求修改', num: st.draftCount, cls: 'text-warning' },
         ].map((kpi, i) => (
-          <article key={i} className="dash-kpi-card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 'var(--radius)', padding: 'var(--space-4)', transition: 'all var(--ease)', position: 'relative', overflow: 'hidden' }}>
-            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.04em', marginBottom: 'var(--space-1)' }}>{kpi.tag}</div>
-            <div className={kpi.cls} style={{ fontSize: '1.75rem', fontWeight: 700, lineHeight: 1.1 }}>{loading ? '-' : kpi.num}</div>
+          <article key={i} className="admin-kpi-card">
+            <span className="kpi-label">{kpi.tag}</span>
+            <span className={`kpi-value ${kpi.cls}`}>{loading ? '-' : kpi.num}</span>
           </article>
         ))}
       </section>
 
-      <section style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
+      <section className="dash-chart-row mb-3">
         <div className="block-card">
           <div className="block-card-header">事件狀態分布</div>
-          <div className="block-card-body" style={{ padding: 'var(--space-4)' }}>
+          <div className="block-card-body">
             <canvas ref={chartRef} style={{ maxHeight: 240 }}></canvas>
           </div>
         </div>
         <div className="block-card">
           <div className="block-card-header">快速操作</div>
-          <div className="block-card-body" style={{ padding: 'var(--space-4)' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-              <a href="/admin/markets/create" className="quick-action-btn"><i className="bi bi-plus-circle"></i> 建立新事件</a>
+          <div className="block-card-body">
+            <div className="quick-actions">
+              <a href="/admin/markets/create" className="quick-action-btn"><i className="bi bi-plus-circle"></i> 建立市場</a>
               <a href="/admin/markets" className="quick-action-btn"><i className="bi bi-list-ul"></i> 管理全部事件</a>
               <a href="/admin/users" className="quick-action-btn"><i className="bi bi-people"></i> 管理用戶</a>
               <a href="/admin/logs" className="quick-action-btn"><i className="bi bi-journal-text"></i> 查看操作日誌</a>
@@ -159,12 +157,6 @@ export default function DashboardPage() {
           </div>
         </div>
       </section>
-
-      <style>{`
-        @media (max-width: 900px) {
-          .dash-chart-row { grid-template-columns: 1fr; }
-        }
-      `}</style>
     </>
   );
 }

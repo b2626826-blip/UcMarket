@@ -14,12 +14,22 @@ const marketTypeLabels = {
   MULTIPLE_CHOICE: '多選',
 };
 
+const CATEGORY_OPTS = [
+  { label: '政治', value: '政治' },
+  { label: '運動', value: '運動' },
+  { label: '天氣', value: 'WEATHER' },
+  { label: '時事', value: CURRENT_EVENT_CATEGORY_CODE },
+  { label: '金融', value: FINANCE_CATEGORY },
+];
+const categoryLabel = (v) => CATEGORY_OPTS.find((c) => c.value === v)?.label || v;
+
 const initialForm = {
   title: '',
   description: '',
   category: '',
   marketType: 'BINARY',
   sourceUrl: '',
+  imageUrl: '',
   tradingViewSymbol: '',
   resolutionRule: '',
   closeAt: '',
@@ -44,7 +54,17 @@ export default function CreateMarketPage() {
   const symbolBlurTimeoutRef = useRef(null);
   const { showToast } = useUiStore();
 
-  function setField(k, v) { setForm((p) => ({ ...p, [k]: v })); setErrors((p) => ({ ...p, [k]: '' })); }
+  function setField(k, v) {
+    setForm((p) => {
+      const next = { ...p, [k]: v };
+      if (k === 'category') {
+        if (v !== FINANCE_CATEGORY) next.tradingViewSymbol = '';
+        if (v !== CURRENT_EVENT_CATEGORY_CODE) next.imageUrl = '';
+      }
+      return next;
+    });
+    setErrors((p) => ({ ...p, [k]: '' }));
+  }
 
   function handleDateChange(e) {
     const value = e.target.value;
@@ -69,6 +89,9 @@ export default function CreateMarketPage() {
     if (!form.category.trim()) e.category = '請選擇分類';
     if (!form.description.trim()) e.description = '請輸入描述';
     if (!form.sourceUrl.trim() || !validateUrl(form.sourceUrl)) e.sourceUrl = '請輸入有效的來源網址';
+    if (form.category === CURRENT_EVENT_CATEGORY_CODE && form.imageUrl.trim() && !validateUrl(form.imageUrl)) {
+      e.imageUrl = '請輸入有效的圖片網址';
+    }
     if (!form.resolutionRule.trim()) e.resolutionRule = '請輸入裁決規則';
     if (!form.closeAt.trim()) e.closeAt = '請選擇截止時間';
     else if (new Date(form.closeAt) <= new Date()) e.closeAt = '截止時間必須晚於現在';
@@ -87,6 +110,9 @@ export default function CreateMarketPage() {
       closeAt,
       description: form.description || null,
       sourceUrl: form.sourceUrl || null,
+      imageUrl: form.category === CURRENT_EVENT_CATEGORY_CODE
+        ? (form.imageUrl.trim() || null)
+        : null,
       tradingViewSymbol: form.category === FINANCE_CATEGORY
         ? (form.tradingViewSymbol.trim() || null)
         : null,
@@ -174,54 +200,78 @@ export default function CreateMarketPage() {
   }, []);
 
   return (
-    <div className="trade-wrapper" style={{ paddingTop: 40, paddingBottom: 90 }}>
+    <div className="trade-wrapper create-market-page">
       <div className="wallet-page-title">
         <h1>建立市場</h1>
         <p>賭吧! 這可是為數不多你能當到莊家的機會!</p>
       </div>
+
       <div className="create-market-layout">
         <div className="create-market-form-card">
-          <form id="create-market-form">
-            <div className="form-group">
+          <div className="create-market-form-card__header">市場基本資訊</div>
+          <form id="create-market-form" className="create-market-fields" onSubmit={(e) => e.preventDefault()}>
+            <div className="create-market-field create-market-field--full">
               <label className="form-label">標題 *</label>
-              <input className={`form-control ${errors.title ? 'is-invalid' : ''}`} placeholder="輸入市場標題" value={form.title} onChange={(e) => setField('title', e.target.value)} />
+              <input className={`form-control ${errors.title ? 'is-invalid' : ''}`} placeholder="例如：比特幣會在 2026 年底前突破 20 萬美元嗎？" value={form.title} onChange={(e) => setField('title', e.target.value)} />
+              {errors.title && <div className="create-market-error">{errors.title}</div>}
             </div>
-            <div className="form-group">
+
+            <div className="create-market-field create-market-field--full">
               <label className="form-label">描述 *</label>
-              <textarea className={`form-control ${errors.description ? 'is-invalid' : ''}`} rows={3} placeholder="市場描述" value={form.description} onChange={(e) => setField('description', e.target.value)} />
+              <textarea className={`form-control ${errors.description ? 'is-invalid' : ''}`} rows={3} placeholder="請詳細描述市場的背景、範圍與判斷方式..." value={form.description} onChange={(e) => setField('description', e.target.value)} />
+              {errors.description && <div className="create-market-error">{errors.description}</div>}
             </div>
-            <div className="form-group">
+
+            <div className="create-market-field create-market-field--full">
               <label className="form-label">分類 *</label>
               <select className={`form-control ${errors.category ? 'is-invalid' : ''}`} value={form.category} onChange={(e) => setField('category', e.target.value)}>
-                <option value="">選擇分類</option>
-                <option value="政治">政治</option>
-                <option value="運動">運動</option>
-                <option value="WEATHER">天氣</option>
-                <option value={CURRENT_EVENT_CATEGORY_CODE}>時事</option>
-                <option value="金融">金融</option>
+                <option value="">請選擇分類</option>
+                {CATEGORY_OPTS.map((c) => (
+                  <option key={c.value} value={c.value}>{c.label}</option>
+                ))}
               </select>
+              {errors.category && <div className="create-market-error">{errors.category}</div>}
             </div>
-            <div className="form-group">
+
+            {/** 專案預設市場類型為二元，暫不開放選擇
+            <div className="create-market-field">
               <label className="form-label">市場類型</label>
-              <div style={{ display: 'flex', gap: 16 }}>
+              <div className="create-market-type-row">
                 {[
                   { value: 'BINARY', label: '二元（YES/NO）' },
                   { value: 'COUNT_RANGE', label: '區間' },
                   { value: 'MULTIPLE_CHOICE', label: '多選' },
                 ].map((t) => (
-                  <label className="form-check" key={t.value}>
+                  <label className="form-check create-market-type-option" key={t.value}>
                     <input type="radio" name="marketType" value={t.value} checked={form.marketType === t.value} onChange={() => setField('marketType', t.value)} />
-                    {t.label}
+                    <span>{t.label}</span>
                   </label>
                 ))}
               </div>
             </div>
-            <div className="form-group">
-              <label className="form-label">資料來源 URL *</label>
-              <input className={`form-control ${errors.sourceUrl ? 'is-invalid' : ''}`} placeholder="https://" value={form.sourceUrl} onChange={(e) => setField('sourceUrl', e.target.value)} />
+            */}
+
+            <div className="create-market-field create-market-field--full">
+              <label className="form-label">來源網址 *</label>
+              <input className={`form-control ${errors.sourceUrl ? 'is-invalid' : ''}`} placeholder="https://example.com/news/article" value={form.sourceUrl} onChange={(e) => setField('sourceUrl', e.target.value)} />
+              {errors.sourceUrl && <div className="create-market-error">{errors.sourceUrl}</div>}
             </div>
+            {form.category === CURRENT_EVENT_CATEGORY_CODE && (
+              <div className="create-market-field create-market-field--full">
+                <label className="form-label">圖片網址（選填）</label>
+                <input
+                  type="url"
+                  className={`form-control ${errors.imageUrl ? 'is-invalid' : ''}`}
+                  placeholder="https://example.com/news/image.jpg"
+                  value={form.imageUrl}
+                  onChange={(e) => setField('imageUrl', e.target.value)}
+                />
+                {errors.imageUrl && <div className="create-market-error">{errors.imageUrl}</div>}
+              </div>
+            )}
+
             {form.category === FINANCE_CATEGORY && (
-              <div className="form-group">
+              <div className="create-market-field create-market-field--full">
                 <div className="create-market-field-head">
                   <label className="form-label">TradingView 商品代碼</label>
                   <a
@@ -290,17 +340,20 @@ export default function CreateMarketPage() {
                 </div>
 
                 <div className="create-market-field-help">
-                  輸入關鍵字後會提示相關代號，請選擇或填入 TradingView 商品代碼，例如 `NASDAQ:AAPL`。
+                  輸入關鍵字後會提示相關代號，請選擇或填入 TradingView 商品代碼，例如 NASDAQ:AAPL。
                 </div>
 
-                {errors.tradingViewSymbol && <div className="invalid-feedback d-block">{errors.tradingViewSymbol}</div>}
+                {errors.tradingViewSymbol && <div className="create-market-error">{errors.tradingViewSymbol}</div>}
               </div>
             )}
-            <div className="form-group">
+
+            <div className="create-market-field create-market-field--full">
               <label className="form-label">裁決規則 *</label>
-              <textarea className={`form-control ${errors.resolutionRule ? 'is-invalid' : ''}`} rows={2} placeholder="請輸入此市場的結算規則" value={form.resolutionRule} onChange={(e) => setField('resolutionRule', e.target.value)} />
+              <textarea className={`form-control ${errors.resolutionRule ? 'is-invalid' : ''}`} rows={2} placeholder="說明市場結果的裁決依據與資料來源..." value={form.resolutionRule} onChange={(e) => setField('resolutionRule', e.target.value)} />
+              {errors.resolutionRule && <div className="create-market-error">{errors.resolutionRule}</div>}
             </div>
-            <div className="form-group">
+
+            <div className="create-market-field create-market-field--full">
               <label className="form-label">截止時間 *</label>
               <div
                 className={`create-market-date-picker ${errors.closeAt ? 'is-invalid' : ''}`}
@@ -314,8 +367,10 @@ export default function CreateMarketPage() {
                 <span className={`create-market-date-picker__text ${form.closeAt ? 'has-value' : ''}`}>{closeAtText}</span>
                 <input type="datetime-local" value={form.closeAt} onChange={handleDateChange} />
               </div>
+              {errors.closeAt && <div className="create-market-error">{errors.closeAt}</div>}
             </div>
           </form>
+
           <div className="create-market-actions">
             <Button variant="secondary" onClick={handleSave}>儲存草稿</Button>
             <Button onClick={handleSubmit}>建立並送審</Button>
@@ -327,7 +382,7 @@ export default function CreateMarketPage() {
             <span>即時預覽</span>
             <small>DRAFT</small>
           </div>
-          <span className="market-preview__category">{form.category || '未選擇分類'}</span>
+          <span className="market-preview__category">{form.category ? categoryLabel(form.category) : '未選擇分類'}</span>
           <h2>{form.title || '你的市場標題會顯示在這裡'}</h2>
           <p className="market-preview__description">{form.description || '填寫市場描述，讓其他使用者快速理解預測事件。'}</p>
 
@@ -337,9 +392,14 @@ export default function CreateMarketPage() {
           </div>
 
           <dl className="market-preview__details">
+            {/** 市場類型預設為二元，暫不顯示
             <div><dt>市場類型</dt><dd>{marketTypeLabels[form.marketType]}</dd></div>
+            */}
             <div><dt>截止時間</dt><dd>{formatCloseAt(form.closeAt)}</dd></div>
             <div><dt>資料來源</dt><dd>{form.sourceUrl || '尚未提供'}</dd></div>
+            {form.category === CURRENT_EVENT_CATEGORY_CODE && (
+              <div><dt>圖片網址</dt><dd>{form.imageUrl || '尚未提供'}</dd></div>
+            )}
             {form.category === FINANCE_CATEGORY && (
               <div><dt>TradingView 商品代碼</dt><dd>{form.tradingViewSymbol || '尚未提供'}</dd></div>
             )}

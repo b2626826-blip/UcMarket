@@ -1,7 +1,9 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getAdminLogs } from '../../../api/adminApi';
-import useUiStore from '../../../store/uiStore';
+import Pagination from '../../../components/admin/Pagination';
 import { formatTime } from '../../../utils/format';
+
+const PAGE_SIZE = 20;
 
 const ACTION_LABEL = {
   MARKET_APPROVE: '核准事件', MARKET_REJECT: '拒絕事件', MARKET_RESOLVE: '結算事件',
@@ -12,44 +14,48 @@ const ACTION_CLASS = {
   MARKET_REQUEST_CHANGES: 'status-pending', USER_SUSPEND: 'status-rejected', USER_UNSUSPEND: 'status-approved',
 };
 
-function getActionCategory(action) {
-  if (!action) return 'system';
-  if (action.includes('MARKET')) return 'market';
-  if (action.includes('USER')) return 'user';
-  return 'system';
-}
-
 export default function LogsPage() {
-  const [allLogs, setAllLogs] = useState([]);
+  const [logs, setLogs] = useState([]);
   const [filters, setFilters] = useState({ keyword: '', action: '' });
+  const [applied, setApplied] = useState({ keyword: '', action: '' });
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
-  const showToast = useUiStore((s) => s.showToast);
 
-  useEffect(() => { loadLogs(); }, []);
-
-  async function loadLogs() {
+  const loadLogs = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getAdminLogs();
-      const list = Array.isArray(data) ? data : (data?.logs || []);
-      setAllLogs(list);
-    } catch { setAllLogs([]); }
+      const data = await getAdminLogs({
+        ...applied,
+        page,
+        size: PAGE_SIZE,
+      });
+      setLogs(data?.content || []);
+      setTotalPages(data?.totalPages || 0);
+      setTotalElements(data?.totalElements || 0);
+    } catch {
+      setLogs([]);
+      setTotalPages(0);
+      setTotalElements(0);
+    }
     setLoading(false);
+  }, [applied, page]);
+
+  useEffect(() => { loadLogs(); }, [loadLogs]);
+
+  function search(e) {
+    e?.preventDefault();
+    setPage(0);
+    setApplied({ ...filters });
   }
 
-  const filtered = allLogs.filter((l) => {
-    const kw = filters.keyword.toLowerCase();
-    const byKw = !kw || ((l.adminUserId || '') + ' ' + (l.action || '') + ' ' + (l.targetId || '')).toLowerCase().includes(kw);
-    const byAction = !filters.action || l.action === filters.action;
-    return byKw && byAction;
-  });
-
-  const filteredLogs = filters.keyword || filters.action ? filtered : allLogs;
-
-  const allCount = allLogs.length;
-  const marketCount = allLogs.filter((l) => getActionCategory(l.action) === 'market').length;
-  const userCount = allLogs.filter((l) => getActionCategory(l.action) === 'user').length;
-  const systemCount = allLogs.filter((l) => getActionCategory(l.action) === 'system').length;
+  function clearFilters() {
+    const empty = { keyword: '', action: '' };
+    setFilters(empty);
+    setApplied(empty);
+    setPage(0);
+  }
 
   return (
     <>
@@ -59,23 +65,16 @@ export default function LogsPage() {
       </div>
 
       <section className="admin-kpi-row mb-3">
-        {[
-          { label: '全部紀錄', val: allCount, cls: 'text-primary' },
-          { label: '審核操作', val: marketCount, cls: 'text-success' },
-          { label: '用戶管理', val: userCount, cls: 'text-warning' },
-          { label: '系統操作', val: systemCount, cls: 'text-info' },
-        ].map((kpi, i) => (
-          <article key={i} className="admin-kpi-card">
-            <span className="kpi-label">{kpi.label}</span>
-            <span className={`kpi-value ${kpi.cls}`}>{loading ? '-' : kpi.val}</span>
-          </article>
-        ))}
+        <article className="admin-kpi-card">
+          <span className="kpi-label">符合條件</span>
+          <span className="kpi-value text-primary">{loading ? '-' : totalElements}</span>
+        </article>
       </section>
 
-      <form className="admin-filter-bar mb-3" onSubmit={(e) => e.preventDefault()}>
+      <form className="admin-filter-bar mb-3" onSubmit={search}>
         <div>
           <label className="form-label">關鍵字</label>
-          <input className="form-control" type="search" placeholder="搜尋管理員、動作、目標ID" value={filters.keyword} onChange={(e) => setFilters({ ...filters, keyword: e.target.value })} />
+          <input className="form-control" type="search" placeholder="搜尋動作、備註、編號" value={filters.keyword} onChange={(e) => setFilters({ ...filters, keyword: e.target.value })} />
         </div>
         <div>
           <label className="form-label">動作類型</label>
@@ -91,12 +90,12 @@ export default function LogsPage() {
         </div>
         <div className="d-flex gap-2">
           <button type="submit" className="btn btn-primary">搜尋</button>
-          <button type="button" className="btn btn-outline-secondary" onClick={() => setFilters({ keyword: '', action: '' })}>清除篩選</button>
+          <button type="button" className="btn btn-outline-secondary" onClick={clearFilters}>清除篩選</button>
         </div>
       </form>
 
       <section className="block-card">
-        <div className="block-card-header"><i className="bi bi-journal-text text-primary"></i> 操作紀錄 ({filteredLogs.length})</div>
+        <div className="block-card-header"><i className="bi bi-journal-text text-primary"></i> 操作紀錄 ({totalElements})</div>
         <div className="block-card-body p-0">
           <div className="table-responsive">
             <table className="table align-middle mb-0 admin-data-table">
@@ -104,9 +103,11 @@ export default function LogsPage() {
                 <tr><th>時間</th><th>管理員</th><th>動作</th><th>目標類型</th><th>目標 ID</th><th>詳細資訊</th></tr>
               </thead>
               <tbody>
-                {!filteredLogs.length ? (
+                {loading ? (
+                  <tr><td colSpan="6" className="text-center text-secondary py-4">載入中…</td></tr>
+                ) : !logs.length ? (
                   <tr><td colSpan="6" className="text-center text-secondary py-4">找不到符合條件的紀錄。</td></tr>
-                ) : filteredLogs.map((l) => {
+                ) : logs.map((l) => {
                   const cls = ACTION_CLASS[l.action] || 'status-closed';
                   const label = ACTION_LABEL[l.action] || l.action;
                   return (
@@ -123,6 +124,7 @@ export default function LogsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} totalElements={totalElements} onChange={setPage} disabled={loading} />
         </div>
       </section>
     </>

@@ -41,4 +41,27 @@ public interface MarketRepository extends JpaRepository<Market, UUID> {
 		String category,
 		MarketStatus status,
 		Pageable pageable);
+
+	@Query("""
+			SELECT m FROM Market m
+			WHERE (:status IS NULL OR m.status = :status)
+			AND (:category IS NULL OR :category = '' OR m.category = :category)
+			AND (
+				:kwPattern IS NULL
+				OR LOWER(COALESCE(m.title, '')) LIKE :kwPattern
+				OR LOWER(COALESCE(m.code, '')) LIKE :kwPattern
+			)
+			""")
+	Page<Market> searchAdminByPattern(
+			@Param("status") MarketStatus status,
+			@Param("category") String category,
+			@Param("kwPattern") String kwPattern,
+			Pageable pageable);
+
+	default Page<Market> searchAdmin(MarketStatus status, String category, String keyword, Pageable pageable) {
+		String kwPattern = (keyword == null || keyword.isBlank()) ? null
+				: "%" + keyword.trim().toLowerCase() + "%";
+		String cat = (category == null || category.isBlank()) ? null : category.trim();
+		return searchAdminByPattern(status, cat, kwPattern, pageable);
+	}
 }

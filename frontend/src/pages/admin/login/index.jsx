@@ -27,21 +27,12 @@ export default function AdminLoginPage() {
   }
 
   return (
-    <div style={{
-      minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center',
-      background: 'var(--bg-body)', position: 'relative', overflow: 'hidden',
-    }}>
+    <div className="admin-login-page">
       <div style={{
         position: 'absolute', inset: 0,
         background: 'radial-gradient(ellipse at 30% 40%, rgba(217,170,67,0.06) 0%, transparent 55%), radial-gradient(ellipse at 70% 60%, rgba(217,170,67,0.04) 0%, transparent 55%)',
       }} />
-      <div style={{
-        position: 'relative', width: '100%', maxWidth: 400,
-        background: 'rgba(9,9,9,0.85)', backdropFilter: 'blur(24px)',
-        border: '1px solid rgba(255,255,255,0.06)', borderRadius: 'var(--radius-lg)',
-        padding: 'var(--space-6)',
-        boxShadow: '0 0 0 1px rgba(217,170,67,0.04), 0 24px 64px rgba(0,0,0,0.6)',
-      }}>
+      <div className="admin-login-card">
         <div style={{
           position: 'absolute', top: '-1px', left: '20%', right: '20%', height: '1px',
           background: 'linear-gradient(90deg, transparent, rgba(217,170,67,0.4), transparent)',
