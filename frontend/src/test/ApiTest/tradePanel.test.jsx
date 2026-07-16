@@ -13,6 +13,7 @@ const mocks = vi.hoisted(() => {
     getTradeQuote: vi.fn(),
     placeTrade: vi.fn(),
     onMarketOddsChange: vi.fn(),
+    onTradeSuccess: vi.fn(),
   };
 });
 
@@ -125,5 +126,32 @@ describe('TradePanel', () => {
 
     expect(container.querySelector('#currentOdds').value).toBe('3.2500');
     expect(mocks.onMarketOddsChange).toHaveBeenLastCalledWith('market-1', { yesOdds: 3.25, noOdds: 1.6 });
+  });
+
+  it('notifies parent after a successful trade', async () => {
+    await act(async () => root.unmount());
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <TradePanel
+          marketId="market-1"
+          onMarketOddsChange={mocks.onMarketOddsChange}
+          onTradeSuccess={mocks.onTradeSuccess}
+        />,
+      );
+    });
+
+    const quickBetButton = [...container.querySelectorAll('button')]
+      .find((button) => button.textContent === '10');
+    await act(async () => quickBetButton.click());
+
+    const submitButton = container.querySelector('#submitTradeBtn');
+    await act(async () => submitButton.click());
+
+    expect(mocks.onTradeSuccess).toHaveBeenCalledWith('market-1');
   });
 });

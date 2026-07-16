@@ -11,7 +11,7 @@ const QUICK_BETS = [10, 50, 100, 500];
 const MIN_TRADE_AMOUNT = 10;
 const MAX_TRADE_AMOUNT = 50000;
 
-export default function TradePanel({ marketId, market, side, onSideChange, onMarketOddsChange }) {
+export default function TradePanel({ marketId, market, side, onSideChange, onMarketOddsChange, onTradeSuccess }) {
   const user = useAuthStore((state) => state.user);
   const walletBalance = useWalletStore((state) => state.balance);
   const fetchWallet = useWalletStore((state) => state.fetchWallet);
@@ -159,6 +159,7 @@ export default function TradePanel({ marketId, market, side, onSideChange, onMar
       );
       await fetchWallet();
       await refreshMarketOdds(marketId);
+      await onTradeSuccess?.(marketId);
       setBtnState({ text: '下注成功', bg: '#00d66f' });
       setAmount('');
       setQuotedOdds(null);
