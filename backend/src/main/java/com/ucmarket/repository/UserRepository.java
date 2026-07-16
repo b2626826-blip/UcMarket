@@ -1,5 +1,6 @@
 package com.ucmarket.repository;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -18,6 +19,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
 	Optional<User> findByUsername(String username);
 	boolean existsByEmail(String email);
 	boolean existsByUsername(String username);
+	List<User> findByRoleAndStatus(UserRole role, UserStatus status);
 
 	long countByStatus(UserStatus status);
 	long countByRole(UserRole role);
