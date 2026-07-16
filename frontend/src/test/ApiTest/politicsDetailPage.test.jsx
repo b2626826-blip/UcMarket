@@ -25,6 +25,10 @@ vi.mock('../../components/common/DetailPageTemplate', () => ({
   ),
 }));
 
+vi.mock('../../components/market/TradePanel', () => ({
+  default: () => <div>TRADE PANEL</div>,
+}));
+
 describe('PoliticsDetailPage', () => {
   let container;
   let root;
