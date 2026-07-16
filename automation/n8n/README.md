@@ -8,7 +8,7 @@ n8n 自動化的家：容器定義、一鍵安裝、workflow 版控。維護：H
 | 路徑 | 是什麼 |
 |---|---|
 | `docker-compose.yml` | 容器定義（n8n `2.29.11`＋mailpit `v1.30.4`；專案名由 `name: n8n` 釘死，跟資料夾無關）。**日常 up/stop/logs 都在本層打** |
-| `install/` | 一次性安裝：`setup.ps1`（Win）／`setup.sh`（mac/Linux）／`安裝部署.md`（含 Docker/n8n 基礎說明與手動逐指令） |
+| `install/` | 一次性安裝與快照匯入：`setup.ps1`（Win）／`setup.sh`（mac/Linux）一鍵啟動（全新安裝自動匯入**憑證＋workflows**、完成自動開網頁）；`import-workflows` 與 `import-credentials`（`.ps1`／`.sh`）以 git 快照覆蓋本機（照 id 覆蓋不長重複）；`credentials.json`（3 筆開發憑證，含 Discord webhook——**公開 repo 前必須輪替並移除**，見文件真相規則 3）；`安裝部署.md`（含 Docker/n8n 基礎說明與手動逐指令） |
 | `workflows/` | workflow JSON 匯出＝**版控真相源**（目前三條：`01` 健康告警、`04` 通知 webhook ⭐、`06` 心跳）；每條的用途與驗法見該資料夾 README |
 | `runbook.md` | （待產出）災難還原五步＋憑證重建 |
 | `開發進度.md` | **已實作／未實作看板**——想知道做到哪先看這份（關卡狀態變動時同 commit 更新） |
@@ -25,7 +25,7 @@ n8n 自動化的家：容器定義、一鍵安裝、workflow 版控。維護：H
 
 1. 手動改了任何東西（compose、workflow、憑證名、port），**對應文件同一個 commit 內同步**——文件與現實不符時，以現實為準並視文件為壞掉待修。
 2. workflow 在 n8n UI 改完 → 重新匯出 JSON 覆蓋 `workflows/` 同名檔 → 跟文件一起 commit。
-3. 金鑰／憑證只活在 n8n 憑證庫，永不進 git；重建步驟寫在 runbook。
+3. 秘密**預設不進 git**；要把任何新秘密放進 repo，**必須先問使用者、取得核可**。目前唯一核可例外：`install/credentials.json`（開發用低敏感憑證：Discord webhook ×2＋mailpit SMTP，2026-07-16 使用者拍板「等公開再說」）。**repo 轉公開前必須先輪替 Discord webhook 並移除該檔**——Discord 在 GitHub 秘密掃描（secret scanning）合作名單內，URL 一進公開 repo 就會被自動作廢，監控線會無聲斷掉。
 
 ## 給 AI 助手（Claude 等）
 
