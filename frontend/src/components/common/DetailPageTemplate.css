@@ -1,0 +1,138 @@
+/* DetailPageTemplate page skeleton helpers.
+   Core layout/effects live in assets/styles/base.css. */
+
+.detail-template-hero-extras,
+.detail-template-hero-main {
+  min-width: 0;
+}
+
+.detail-template-meta-row {
+  margin-top: 16px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.detail-template-meta-chip {
+  min-height: 48px;
+  padding: 10px 14px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(217, 170, 67, 0.18);
+  box-shadow: inset 0 0 0 1px rgba(217, 170, 67, 0.04);
+}
+
+.detail-template-meta-chip label {
+  color: #919191;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.detail-template-meta-chip strong {
+  color: #fff;
+  font-size: 14px;
+  font-weight: 800;
+  line-height: 1.4;
+}
+
+.detail-template-meta-chip-live {
+  background: rgba(0, 214, 111, 0.1);
+  border-color: rgba(0, 214, 111, 0.22);
+  color: var(--green);
+}
+
+.detail-template-meta-chip-live i {
+  font-size: 8px;
+}
+
+.detail-template-meta-chip-live span {
+  font-size: 13px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.detail-template-rule-bar {
+  margin-top: 14px;
+  padding: 14px 16px;
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 1px solid rgba(217, 170, 67, 0.14);
+}
+
+.detail-template-rule-label {
+  display: inline-flex;
+  margin-bottom: 8px;
+  color: var(--gold);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+}
+
+.detail-template-rule-bar p {
+  margin: 0;
+  color: #cfcfcf;
+  font-size: 14px;
+  line-height: 1.8;
+}
+
+.trade-market-card,
+.trade-panel {
+  position: relative;
+  overflow: hidden;
+  background: #090909;
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  transition: 0.3s;
+  padding: 32px;
+}
+
+.trade-market-card:hover,
+.trade-panel:hover {
+  transform: translateY(-9px) scale(1.01);
+  border-color: rgba(217, 170, 67, 0.64);
+  box-shadow: 0 0 0 1px rgba(217, 170, 67, 0.26), 0 26px 54px rgba(0, 0, 0, 0.54), 0 0 52px rgba(217, 170, 67, 0.26);
+}
+
+.trade-market-card::after,
+.trade-panel::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at var(--mouse-x, 50%) var(--mouse-y, 50%), rgba(217, 170, 67, 0.16), transparent 36%);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s;
+  z-index: 1;
+}
+
+.trade-market-card:hover::after,
+.trade-panel:hover::after {
+  opacity: 1;
+}
+
+@media (max-width: 768px) {
+  .detail-template-meta-row {
+    gap: 8px;
+  }
+
+  .detail-template-meta-chip {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .detail-template-rule-bar {
+    padding: 12px 14px;
+  }
+}
+
+/* Sticky trade panel on the right side */
+.trade-panel-sticky {
+  position: sticky;
+  top: 40px;
+  align-self: start;
+  height: fit-content;
+}

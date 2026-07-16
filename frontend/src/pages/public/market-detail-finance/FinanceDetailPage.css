@@ -1,0 +1,18 @@
+.finance-embed {
+  position: relative;
+  z-index: 2;
+}
+
+.finance-embed .tradingview-widget-container,
+.finance-embed iframe {
+  pointer-events: auto;
+  touch-action: pan-x pan-y;
+}
+
+@media (hover: none) and (pointer: coarse) {
+  .finance-market-card:hover {
+    transform: none;
+    border-color: var(--border);
+    box-shadow: none;
+  }
+}
