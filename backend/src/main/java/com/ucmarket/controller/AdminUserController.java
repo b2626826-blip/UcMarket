@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ucmarket.dto.PageResponse;
 import com.ucmarket.dto.WalletTransactionResponse;
 import com.ucmarket.dto.admin.AdminUserResponse;
 import com.ucmarket.dto.admin.AdminUserWalletResponse;
@@ -24,6 +26,7 @@ import com.ucmarket.entity.UserStatus;
 import com.ucmarket.entity.WalletTransaction;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.service.WalletService;
+import com.ucmarket.util.PageParams;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -40,24 +43,19 @@ public class AdminUserController {
     }
 
     @GetMapping
-    public List<AdminUserResponse> listUsers(
+    public PageResponse<AdminUserResponse> listUsers(
             @RequestParam(required = false) String role,
-            @RequestParam(required = false) String status) {
-        if (role != null && status != null) {
-            return userRepository.findByRole(UserRole.valueOf(role.toUpperCase())).stream()
-                    .filter(u -> u.getStatus() == UserStatus.valueOf(status.toUpperCase()))
-                    .map(AdminUserResponse::from)
-                    .toList();
-        }
-        if (role != null) {
-            return userRepository.findByRole(UserRole.valueOf(role.toUpperCase())).stream()
-                    .map(AdminUserResponse::from).toList();
-        }
-        if (status != null) {
-            return userRepository.findByStatus(UserStatus.valueOf(status.toUpperCase())).stream()
-                    .map(AdminUserResponse::from).toList();
-        }
-        return userRepository.findAll().stream().map(AdminUserResponse::from).toList();
+            @RequestParam(required = false) String status,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        UserRole roleEnum = parseRole(role);
+        UserStatus statusEnum = parseStatus(status);
+
+        Page<AdminUserResponse> result = userRepository
+                .search(roleEnum, statusEnum, keyword, PageParams.of(page, size, "createdAt"))
+                .map(AdminUserResponse::from);
+        return PageResponse.of(result);
     }
 
     @PostMapping("/{id}/suspend")
@@ -109,5 +107,15 @@ public class AdminUserController {
                         tx.getReferenceType(), tx.getReferenceId(), tx.getMemo(), tx.getCreatedAt()))
                 .toList();
         return new AdminUserWalletResponse(balance, transactions);
+    }
+
+    private static UserRole parseRole(String role) {
+        if (role == null || role.isBlank()) return null;
+        return UserRole.valueOf(role.toUpperCase());
+    }
+
+    private static UserStatus parseStatus(String status) {
+        if (status == null || status.isBlank()) return null;
+        return UserStatus.valueOf(status.toUpperCase());
     }
 }

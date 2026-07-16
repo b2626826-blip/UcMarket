@@ -12,6 +12,8 @@ const mocks = vi.hoisted(() => {
     getMarketOdds: vi.fn(),
     getTradeQuote: vi.fn(),
     placeTrade: vi.fn(),
+    onMarketOddsChange: vi.fn(),
+    onTradeSuccess: vi.fn(),
   };
 });
 
@@ -45,7 +47,7 @@ describe('TradePanel', () => {
     mocks.placeTrade.mockResolvedValue({ id: 'trade-1' });
 
     await act(async () => {
-      root.render(<TradePanel marketId="market-1" />);
+      root.render(<TradePanel marketId="market-1" onMarketOddsChange={mocks.onMarketOddsChange} />);
     });
   });
 
@@ -55,7 +57,7 @@ describe('TradePanel', () => {
     vi.clearAllMocks();
   });
 
-  it('只傳 marketId 時仍可用錢包餘額下單，成功後刷新餘額', async () => {
+  it('submits a trade and refreshes wallet plus market odds', async () => {
     expect(container.textContent).toContain('可用餘額 10,000 USDC');
 
     const quickBetButton = [...container.querySelectorAll('button')]
@@ -77,10 +79,12 @@ describe('TradePanel', () => {
       expect.stringMatching(/^trade:/),
     );
     expect(mocks.fetchWallet).toHaveBeenCalledTimes(2);
+    expect(mocks.getMarketOdds).toHaveBeenCalledTimes(2);
+    expect(mocks.onMarketOddsChange).toHaveBeenLastCalledWith('market-1', { yesOdds: 2, noOdds: 2 });
   });
 
-  it('餘額不足時只顯示餘額不足', async () => {
-    const error = new Error('餘額不足，userId=user-1：需要 10，可用 0');
+  it('shows insufficient balance when the API returns 422', async () => {
+    const error = new Error('餘額不足');
     error.status = 422;
     mocks.placeTrade.mockRejectedValueOnce(error);
 
@@ -92,5 +96,62 @@ describe('TradePanel', () => {
     await act(async () => submitButton.click());
 
     expect(submitButton.textContent).toBe('餘額不足');
+  });
+
+  it('shows refreshed live odds after a successful trade', async () => {
+    await act(async () => root.unmount());
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+    mocks.getMarketOdds.mockReset();
+    mocks.getTradeQuote.mockReset();
+    mocks.placeTrade.mockReset();
+    mocks.getMarketOdds
+      .mockResolvedValueOnce({ yesOdds: 2, noOdds: 2 })
+      .mockResolvedValueOnce({ yesOdds: 3.25, noOdds: 1.6 });
+    mocks.getTradeQuote.mockResolvedValue({ odds: 2 });
+    mocks.placeTrade.mockResolvedValue({ id: 'trade-1' });
+
+    await act(async () => {
+      root.render(<TradePanel marketId="market-1" onMarketOddsChange={mocks.onMarketOddsChange} />);
+    });
+
+    const quickBetButton = [...container.querySelectorAll('button')]
+      .find((button) => button.textContent === '10');
+    await act(async () => quickBetButton.click());
+
+    const submitButton = container.querySelector('#submitTradeBtn');
+    await act(async () => submitButton.click());
+
+    expect(container.querySelector('#currentOdds').value).toBe('3.2500');
+    expect(mocks.onMarketOddsChange).toHaveBeenLastCalledWith('market-1', { yesOdds: 3.25, noOdds: 1.6 });
+  });
+
+  it('notifies parent after a successful trade', async () => {
+    await act(async () => root.unmount());
+
+    container = document.createElement('div');
+    document.body.appendChild(container);
+    root = createRoot(container);
+
+    await act(async () => {
+      root.render(
+        <TradePanel
+          marketId="market-1"
+          onMarketOddsChange={mocks.onMarketOddsChange}
+          onTradeSuccess={mocks.onTradeSuccess}
+        />,
+      );
+    });
+
+    const quickBetButton = [...container.querySelectorAll('button')]
+      .find((button) => button.textContent === '10');
+    await act(async () => quickBetButton.click());
+
+    const submitButton = container.querySelector('#submitTradeBtn');
+    await act(async () => submitButton.click());
+
+    expect(mocks.onTradeSuccess).toHaveBeenCalledWith('market-1');
   });
 });

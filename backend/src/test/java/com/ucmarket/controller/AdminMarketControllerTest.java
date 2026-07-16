@@ -76,15 +76,18 @@ class AdminMarketControllerTest {
         List<MarketSummaryItem> summary = List.of(
                 new MarketSummaryItem("全部事件", 1L, "primary")
         );
-        List<Market> markets = List.of(createMarket());
+        Market market = createMarket();
+        org.springframework.data.domain.Page<Market> page =
+                new org.springframework.data.domain.PageImpl<>(List.of(market));
 
         when(adminDashboardService.getMarketSummary()).thenReturn(summary);
-        when(marketRepository.findAll()).thenReturn(markets);
+        when(adminDashboardService.getAdminMarkets(any(), any(), any(), any())).thenReturn(page);
 
         mockMvc.perform(get("/api/admin/markets"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.summary").isArray())
-                .andExpect(jsonPath("$.markets").isArray())
+                .andExpect(jsonPath("$.markets.content").isArray())
+                .andExpect(jsonPath("$.markets.totalElements").value(1))
                 .andExpect(jsonPath("$.summary[0].label").value("全部事件"));
     }
 

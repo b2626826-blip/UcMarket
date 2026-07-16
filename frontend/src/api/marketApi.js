@@ -284,8 +284,11 @@ export function cancelMarket(id) {
   return postApi('/api/markets/' + id + '/cancel', null);
 }
 
-export function getAdminMarkets() {
-  return getApi('/api/admin/markets');
+export function getAdminMarkets(params) {
+  const q = params ? '?' + new URLSearchParams(
+    Object.fromEntries(Object.entries(params).filter(([, v]) => v !== '' && v != null))
+  ).toString() : '';
+  return getApi('/api/admin/markets' + q);
 }
 
 export function approveMarket(id) {

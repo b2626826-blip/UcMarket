@@ -162,6 +162,7 @@
 .politics-detail-feature__actions button,
 .politics-detail-feature__actions a,
 .featured-actions button,
+.featured-actions span,
 .featured-actions a {
   min-width: 120px;
   height: 52px;
@@ -181,12 +182,23 @@
 
 .politics-detail-feature__actions button:hover,
 .politics-detail-feature__actions a:hover,
-.featured-actions button:hover,
 .featured-actions a:hover {
   background: var(--gold);
   color: #000;
   transform: translateY(-3px);
   box-shadow: 0 12px 25px rgba(217, 170, 67, .28);
+}
+
+.featured-actions__pill--yes {
+  background: rgba(0, 214, 111, .12);
+  border-color: rgba(0, 214, 111, .3);
+  color: #7dffc1;
+}
+
+.featured-actions__pill--no {
+  background: rgba(255, 71, 109, .12);
+  border-color: rgba(255, 71, 109, .3);
+  color: #ff9ab0;
 }
 
 .politics-detail-feature__stats,

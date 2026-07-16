@@ -1,5 +1,5 @@
 import { Outlet, Link, useLocation } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import useAuthStore from '../../store/authStore';
 import useUiStore from '../../store/uiStore';
 import 'bootstrap-icons/font/bootstrap-icons.css';
@@ -12,7 +12,7 @@ const navItems = [
   ]},
   { group: '事件管理', items: [
     { path: '/admin/markets', icon: 'bi-list-ul', label: '全部事件' },
-    { path: '/admin/markets/create', icon: 'bi-plus-circle', label: '建立事件' },
+    { path: '/admin/markets/create', icon: 'bi-plus-circle', label: '建立市場' },
   ]},
   { group: '用戶與交易', items: [
     { path: '/admin/users', icon: 'bi-people', label: '用戶清單' },
@@ -28,10 +28,26 @@ const navItems = [
 
 export default function AdminLayout() {
   const location = useLocation();
+  const user = useAuthStore((s) => s.user);
   const logout = useAuthStore((s) => s.logout);
+  const checkAuth = useAuthStore((s) => s.checkAuth);
   const toast = useUiStore((s) => s.toast);
   const clearToast = useUiStore((s) => s.clearToast);
   const [hiding, setHiding] = useState(null);
+  const [navOpen, setNavOpen] = useState(false);
+  const [avatarBroken, setAvatarBroken] = useState(false);
+
+  const closeNav = useCallback(() => setNavOpen(false), []);
+  const displayName = (user?.username || user?.email || '').trim();
+  const avatarLetter = (displayName || 'A').charAt(0).toUpperCase();
+
+  useEffect(() => {
+    checkAuth();
+  }, [checkAuth]);
+
+  useEffect(() => {
+    setAvatarBroken(false);
+  }, [user?.avatarUrl]);
 
   useEffect(() => {
     const previousTitle = document.title;
@@ -40,6 +56,31 @@ export default function AdminLayout() {
       document.title = previousTitle;
     };
   }, []);
+
+  // Close drawer on route change
+  useEffect(() => {
+    setNavOpen(false);
+  }, [location.pathname]);
+
+  // Lock body scroll when drawer is open (mobile)
+  useEffect(() => {
+    if (!navOpen) return undefined;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [navOpen]);
+
+  // Escape closes drawer
+  useEffect(() => {
+    if (!navOpen) return undefined;
+    function onKey(e) {
+      if (e.key === 'Escape') closeNav();
+    }
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [navOpen, closeNav]);
 
   useEffect(() => {
     if (toast) {
@@ -66,14 +107,45 @@ export default function AdminLayout() {
   };
 
   return (
-    <div className="admin-shell">
-      <nav className="sidebar">
+    <div className={`admin-shell ${navOpen ? 'nav-open' : ''}`}>
+      <header className="admin-topbar">
+        <button
+          type="button"
+          className="admin-topbar-menu"
+          aria-label={navOpen ? '關閉選單' : '開啟選單'}
+          aria-expanded={navOpen}
+          onClick={() => setNavOpen((o) => !o)}
+        >
+          <i className={`bi ${navOpen ? 'bi-x-lg' : 'bi-list'}`}></i>
+        </button>
+        <div className="admin-topbar-brand">
+          <img src={logoImg} alt="" width="28" height="28" />
+          <span className="admin-topbar-title">UcMarket</span>
+          <span className="admin-topbar-sub">Admin</span>
+        </div>
+      </header>
+
+      <div
+        className={`admin-nav-backdrop ${navOpen ? 'is-visible' : ''}`}
+        onClick={closeNav}
+        aria-hidden={!navOpen}
+      />
+
+      <nav className={`sidebar ${navOpen ? 'is-open' : ''}`} aria-label="後台導覽">
         <div className="sidebar-brand">
           <img src={logoImg} alt="UcMarket" width="128" height="128" />
           <div className="brand-text">
             <span className="brand-name">UcMarket</span>
             <span className="brand-sub">Admin</span>
           </div>
+          <button
+            type="button"
+            className="sidebar-close-btn"
+            aria-label="關閉選單"
+            onClick={closeNav}
+          >
+            <i className="bi bi-chevron-left"></i>
+          </button>
         </div>
         <div className="sidebar-nav">
           {navItems.map((group, gi) => (
@@ -84,6 +156,7 @@ export default function AdminLayout() {
                   key={item.path}
                   to={item.path}
                   className={`sidebar-link ${isActive(item.path) ? 'active' : ''}`}
+                  onClick={closeNav}
                 >
                   <i className={`bi ${item.icon}`}></i> {item.label}
                 </Link>
@@ -93,7 +166,19 @@ export default function AdminLayout() {
           ))}
         </div>
         <div className="sidebar-footer">
-          <a className="sidebar-link" style={{ cursor: 'pointer' }} onClick={() => logout()}>
+          {displayName && (
+            <div className="sidebar-user">
+              <span className="sidebar-user__avatar" aria-hidden="true">
+                {user?.avatarUrl && !avatarBroken ? (
+                  <img src={user.avatarUrl} alt="" onError={() => setAvatarBroken(true)} />
+                ) : (
+                  <span>{avatarLetter}</span>
+                )}
+              </span>
+              <span className="sidebar-user__name">{displayName}</span>
+            </div>
+          )}
+          <a className="sidebar-link" style={{ cursor: 'pointer' }} onClick={() => { closeNav(); logout(); }}>
             <i className="bi bi-box-arrow-right"></i> 登出
           </a>
         </div>
