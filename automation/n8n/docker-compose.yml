@@ -1,0 +1,28 @@
+name: n8n # 專案名釘死在檔案裡——不跟資料夾名走，搬到哪都認同一組容器與 volume
+
+services:
+  n8n:
+    # 版本策略：N-1 minor 熟成版——2.29 線累積 12 個 patch、07-13 仍在 backport 維護；
+    # 最新 2.31.1 出爐僅 1 天，避開最生風險。禁 latest。
+    image: n8nio/n8n:2.29.11
+    # 要凍到位元級不變可改用 digest（已對 Docker Hub 核實；manifest-list，amd64/arm64 自動選）：
+    # image: n8nio/n8n@sha256:ad826993267f20365b061126717b60d88c81369c2e5f6828b0a188c432cb850f
+    ports:
+      - "127.0.0.1:5678:5678"        # 只綁本機，同網段其他機器連不進來
+    volumes:
+      - n8n_data:/home/node/.n8n
+    environment:
+      - GENERIC_TIMEZONE=Asia/Taipei # n8n 排程用的時區
+      - TZ=Asia/Taipei
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Docker Desktop(Win/Mac) 本來就有；這行讓 Linux 隊友也通
+
+  mailpit:                            # 開發期假 SMTP；正式環境整個 service 移除
+    image: axllent/mailpit:v1.30.4   # 釘死版本（禁 latest）
+    # digest 版（已核實）：image: axllent/mailpit@sha256:5a49a77c5bdbe7c5474450b4f46348d09949df3695257729c93a30369382d4f6
+    ports:
+      - "127.0.0.1:1025:1025"        # SMTP —— n8n 容器內連線寫 mailpit:1025（服務名）
+      - "127.0.0.1:8025:8025"        # Web 收件匣 http://localhost:8025
+
+volumes:
+  n8n_data:

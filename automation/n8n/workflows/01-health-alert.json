@@ -1,0 +1,236 @@
+{
+  "name": "01-health-alert",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "seconds",
+              "secondsInterval": 10
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "61123e39-f006-4c33-a5bd-cb19d6992d53",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8080/api/health",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 5000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        208,
+        0
+      ],
+      "id": "926ca8c9-3c9b-43fb-9ee3-6ce0661f8b87",
+      "name": "HTTP Request",
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== 可調參數 =====\nconst FAIL_THRESHOLD = 3;                 // 連續失敗幾次才發第一則🔴\nconst RE_ALERT_MS    = 30 * 60 * 1000;    // 掛超過這麼久再提醒一次；0＝關閉\n\nconst sd = $getWorkflowStaticData('global');\nsd.failCount   = sd.failCount   ?? 0;\nsd.alerted     = sd.alerted     ?? false;\nsd.downSince   = sd.downSince   ?? 0;     // 這波故障的起點\nsd.lastAlertAt = sd.lastAlertAt ?? 0;     // 上次喊🔴的時間\n\nconst j   = $input.first().json;\nconst up  = j.statusCode === 200;\nconst now = Date.now();\n\n// 防呆：舊版程式留下的殘狀態（alerted=true 但沒記 downSince）→ 補起點，避免算出天文數字\nif (sd.alerted && !sd.downSince) sd.downSince = now;\n\n// 算「已躺幾分鐘」：沒起點回 0；有起點至少報 1（免得 90 秒顯示成 0 分鐘很怪）\nconst mins = (from) => from ? Math.max(1, Math.round((now - from) / 60000)) : 0;\n\nlet action = 'none';\nlet downMinutes = 0;\n\nif (up) {\n  if (sd.alerted) {\n    action = 'recover';\n    downMinutes = mins(sd.downSince);     // 🟢 報告本次停機時長\n  }\n  sd.failCount = 0; sd.alerted = false; sd.downSince = 0;\n} else {\n  sd.failCount++;\n  if (sd.failCount === 1 && !sd.downSince) sd.downSince = now;  // 記住倒下那一刻\n\n  const firstAlert = sd.failCount >= FAIL_THRESHOLD && !sd.alerted;\n  const reAlert    = sd.alerted && RE_ALERT_MS > 0 && (now - sd.lastAlertAt) >= RE_ALERT_MS;\n\n  if (firstAlert || reAlert) {\n    action = 'alert';\n    sd.alerted = true;\n    sd.lastAlertAt = now;\n    downMinutes = mins(sd.downSince);     // 🔴 也帶「已持續幾分鐘」\n  }\n}\n\nreturn [{ json: { action, failCount: sd.failCount, downMinutes,\n  at: new Date(now).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' }) } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        416,
+        0
+      ],
+      "id": "7823f8da-cb6b-426f-9e3d-d9f62ed3c1f0",
+      "name": "判斷伺服器狀態邏輯"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "alert",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "5e647951-218c-44ca-9ef0-46f251ca7961"
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "38760900-a699-4b87-8c55-b74df648fe39",
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "recover",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        624,
+        0
+      ],
+      "id": "944164d4-42b8-4380-ad59-7c800878127d",
+      "name": "Switch"
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=🔴 UcMarket 後端無回應（已持續 {{ $json.downMinutes }} 分鐘｜{{ $json.at }}）",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        832,
+        -96
+      ],
+      "id": "98c9ee8f-8078-45c6-a739-ed2156e749b0",
+      "name": "Discord",
+      "webhookId": "1311c83b-fe06-4366-8f6a-2e78297b4997",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "dsWoYzhNJ0sd0M5j",
+          "name": "discord-ucmarket-通知"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "=🟢 UcMarket 後端已恢復（本次停機 {{ $json.downMinutes }} 分鐘｜{{ $json.at }}）",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        832,
+        80
+      ],
+      "id": "91070120-e47f-4e33-8007-042e5014169d",
+      "name": "Discord1",
+      "webhookId": "1311c83b-fe06-4366-8f6a-2e78297b4997",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "dsWoYzhNJ0sd0M5j",
+          "name": "discord-ucmarket-通知"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "判斷伺服器狀態邏輯",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "判斷伺服器狀態邏輯": {
+      "main": [
+        [
+          {
+            "node": "Switch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch": {
+      "main": [
+        [
+          {
+            "node": "Discord",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Discord1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "d89cedf1-8674-42cb-bad4-73ef14b04eb7",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5648f470325e0ceae17af0ab93dd3c788cfe1e8227c30bdcd46578144b08be8b"
+  },
+  "nodeGroups": [],
+  "id": "kMIkTCcYJUsPBYV0",
+  "tags": []
+}
