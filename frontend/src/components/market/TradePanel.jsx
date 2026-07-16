@@ -8,6 +8,8 @@ import { getFallbackOdds, getOddsFromApiResponse, getOddsFromMarket } from '../.
 import './TradePanel.css';
 
 const QUICK_BETS = [10, 50, 100, 500];
+const MIN_TRADE_AMOUNT = 10;
+const MAX_TRADE_AMOUNT = 50000;
 
 export default function TradePanel({ marketId, market, side, onSideChange }) {
   const user = useAuthStore((state) => state.user);
@@ -24,12 +26,6 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
   useGlowEffect('.trade-panel');
 
   const tradeSide = side !== undefined ? side : internalSide;
-  const setTradeSide = (nextSide) => {
-    if (onSideChange) onSideChange(nextSide);
-    else setInternalSide(nextSide);
-    idempotencyKeyRef.current = null;
-  };
-
   const amountNumber = Number(amount) || 0;
   const marketTitle = market?.title || `市場 #${marketId}`;
   const balance = formatCurrency(walletBalance);
@@ -43,8 +39,35 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
   const estimatedPayout = shares * liveOdds;
   const canSubmit = Boolean(user && marketId && !submitting);
 
+  const setTradeSide = (nextSide) => {
+    if (onSideChange) {
+      onSideChange(nextSide);
+    } else {
+      setInternalSide(nextSide);
+    }
+    idempotencyKeyRef.current = null;
+  };
+
+  async function refreshMarketOdds(currentMarketId) {
+    if (!currentMarketId) {
+      setMarketOdds(null);
+      return null;
+    }
+
+    try {
+      const response = await getMarketOdds(currentMarketId);
+      setMarketOdds(response);
+      return response;
+    } catch {
+      setMarketOdds(null);
+      return null;
+    }
+  }
+
   useEffect(() => {
-    if (user) fetchWallet();
+    if (user) {
+      fetchWallet();
+    }
   }, [fetchWallet, user]);
 
   useEffect(() => {
@@ -56,15 +79,12 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
       return undefined;
     }
 
-    getMarketOdds(marketId)
-      .then((response) => {
-        if (!active) return;
-        setMarketOdds(response);
-      })
-      .catch(() => {
-        if (!active) return;
-        setMarketOdds(null);
-      });
+    refreshMarketOdds(marketId).then((response) => {
+      if (!active) {
+        return;
+      }
+      setMarketOdds(response);
+    });
 
     return () => {
       active = false;
@@ -84,11 +104,15 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
       amount: amountNumber,
     })
       .then((response) => {
-        if (!active) return;
+        if (!active) {
+          return;
+        }
         setQuotedOdds(response);
       })
       .catch(() => {
-        if (!active) return;
+        if (!active) {
+          return;
+        }
         setQuotedOdds(null);
       });
 
@@ -99,22 +123,22 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
 
   async function handleTrade() {
     if (!user) {
-      showButtonState('請先登入後再交易', '#ff476d');
+      showButtonState('請先登入', '#ff476d');
       return;
     }
 
     if (!marketId) {
-      showButtonState('找不到可交易的市場', '#ff476d');
+      showButtonState('市場不存在', '#ff476d');
       return;
     }
 
-    if (!amountNumber || amountNumber < 10) {
-      showButtonState('請輸入至少 10 USDC', '#ff476d');
+    if (!amountNumber || amountNumber < MIN_TRADE_AMOUNT) {
+      showButtonState(`最低下注 ${MIN_TRADE_AMOUNT} USDC`, '#ff476d');
       return;
     }
 
-    if (amountNumber > 50000) {
-      showButtonState('交易金額不可超過上限', '#ff476d');
+    if (amountNumber > MAX_TRADE_AMOUNT) {
+      showButtonState(`最高下注 ${MAX_TRADE_AMOUNT} USDC`, '#ff476d');
       return;
     }
 
@@ -123,19 +147,26 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
 
     try {
       setSubmitting(true);
-      setBtnState({ text: '交易送出中...', bg: '#d9aa43' });
-      await placeTrade({
-        marketId,
-        side: tradeSide,
-        amount: amountNumber,
-      }, idempotencyKey);
+      setBtnState({ text: '下注送出中...', bg: '#d9aa43' });
+      await placeTrade(
+        {
+          marketId,
+          side: tradeSide,
+          amount: amountNumber,
+        },
+        idempotencyKey,
+      );
       await fetchWallet();
-      setBtnState({ text: '交易已送出', bg: '#00d66f' });
+      await refreshMarketOdds(marketId);
+      setBtnState({ text: '下注成功', bg: '#00d66f' });
       setAmount('');
       setQuotedOdds(null);
       idempotencyKeyRef.current = null;
     } catch (err) {
-      showButtonState(err?.status === 422 ? '餘額不足' : (err?.message || '交易失敗'), '#ff476d');
+      showButtonState(
+        err?.status === 422 ? '餘額不足' : (err?.message || '下注失敗'),
+        '#ff476d',
+      );
       return;
     } finally {
       setSubmitting(false);
@@ -151,15 +182,14 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
 
   function addQuickBet(value) {
     idempotencyKeyRef.current = null;
-    const nextAmount = amountNumber + value;
-    setAmount(String(nextAmount));
+    setAmount(String(amountNumber + value));
   }
 
   return (
     <div className="trade-panel trade-panel--revamp">
       <div className="trade-panel__header">
         <div>
-          <h3>立即交易</h3>
+          <h3>我要下注</h3>
         </div>
       </div>
 
@@ -169,7 +199,7 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
       </div>
 
       {!user && (
-        <p className="trade-panel__login-hint">請先登入後再下單</p>
+        <p className="trade-panel__login-hint">請先登入後再下注。</p>
       )}
 
       <div className="trade-panel__side-switch">
@@ -190,7 +220,7 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
       </div>
 
       <div className="trade-panel__form">
-        <label htmlFor="currentOdds">賠率</label>
+        <label htmlFor="currentOdds">即時賠率</label>
         <div className="trade-panel__input-box">
           <input id="currentOdds" value={liveOdds.toFixed(4)} readOnly />
           <span>x</span>
@@ -207,7 +237,7 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
             min="0"
             step="1"
             value={amount}
-            placeholder="請輸入交易金額"
+            placeholder="請輸入金額"
             onChange={(event) => {
               idempotencyKeyRef.current = null;
               setAmount(event.target.value);
@@ -226,11 +256,11 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
 
         <div className="trade-panel__summary">
           <div>
-            <span>預估持有股數</span>
+            <span>預估份額</span>
             <strong>{shares.toFixed(4)}</strong>
           </div>
           <div>
-            <span>預估回報</span>
+            <span>預估派彩</span>
             <strong>${estimatedPayout.toFixed(2)}</strong>
           </div>
         </div>
@@ -244,11 +274,11 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
           data-market-id={marketId}
           type="button"
         >
-          {btnState.text || (submitting ? '交易送出中...' : `買入 ${tradeSide}`)}
+          {btnState.text || (submitting ? '下注送出中...' : `買入 ${tradeSide}`)}
         </button>
 
         <p className="trade-panel__risk-text">
-          <i className="fa-solid fa-triangle-exclamation" /> 預測市場具有風險，請在了解規則與風險後再進行交易。
+          <i className="fa-solid fa-triangle-exclamation" /> 每次下注後賠率都可能變動，送出前請再次確認目前的即時賠率。
         </p>
       </div>
     </div>
