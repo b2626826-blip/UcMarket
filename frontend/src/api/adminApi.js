@@ -8,14 +8,21 @@ export function getDashboardReviews() {
   return getApi('/api/admin/dashboard/reviews');
 }
 
+function toQuery(params) {
+  if (!params) return '';
+  const clean = Object.fromEntries(
+    Object.entries(params).filter(([, v]) => v !== '' && v != null)
+  );
+  const q = new URLSearchParams(clean).toString();
+  return q ? '?' + q : '';
+}
+
 export function getAdminLogs(params) {
-  const q = params ? '?' + new URLSearchParams(params).toString() : '';
-  return getApi('/api/admin/logs' + q);
+  return getApi('/api/admin/logs' + toQuery(params));
 }
 
 export function getAdminUsers(params) {
-  const q = params ? '?' + new URLSearchParams(params).toString() : '';
-  return getApi('/api/admin/users' + q);
+  return getApi('/api/admin/users' + toQuery(params));
 }
 
 export function suspendUser(id) {
@@ -27,6 +34,5 @@ export function unsuspendUser(id) {
 }
 
 export function getAdminTransactions(params) {
-  const q = params ? '?' + new URLSearchParams(params).toString() : '';
-  return getApi('/api/admin/transactions' + q);
+  return getApi('/api/admin/transactions' + toQuery(params));
 }

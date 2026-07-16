@@ -5,6 +5,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import com.ucmarket.dto.admin.DashboardStatsResponse;
@@ -56,6 +58,12 @@ public class AdminDashboardService {
         List<Market> markets = marketRepository.findAll();
         fillCreatorCodes(markets);
         return markets;
+    }
+
+    public Page<Market> getAdminMarkets(MarketStatus status, String category, String keyword, Pageable pageable) {
+        Page<Market> page = marketRepository.searchAdmin(status, category, keyword, pageable);
+        fillCreatorCodes(page.getContent());
+        return page;
     }
 
     public List<Market> getPendingReviews() {

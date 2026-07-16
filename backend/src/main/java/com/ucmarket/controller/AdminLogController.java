@@ -6,17 +6,20 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
-import org.springframework.data.domain.Sort;
+import org.springframework.data.domain.Page;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.ucmarket.dto.PageResponse;
 import com.ucmarket.entity.AdminLog;
 import com.ucmarket.entity.Market;
 import com.ucmarket.entity.User;
 import com.ucmarket.repository.AdminLogRepository;
 import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.UserRepository;
+import com.ucmarket.util.PageParams;
 
 @RestController
 @RequestMapping("/api/admin/logs")
@@ -34,10 +37,15 @@ public class AdminLogController {
     }
 
     @GetMapping
-    public List<AdminLog> listLogs() {
-        List<AdminLog> logs = adminLogRepository.findAll(Sort.by(Sort.Direction.DESC, "createdAt"));
-        fillCodes(logs);
-        return logs;
+    public PageResponse<AdminLog> listLogs(
+            @RequestParam(required = false) String action,
+            @RequestParam(required = false) String keyword,
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size) {
+        Page<AdminLog> result = adminLogRepository.search(
+                action, keyword, PageParams.of(page, size, "createdAt"));
+        fillCodes(result.getContent());
+        return PageResponse.of(result);
     }
 
     private void fillCodes(List<AdminLog> logs) {

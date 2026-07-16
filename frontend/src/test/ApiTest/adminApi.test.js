@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import {
-  getDashboardStats, getAdminLogs, getAdminUsers, suspendUser, unsuspendUser,
+  getDashboardStats, getAdminLogs, getAdminUsers, getAdminTransactions, suspendUser, unsuspendUser,
 } from '../../api/adminApi';
 import { apiUrl, jsonResponse, installFetchMock } from './_helpers';
 
@@ -16,15 +16,27 @@ describe('adminApi.js', () => {
     expect(fetchMock).toHaveBeenLastCalledWith(apiUrl('/api/admin/dashboard/stats'), expect.any(Object));
   });
 
-  it('getAdminLogs：有 params 時組 query string', async () => {
-    await getAdminLogs({ page: 2, size: 10 });
+  it('getAdminLogs：有 params 時組 query string，空值過濾', async () => {
+    await getAdminLogs({ page: 2, size: 10, keyword: '', action: 'MARKET_APPROVE' });
     const [url] = fetchMock.mock.calls[0];
-    expect(url).toBe(apiUrl('/api/admin/logs?page=2&size=10'));
+    expect(url).toBe(apiUrl('/api/admin/logs?page=2&size=10&action=MARKET_APPROVE'));
   });
 
   it('getAdminUsers：無 params 時不帶 ?', async () => {
     await getAdminUsers();
     expect(fetchMock).toHaveBeenLastCalledWith(apiUrl('/api/admin/users'), expect.any(Object));
+  });
+
+  it('getAdminUsers：空值被過濾', async () => {
+    await getAdminUsers({ role: '', status: 'ACTIVE', page: 0, size: 20 });
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toBe(apiUrl('/api/admin/users?status=ACTIVE&page=0&size=20'));
+  });
+
+  it('getAdminTransactions：帶 keyword/side', async () => {
+    await getAdminTransactions({ keyword: 'TX', side: 'YES', page: 1, size: 20 });
+    const [url] = fetchMock.mock.calls[0];
+    expect(url).toBe(apiUrl('/api/admin/transactions?keyword=TX&side=YES&page=1&size=20'));
   });
 
   it('suspendUser / unsuspendUser：POST 正確路徑、body null', async () => {

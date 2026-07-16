@@ -5,13 +5,90 @@
   align-items: start;
 }
 
+.create-market-field-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.create-market-field-link {
+  color: var(--brand-gold, #d9aa43);
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.create-market-field-link:hover {
+  text-decoration: underline;
+}
+
+.symbol-autocomplete {
+  position: relative;
+}
+
+.symbol-autocomplete__panel {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: grid;
+  gap: 8px;
+  padding: 10px;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, .1);
+  border-radius: 12px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, .28);
+}
+
+.symbol-autocomplete__item {
+  display: grid;
+  gap: 4px;
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .03);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.symbol-autocomplete__item:hover {
+  border-color: rgba(217, 170, 67, .35);
+  background: rgba(217, 170, 67, .08);
+}
+
+.symbol-autocomplete__symbol {
+  color: #f3e0a1;
+  font-weight: 700;
+}
+
+.symbol-autocomplete__meta,
+.symbol-autocomplete__status,
+.create-market-field-help {
+  color: #a0a0a0;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.symbol-autocomplete__status {
+  padding: 10px 12px;
+}
+
+.create-market-field-help {
+  margin-top: 8px;
+}
+
 .admin-market-preview {
   position: sticky;
   top: 88px;
   background: var(--bg-card);
-  border: 1px solid var(--border);
+  border: 1px solid rgba(255, 255, 255, .18);
   border-radius: var(--radius);
   padding: var(--space-4);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 12px 40px rgba(0, 0, 0, .25);
 }
 
 .admin-market-preview__header,
@@ -115,10 +192,24 @@
 
 @media (max-width: 1100px) {
   .admin-create-market-layout {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 
   .admin-market-preview {
     position: static;
+  }
+}
+
+@media (max-width: 768px) {
+  .admin-create-market-layout {
+    gap: var(--space-3);
+  }
+
+  .admin-market-preview {
+    padding: var(--space-3);
+  }
+
+  .admin-market-preview h2 {
+    font-size: clamp(1.1rem, 4vw, 1.35rem);
   }
 }

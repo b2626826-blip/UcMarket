@@ -1,43 +1,68 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getAdminMarkets, approveMarket, rejectMarket, requestMarketChanges, resolveMarket, submitMarket, cancelMarket } from '../../../api/marketApi';
 import useUiStore from '../../../store/uiStore';
 import StatusBadge from '../../../components/common/StatusBadge';
+import Pagination from '../../../components/admin/Pagination';
 import { formatTime } from '../../../utils/format';
 
+const PAGE_SIZE = 20;
 const STATUS_LABEL = { PENDING: '待審核', ACTIVE: '進行中', CLOSED: '已截止', RESOLVED: '已結算', REJECTED: '已拒絕', DRAFT: '草稿', CANCELED: '已取消' };
+const CATEGORY_OPTS = [
+  { label: '政治', value: '政治' },
+  { label: '運動', value: '運動' },
+  { label: '天氣', value: 'WEATHER' },
+  { label: '時事', value: 'CURRENT_AFFAIRS' },
+  { label: '金融', value: '金融' },
+];
+const categoryLabel = (v) => CATEGORY_OPTS.find((c) => c.value === v)?.label || v || '-';
 
 export default function MarketsPage() {
-  const [allMarkets, setAllMarkets] = useState([]);
+  const [markets, setMarkets] = useState([]);
+  const [summary, setSummary] = useState([]);
   const [filters, setFilters] = useState({ keyword: '', status: '', category: '' });
+  const [applied, setApplied] = useState({ keyword: '', status: '', category: '' });
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
   const showToast = useUiStore((s) => s.showToast);
 
-  useEffect(() => { loadMarkets(); }, []);
-
-  async function loadMarkets() {
+  const loadMarkets = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getAdminMarkets();
-      const list = Array.isArray(data) ? data : (data?.markets || []);
-      setAllMarkets(list);
-    } catch { setAllMarkets([]); }
+      const data = await getAdminMarkets({
+        ...applied,
+        page,
+        size: PAGE_SIZE,
+      });
+      const paged = data?.markets;
+      setMarkets(paged?.content || []);
+      setTotalPages(paged?.totalPages || 0);
+      setTotalElements(paged?.totalElements || 0);
+      setSummary(Array.isArray(data?.summary) ? data.summary : []);
+    } catch {
+      setMarkets([]);
+      setTotalPages(0);
+      setTotalElements(0);
+      setSummary([]);
+    }
     setLoading(false);
+  }, [applied, page]);
+
+  useEffect(() => { loadMarkets(); }, [loadMarkets]);
+
+  function search(e) {
+    e?.preventDefault();
+    setPage(0);
+    setApplied({ ...filters });
   }
 
-  const filtered = allMarkets.filter((m) => {
-    const kw = filters.keyword.toLowerCase();
-    const byKw = !kw || ((m.code||'') + ' ' + (m.id||'') + ' ' + (m.title||'') + ' ' + (m.creatorId||'') + ' ' + (m.creatorCode||'')).toLowerCase().includes(kw);
-    const byStatus = !filters.status || m.status === filters.status;
-    const byCat = !filters.category || m.category === filters.category;
-    return byKw && byStatus && byCat;
-  });
-
-  const categories = [...new Set(allMarkets.map((m) => m.category).filter(Boolean))];
-
-  const total = allMarkets.length;
-  const pending = allMarkets.filter((m) => m.status === 'PENDING').length;
-  const active = allMarkets.filter((m) => m.status === 'ACTIVE').length;
-  const resolved = allMarkets.filter((m) => m.status === 'RESOLVED').length;
+  function clearFilters() {
+    const empty = { keyword: '', status: '', category: '' };
+    setFilters(empty);
+    setApplied(empty);
+    setPage(0);
+  }
 
   async function doAction(action, id, extra) {
     try {
@@ -94,6 +119,8 @@ export default function MarketsPage() {
     return btns.length ? btns : <span className="text-secondary small">—</span>;
   }
 
+  const kpiCls = { primary: 'text-primary', warning: 'text-warning', success: 'text-success', secondary: 'text-secondary' };
+
   return (
     <>
       <div className="page-header mb-3">
@@ -102,23 +129,20 @@ export default function MarketsPage() {
       </div>
 
       <section className="admin-kpi-row mb-3">
-        {[
-          { label: '全部事件', val: total, cls: 'text-primary' },
-          { label: '待審核', val: pending, cls: 'text-warning' },
-          { label: '進行中', val: active, cls: 'text-success' },
-          { label: '已結算', val: resolved, cls: 'text-secondary' },
-        ].map((kpi, i) => (
+        {(summary.length ? summary : [
+          { label: '全部事件', value: totalElements, tone: 'primary' },
+        ]).map((kpi, i) => (
           <article key={i} className="admin-kpi-card">
             <span className="kpi-label">{kpi.label}</span>
-            <span className={`kpi-value ${kpi.cls}`}>{loading ? '-' : kpi.val}</span>
+            <span className={`kpi-value ${kpiCls[kpi.tone] || 'text-primary'}`}>{loading && !summary.length ? '-' : (kpi.value ?? kpi.count ?? 0)}</span>
           </article>
         ))}
       </section>
 
-      <form className="admin-filter-bar mb-3" onSubmit={(e) => e.preventDefault()}>
+      <form className="admin-filter-bar mb-3" onSubmit={search}>
         <div>
           <label className="form-label">關鍵字</label>
-          <input className="form-control" type="search" placeholder="搜尋事件編號、標題、建立者" value={filters.keyword} onChange={(e) => setFilters({ ...filters, keyword: e.target.value })} />
+          <input className="form-control" type="search" placeholder="搜尋事件編號、標題" value={filters.keyword} onChange={(e) => setFilters({ ...filters, keyword: e.target.value })} />
         </div>
         <div>
           <label className="form-label">狀態</label>
@@ -137,17 +161,17 @@ export default function MarketsPage() {
           <label className="form-label">類別</label>
           <select className="form-select" value={filters.category} onChange={(e) => setFilters({ ...filters, category: e.target.value })}>
             <option value="">全部分類</option>
-            {categories.map((c) => <option key={c} value={c}>{c}</option>)}
+            {CATEGORY_OPTS.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}
           </select>
         </div>
         <div className="d-flex gap-2">
           <button type="submit" className="btn btn-primary">搜尋</button>
-          <button type="button" className="btn btn-outline-secondary" onClick={() => setFilters({ keyword: '', status: '', category: '' })}>清除</button>
+          <button type="button" className="btn btn-outline-secondary" onClick={clearFilters}>清除</button>
         </div>
       </form>
 
       <section className="block-card">
-        <div className="block-card-header">事件資料 <span className="text-secondary" style={{ fontWeight: 400 }}>({filtered.length})</span></div>
+        <div className="block-card-header">事件資料 <span className="text-secondary" style={{ fontWeight: 400 }}>({totalElements})</span></div>
         <div className="block-card-body p-0">
           <div className="table-responsive">
             <table className="table align-middle mb-0 admin-data-table">
@@ -155,13 +179,15 @@ export default function MarketsPage() {
                 <tr><th>事件編號</th><th>標題</th><th>類別</th><th>建立者</th><th>截止日</th><th>YES 池</th><th>NO 池</th><th>狀態</th><th className="text-center">操作</th></tr>
               </thead>
               <tbody>
-                {!filtered.length ? (
+                {loading ? (
+                  <tr><td colSpan="9" className="text-center text-secondary py-4">載入中…</td></tr>
+                ) : !markets.length ? (
                   <tr><td colSpan="9" className="text-center text-secondary py-4">找不到符合條件的事件。</td></tr>
-                ) : filtered.map((m) => (
+                ) : markets.map((m) => (
                   <tr key={m.id}>
                     <td className="fw-semibold small">{m.code || (m.id || '').substring(0, 8)}</td>
                     <td>{m.title || ''}</td>
-                    <td>{m.category || '-'}</td>
+                    <td>{categoryLabel(m.category)}</td>
                     <td>{m.creatorCode || (m.creatorId || '').substring(0, 8)}</td>
                     <td>{formatTime(m.closeAt, 16)}</td>
                     <td className="text-success fw-semibold">{m.yesPool || 0}</td>
@@ -173,6 +199,7 @@ export default function MarketsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} totalElements={totalElements} onChange={setPage} disabled={loading} />
         </div>
       </section>
     </>

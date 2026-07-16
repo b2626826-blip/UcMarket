@@ -48,12 +48,35 @@
   font-size: 16px;
   line-height: 1.8;
 }
-.current-affairs-info__prices { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
-.current-affairs-info__prices > div {
-  display: grid;
-  gap: 4px;
-  padding: 8px 0 14px;
-  border-bottom: 5px solid currentColor;
+.current-affairs-info__prices { width: 100%; }
+.current-affairs-odds-bar { display: grid; gap: 10px; }
+.current-affairs-odds-bar__labels {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+}
+.current-affairs-odds-bar__label {
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+}
+.current-affairs-odds-bar__label--yes { color: #00c853; }
+.current-affairs-odds-bar__label--no { color: #ff416c; }
+.current-affairs-odds-bar__track {
+  display: flex;
+  height: 10px;
+  background: rgba(255, 255, 255, .12);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.current-affairs-odds-bar__yes {
+  height: 100%;
+  background: #00c853;
+}
+.current-affairs-odds-bar__no {
+  height: 100%;
+  background: #ff416c;
 }
 
 .current-affairs-source {

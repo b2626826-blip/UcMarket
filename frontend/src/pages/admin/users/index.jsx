@@ -1,34 +1,55 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getAdminUsers, suspendUser, unsuspendUser } from '../../../api/adminApi';
 import useUiStore from '../../../store/uiStore';
 import StatusBadge from '../../../components/common/StatusBadge';
+import Pagination from '../../../components/admin/Pagination';
 import { formatTime, formatBalance } from '../../../utils/format';
 
+const PAGE_SIZE = 20;
+
 export default function UsersPage() {
-  const [allUsers, setAllUsers] = useState([]);
+  const [users, setUsers] = useState([]);
   const [filters, setFilters] = useState({ keyword: '', role: '', status: '' });
+  const [applied, setApplied] = useState({ keyword: '', role: '', status: '' });
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
   const showToast = useUiStore((s) => s.showToast);
 
-  useEffect(() => { loadUsers(); }, []);
-
-  async function loadUsers() {
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getAdminUsers();
-      const list = Array.isArray(data) ? data : (data?.users || []);
-      setAllUsers(list);
-    } catch { setAllUsers([]); }
+      const data = await getAdminUsers({
+        ...applied,
+        page,
+        size: PAGE_SIZE,
+      });
+      setUsers(data?.content || []);
+      setTotalPages(data?.totalPages || 0);
+      setTotalElements(data?.totalElements || 0);
+    } catch {
+      setUsers([]);
+      setTotalPages(0);
+      setTotalElements(0);
+    }
     setLoading(false);
+  }, [applied, page]);
+
+  useEffect(() => { loadUsers(); }, [loadUsers]);
+
+  function search(e) {
+    e?.preventDefault();
+    setPage(0);
+    setApplied({ ...filters });
   }
 
-  const filtered = allUsers.filter((u) => {
-    const kw = filters.keyword.toLowerCase();
-    const byKw = !kw || ((u.code || '') + ' ' + (u.username || '') + ' ' + (u.email || '')).toLowerCase().includes(kw);
-    const byRole = !filters.role || u.role === filters.role;
-    const byStatus = !filters.status || u.status === filters.status;
-    return byKw && byRole && byStatus;
-  });
+  function clearFilters() {
+    const empty = { keyword: '', role: '', status: '' };
+    setFilters(empty);
+    setApplied(empty);
+    setPage(0);
+  }
 
   async function handleSuspend(id) {
     if (!confirm('確定要停權此用戶嗎？')) return;
@@ -41,11 +62,6 @@ export default function UsersPage() {
     catch (err) { showToast('danger', '失敗', err.message); }
   }
 
-  const total = allUsers.length;
-  const active = allUsers.filter((u) => u.status === 'ACTIVE').length;
-  const banned = allUsers.filter((u) => u.status === 'BANNED').length;
-  const disabled = allUsers.filter((u) => u.status === 'DISABLED').length;
-
   return (
     <>
       <div className="page-header mb-3">
@@ -54,20 +70,13 @@ export default function UsersPage() {
       </div>
 
       <section className="admin-kpi-row mb-3">
-        {[
-          { label: '總用戶', val: total, cls: 'text-primary' },
-          { label: '啟用中', val: active, cls: 'text-success' },
-          { label: '停權中', val: banned, cls: 'text-danger' },
-          { label: '停用中', val: disabled, cls: 'text-secondary' },
-        ].map((kpi, i) => (
-          <article key={i} className="admin-kpi-card">
-            <span className="kpi-label">{kpi.label}</span>
-            <span className={`kpi-value ${kpi.cls}`}>{loading ? '-' : kpi.val}</span>
-          </article>
-        ))}
+        <article className="admin-kpi-card">
+          <span className="kpi-label">符合條件</span>
+          <span className="kpi-value text-primary">{loading ? '-' : totalElements}</span>
+        </article>
       </section>
 
-      <form className="admin-filter-bar mb-3" onSubmit={(e) => e.preventDefault()}>
+      <form className="admin-filter-bar mb-3" onSubmit={search}>
         <div>
           <label className="form-label">關鍵字</label>
           <input className="form-control" type="search" placeholder="搜尋編號、名稱、Email" value={filters.keyword} onChange={(e) => setFilters({ ...filters, keyword: e.target.value })} />
@@ -91,12 +100,12 @@ export default function UsersPage() {
         </div>
         <div className="d-flex gap-2">
           <button type="submit" className="btn btn-primary">搜尋</button>
-          <button type="button" className="btn btn-outline-secondary" onClick={() => setFilters({ keyword: '', role: '', status: '' })}>清除</button>
+          <button type="button" className="btn btn-outline-secondary" onClick={clearFilters}>清除</button>
         </div>
       </form>
 
       <section className="block-card">
-        <div className="block-card-header">用戶資料 ({filtered.length})</div>
+        <div className="block-card-header">用戶資料 ({totalElements})</div>
         <div className="block-card-body p-0">
           <div className="table-responsive">
             <table className="table align-middle mb-0 admin-data-table">
@@ -104,9 +113,11 @@ export default function UsersPage() {
                 <tr><th>用戶編號</th><th>用戶名稱</th><th>Email</th><th>角色</th><th>狀態</th><th>點數餘額</th><th>註冊時間</th><th>最後登入</th><th>操作</th></tr>
               </thead>
               <tbody>
-                {!filtered.length ? (
+                {loading ? (
+                  <tr><td colSpan="9" className="text-center text-secondary py-4">載入中…</td></tr>
+                ) : !users.length ? (
                   <tr><td colSpan="9" className="text-center text-secondary py-4">找不到符合條件的用戶。</td></tr>
-                ) : filtered.map((u) => (
+                ) : users.map((u) => (
                   <tr key={u.id}>
                     <td className="fw-semibold small">{u.code || (u.id || '').substring(0, 8)}</td>
                     <td>{u.username || ''}</td>
@@ -131,6 +142,7 @@ export default function UsersPage() {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} totalElements={totalElements} onChange={setPage} disabled={loading} />
         </div>
       </section>
     </>
