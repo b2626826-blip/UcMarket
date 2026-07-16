@@ -1,6 +1,7 @@
 package com.ucmarket.repository;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,6 +42,13 @@ public interface MarketRepository extends JpaRepository<Market, UUID> {
 		String category,
 		MarketStatus status,
 		Pageable pageable);
+
+	Page<Market> findByCreatorId(UUID creatorId, Pageable pageable);
+
+	Page<Market> findByCreatorIdAndStatusIn(
+			UUID creatorId,
+			Collection<MarketStatus> statuses,
+			Pageable pageable);
 
 	@Query("""
 			SELECT m FROM Market m
