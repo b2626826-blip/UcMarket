@@ -11,9 +11,12 @@
 或手動（在 automation/n8n 層）：
 
 ```text
+docker compose exec -T -u root n8n rm -rf /tmp/wfimport
 docker compose cp workflows n8n:/tmp/wfimport
 docker compose exec -T n8n n8n import:workflow --separate --input=/tmp/wfimport
 ```
+
+第一行必做且必須 `-u root`：`docker cp` 進容器的檔案是 root 擁有（普通使用者在 /tmp 刪不掉）；而暫存若殘留，下一次 cp 會把資料夾**巢狀塞進去**（變成 /tmp/wfimport/workflows/），匯入就掃不到檔案。
 
 CLI 匯入的三個已知行為（**與 UI 的 Import from File 不同**，已實測）：
 

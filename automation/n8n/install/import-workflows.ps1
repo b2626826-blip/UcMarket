@@ -21,7 +21,8 @@ if ($ans -ne "y") {
     exit 0
 }
 
-docker compose exec -T n8n rm -rf /tmp/wfimport
+# -u root：docker cp 塞進容器的檔案是 root 擁有——/tmp 有 sticky bit，node 使用者刪不掉
+docker compose exec -T -u root n8n rm -rf /tmp/wfimport
 if ($LASTEXITCODE -ne 0) { Fail "n8n 容器沒在跑——先跑 install\setup.ps1（或本層 docker compose up -d）再來" }
 
 docker compose cp workflows n8n:/tmp/wfimport

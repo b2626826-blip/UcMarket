@@ -28,14 +28,42 @@ if ! docker compose up -d; then
   exit 1
 fi
 
-echo "[4/5] 等待 n8n 就緒（最多 60 秒）..."
-ready=0
-for i in $(seq 1 30); do
-  if curl -fsS http://localhost:5678/healthz >/dev/null 2>&1; then ready=1; break; fi
+# 容器內自測用 wget：n8n 映像裡沒有 curl，只有 BusyBox wget
+probe_inside() {
+  docker compose exec -T n8n wget -q -O /dev/null -T 2 http://localhost:5678/healthz >/dev/null 2>&1
+}
+
+echo "[4/5] 等待 n8n 就緒（最多 90 秒，每 2 秒探測一次）..."
+ready=0; rescued=0
+deadline=90
+start_ts=$(date +%s)
+while :; do
+  code=$(curl -s -o /dev/null -m 2 -w "%{http_code}" http://localhost:5678/healthz || true)
+  if [ "$code" = "200" ]; then ready=1; break; fi
+  elapsed=$(( $(date +%s) - start_ts ))
+  echo "  ${elapsed}s 未就緒（code=${code:-000}）"
+  if [ "$rescued" -eq 0 ] && [ "$elapsed" -ge 45 ]; then
+    state=$(docker inspect -f '{{.State.Status}}' n8n-n8n-1 2>/dev/null || true)
+    if [ "$state" = "running" ] && probe_inside; then
+      echo "  n8n 在容器內是好的、外部卻打不進去＝Docker Desktop 轉發悶住——自動 restart 一次重新註冊..."
+      docker compose restart
+      rescued=1
+      deadline=$(( elapsed + 45 ))
+      continue
+    fi
+  fi
+  if [ "$elapsed" -ge "$deadline" ]; then break; fi
   sleep 2
 done
 if [ "$ready" -ne 1 ]; then
-  echo "n8n 60 秒內沒就緒：跑 docker compose logs n8n 查原因"; exit 1
+  state=$(docker inspect -f '{{.State.Status}}' n8n-n8n-1 2>/dev/null || true)
+  if [ "$state" != "running" ]; then
+    echo "n8n 容器沒起來：跑 docker compose ps 與 docker compose logs n8n 查原因"; exit 1
+  elif probe_inside; then
+    echo "n8n 在容器內正常、但外部(5678)打不進去——Docker Desktop 的 port 轉發卡住了：重啟 Docker Desktop 後重跑本腳本"; exit 1
+  else
+    echo "n8n 沒就緒（應用還沒起來）：跑 docker compose logs n8n 查原因；可直接再重跑一次本腳本"; exit 1
+  fi
 fi
 
 echo "[5/5] 匯入憑證與 workflows..."
@@ -46,7 +74,8 @@ if [ "$fresh_install" -eq 1 ]; then
     creds_ok=1
   fi
   wf_ok=0
-  docker compose exec -T n8n rm -rf /tmp/wfimport >/dev/null 2>&1 || true
+  # -u root：docker cp 塞進容器的檔案是 root 擁有——/tmp 有 sticky bit，node 使用者刪不掉
+  docker compose exec -T -u root n8n rm -rf /tmp/wfimport >/dev/null 2>&1 || true
   if docker compose cp workflows n8n:/tmp/wfimport \
      && docker compose exec -T n8n n8n import:workflow --separate --input=/tmp/wfimport; then
     wf_ok=1

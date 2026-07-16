@@ -1,0 +1,32 @@
+【n8n 懶人包】cd C:\Users\cl4m4peng\Desktop\UcMarket\automation\n8n
+詳細說明看 install\安裝部署.md ｜ 各 workflow 用途看 workflows\README.md
+
+■ 三支腳本（mac 一律 bash install/xxx.sh）
+.\install\setup.ps1                裝環境；全新安裝會自動匯入憑證+workflow
+.\install\import-workflows.ps1     git 快照蓋回本機 workflow（同 id 整份蓋、匯入後停用）
+.\install\import-credentials.ps1   git 憑證蓋回本機（同 id 覆蓋不長重複）
+
+■ 日常
+docker compose ps / stop / up -d / logs -f n8n
+curl.exe http://localhost:5678/healthz   → {"status":"ok"}
+
+■ 全清重跑（帳號/憑證/workflow 全滅）
+docker compose down -v
+.\install\setup.ps1
+
+■ 連映像也刪（會重新下載幾百 MB）
+docker compose down -v --rmi all
+.\install\setup.ps1
+
+⚠️ UI 沒 Download 的會消失；跑完帳號重建、workflow 全停用
+
+■ UI 改動要保存進 git
+UI 右上 Download → 覆蓋 workflows\*.json → commit
+
+■ 開關
+04 每台可開；01/06 只在監控哨那一台開（多開＝DC 重複轟炸）
+
+■ 卡住
+setup 卡 [4/5]：等 45 秒自動救一次；仍掛 → 重啟 Docker Desktop
+容器活著但 5678 不通：docker compose restart
+n8n → localhost:5678 ｜ mailpit → localhost:8025
