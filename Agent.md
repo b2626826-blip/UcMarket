@@ -1,6 +1,6 @@
 # Agent.md - UcMarket AI 接手指南
 
-> 現況入口：先讀 `docs/current-implementation.md`。本檔包含產品願景與合作原則；多選項市場、通知工作與績效快照屬規劃，不可當作目前已實作功能。第一階段自動化已決定使用 Java／Spring Boot，不導入 n8n。
+> 現況入口：先讀本檔與 `docs/系統設計/自動化系統規劃.md` 第 13 節。通知持久化與 Worker（WP1／WP2）已完成；市場送審交易邊界（WP0）、送審通知垂直串接（WP3）與管理端點（WP4）仍待實作。第一階段自動化使用 Java／Spring Boot，不導入 n8n。
 
 這份文件給未來接手 UcMarket 的 AI agent 使用。請先讀完本檔，再讀 `README.md`、`docs/docsREADME.md`、`docs/project-spec.md`、`docs/系統設計/技術架構.md`、`docs/資料庫設計/ucmarket-er-diagram.md` 與相關 DDL。
 
@@ -91,7 +91,7 @@ shares = amount / odds
 - 保持 `controller`、`service`、`repository`、`entity`、`dto`、`exception`、`config`、`security` 分層。
 - PostgreSQL 連線與測試 H2 設定已存在；不要把團隊共用設定改成個人帳號。
 - 後端已有 API 與測試；不要在文件固定寫死測試數量，修改後優先在 `backend/` 執行 `./mvnw test` 並以當次輸出為準。
-- 後續重點是補齊仍缺的交易歷史、價格歷史讀取、通知工作、寄信與 OpenAPI；前端已宣告的 route 不等於後端已存在。
+- 通知持久化與假寄信 Worker（WP1／WP2）已完成；自動化下一步是先完成 WP0，再做 WP3，WP4 可平行處理。正式寄信 Provider 與 OpenAPI 仍待後續補齊；前端已宣告的 route 不等於後端已存在。
 
 ### 3.2 核心 API
 
