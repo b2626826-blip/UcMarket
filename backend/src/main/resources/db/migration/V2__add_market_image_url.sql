@@ -1,2 +1,2 @@
 ALTER TABLE markets
-    ADD COLUMN IF NOT EXISTS image_url TEXT;
+    ADD COLUMN image_url TEXT;
