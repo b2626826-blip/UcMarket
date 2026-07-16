@@ -55,6 +55,7 @@ export default function UserLayout() {
               <Link to="/home" data-page="views/dashboard.html">市場</Link>
               <Link to="/rankings">排行榜</Link>
               <Link to={user ? '/wallet' : '/auth/login'}>錢包</Link>
+              <Link to={user ? '/positions' : '/auth/login'}>持倉</Link>
             </div>
             <button
               className="nav-toggle"

@@ -1,9 +1,13 @@
 import { getApi } from './client';
 
 export function getPositions() {
-  return getApi('/api/positions');
+  return getApi('/api/positions/me');
 }
 
-export function getPositionDetail(id) {
-  return getApi('/api/positions/' + id);
+export function getOpenPositions() {
+  return getApi('/api/positions/me/open');
+}
+
+export function getMarketPositions(marketId, { openOnly = false } = {}) {
+  return getApi(`/api/positions/market/${marketId}${openOnly ? '/open' : ''}`);
 }
