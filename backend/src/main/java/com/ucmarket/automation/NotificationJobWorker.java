@@ -96,6 +96,7 @@ public class NotificationJobWorker {
                     email.body());
         } catch (RuntimeException e) {
             LocalDateTime finishedAt = LocalDateTime.now();
+            String errorMessage = truncateError(e.getMessage());
 
             transactionTemplate.executeWithoutResult(status -> {
                 NotificationJob current = jobRepository.findById(jobId).orElseThrow();
@@ -104,7 +105,7 @@ public class NotificationJobWorker {
                 String attemptStatus;
 
                 if (attemptNo >= maxAttempts) {
-                    current.markFailed(e.getMessage());
+                    current.markFailed(errorMessage);
                     attemptStatus = "FAILED";
                 } else {
                     long retryDelayMinutes = switch (attemptNo) {
@@ -115,7 +116,7 @@ public class NotificationJobWorker {
 
                     current.markRetry(
                             finishedAt.plusMinutes(retryDelayMinutes),
-                            e.getMessage());
+                            errorMessage);
                     attemptStatus = "RETRY";
                 }
 
@@ -123,7 +124,7 @@ public class NotificationJobWorker {
                         jobId,
                         attemptNo,
                         attemptStatus,
-                        e.getMessage(),
+                        errorMessage,
                         startedAt,
                         finishedAt));
             });
@@ -146,5 +147,12 @@ public class NotificationJobWorker {
                     startedAt,
                     finishedAt));
         });
+    }
+
+    private static String truncateError(String error) {
+        if (error == null || error.length() <= 1000) {
+            return error;
+        }
+        return error.substring(0, 1000);
     }
 }

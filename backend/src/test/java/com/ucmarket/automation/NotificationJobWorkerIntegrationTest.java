@@ -84,6 +84,7 @@ class NotificationJobWorkerIntegrationTest {
                 List<NotificationJobAttempt> attempts = attemptRepository.findByJobIdOrderByAttemptNoAsc(job.getId());
 
                 assertEquals(NotificationJobStatus.SENT, completed.getStatus());
+                assertEquals(1, completed.getAttemptCount());
                 assertEquals(sentBefore + 1, emailSender.sentEmails().size());
                 assertEquals(
                                 "owner@example.com",
@@ -125,6 +126,30 @@ class NotificationJobWorkerIntegrationTest {
                 assertEquals(1, attempts.get(0).getAttemptNo());
                 assertEquals("RETRY", attempts.get(0).getStatus());
                 assertEquals("temporary failure", attempts.get(0).getErrorMessage());
+        }
+
+        @Test
+        void processOnce_longFailureMessage_truncatesAttemptError() {
+                String longError = "x".repeat(1001);
+                emailSender.failNextSend(new RuntimeException(longError));
+
+                NotificationJob job = jobRepository.saveAndFlush(new NotificationJob(
+                                NotificationEventType.MARKET_SUBMITTED,
+                                UUID.randomUUID(),
+                                "owner@example.com",
+                                UUID.randomUUID(),
+                                "{\"marketTitle\":\"Will it rain tomorrow?\"}",
+                                "worker-long-error-" + UUID.randomUUID()));
+
+                worker.processOnce();
+
+                NotificationJob retried = jobRepository.findById(job.getId()).orElseThrow();
+                List<NotificationJobAttempt> attempts = attemptRepository.findByJobIdOrderByAttemptNoAsc(job.getId());
+
+                assertEquals(NotificationJobStatus.RETRY, retried.getStatus());
+                assertEquals(1000, retried.getLastError().length());
+                assertEquals(1, attempts.size());
+                assertEquals(1000, attempts.get(0).getErrorMessage().length());
         }
 
         @Test
