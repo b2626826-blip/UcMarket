@@ -75,6 +75,19 @@ function volumeFromTotal(totalVolume) {
   return `$${n.toFixed(0)}`;
 }
 
+function applyOddsToMarket(market, odds) {
+  if (!market || !odds) {
+    return market;
+  }
+
+  return {
+    ...market,
+    yesOdds: getOddsFromApiResponse(odds, 'YES') ?? market.yesOdds ?? getOddsFromMarket(market, 'YES') ?? 1.5,
+    noOdds: getOddsFromApiResponse(odds, 'NO') ?? market.noOdds ?? getOddsFromMarket(market, 'NO') ?? 1.5,
+    volume: volumeFromTotal(odds.totalVolume),
+  };
+}
+
 async function withMarketOdds(market) {
   const yesPool = Number(market.yesPool) || 0;
   const noPool = Number(market.noPool) || 0;
@@ -459,6 +472,24 @@ export default function WeatherDetailPage() {
   const [chartOpen, setChartOpen] = useState(false);
   const [weatherChartOpen, setWeatherChartOpen] = useState(false);
 
+  const handleMarketOddsChange = useCallback((updatedMarketId, odds) => {
+    if (!updatedMarketId || !odds) {
+      return;
+    }
+
+    setMarkets((currentMarkets) => currentMarkets.map((market) => (
+      market.id === updatedMarketId ? applyOddsToMarket(market, odds) : market
+    )));
+
+    setSelectedMarket((currentMarket) => (
+      currentMarket?.id === updatedMarketId ? applyOddsToMarket(currentMarket, odds) : currentMarket
+    ));
+
+    setUuidMarket((currentMarket) => (
+      currentMarket?.id === updatedMarketId ? applyOddsToMarket(currentMarket, odds) : currentMarket
+    ));
+  }, []);
+
   const fetchForecast = useCallback(async () => {
     if (isMonthlyRain || !region?.city) {
       setForecastLoading(false);
@@ -571,7 +602,15 @@ export default function WeatherDetailPage() {
       hero={<WeatherHero subtitle={subtitle} city={region?.city} day={!isMonthlyRain ? targetDay : null} />}
       marketId={selectedMarket?.id || id}
       market={selectedMarket}
-      tradePanel={<TradePanel marketId={selectedMarket?.id || id} market={selectedMarket} side={tradeSide} onSideChange={setTradeSide} />}
+      tradePanel={(
+        <TradePanel
+          marketId={selectedMarket?.id || id}
+          market={selectedMarket}
+          side={tradeSide}
+          onSideChange={setTradeSide}
+          onMarketOddsChange={handleMarketOddsChange}
+        />
+      )}
     >
       {loading && (
         <div className="trade-market-card" style={{ textAlign: 'center', padding: 60 }}>

@@ -11,7 +11,7 @@ const QUICK_BETS = [10, 50, 100, 500];
 const MIN_TRADE_AMOUNT = 10;
 const MAX_TRADE_AMOUNT = 50000;
 
-export default function TradePanel({ marketId, market, side, onSideChange }) {
+export default function TradePanel({ marketId, market, side, onSideChange, onMarketOddsChange }) {
   const user = useAuthStore((state) => state.user);
   const walletBalance = useWalletStore((state) => state.balance);
   const fetchWallet = useWalletStore((state) => state.fetchWallet);
@@ -57,6 +57,7 @@ export default function TradePanel({ marketId, market, side, onSideChange }) {
     try {
       const response = await getMarketOdds(currentMarketId);
       setMarketOdds(response);
+      onMarketOddsChange?.(currentMarketId, response);
       return response;
     } catch {
       setMarketOdds(null);

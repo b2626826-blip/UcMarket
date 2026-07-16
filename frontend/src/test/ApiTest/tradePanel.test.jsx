@@ -12,6 +12,7 @@ const mocks = vi.hoisted(() => {
     getMarketOdds: vi.fn(),
     getTradeQuote: vi.fn(),
     placeTrade: vi.fn(),
+    onMarketOddsChange: vi.fn(),
   };
 });
 
@@ -45,7 +46,7 @@ describe('TradePanel', () => {
     mocks.placeTrade.mockResolvedValue({ id: 'trade-1' });
 
     await act(async () => {
-      root.render(<TradePanel marketId="market-1" />);
+      root.render(<TradePanel marketId="market-1" onMarketOddsChange={mocks.onMarketOddsChange} />);
     });
   });
 
@@ -78,6 +79,7 @@ describe('TradePanel', () => {
     );
     expect(mocks.fetchWallet).toHaveBeenCalledTimes(2);
     expect(mocks.getMarketOdds).toHaveBeenCalledTimes(2);
+    expect(mocks.onMarketOddsChange).toHaveBeenLastCalledWith('market-1', { yesOdds: 2, noOdds: 2 });
   });
 
   it('shows insufficient balance when the API returns 422', async () => {
@@ -111,7 +113,7 @@ describe('TradePanel', () => {
     mocks.placeTrade.mockResolvedValue({ id: 'trade-1' });
 
     await act(async () => {
-      root.render(<TradePanel marketId="market-1" />);
+      root.render(<TradePanel marketId="market-1" onMarketOddsChange={mocks.onMarketOddsChange} />);
     });
 
     const quickBetButton = [...container.querySelectorAll('button')]
@@ -122,5 +124,6 @@ describe('TradePanel', () => {
     await act(async () => submitButton.click());
 
     expect(container.querySelector('#currentOdds').value).toBe('3.2500');
+    expect(mocks.onMarketOddsChange).toHaveBeenLastCalledWith('market-1', { yesOdds: 3.25, noOdds: 1.6 });
   });
 });
