@@ -1,10 +1,27 @@
 # workflows —— 版控與使用說明
 
-## 匯入（拿到新 JSON 時）
+## 同步方向鐵律（先記這條）
 
-1. n8n UI → 左上三點（或 Workflow 選單）→ **Import from File** → 選 JSON
-2. 開啟每個有憑證的節點 → 重綁憑證（**憑證不隨 JSON 走**，名字對照見各卡片；沒有就照名字新建）
-3. 右上 **Activate** 開關打開（排程與正式 webhook URL 都要啟用才活）
+平常唯一的同步方向是「**UI 改完 → Download → commit**」（見匯出節）。
+反方向（git 快照 → 本機）叫**匯入**，只用在兩種情況：**新機器初始化**、或**明確想丟掉本機修改回到快照**。
+
+## 匯入（新機器或想用 git 快照重置時）
+
+一鍵：`install\import-workflows.ps1`（Win）／`bash install/import-workflows.sh`（mac）——會先警告再動手。
+或手動（在 automation/n8n 層）：
+
+```text
+docker compose cp workflows n8n:/tmp/wfimport
+docker compose exec -T n8n n8n import:workflow --separate --input=/tmp/wfimport
+```
+
+CLI 匯入的三個已知行為（**與 UI 的 Import from File 不同**，已實測）：
+
+1. **照 id 覆蓋、不會長重複**——JSON 內帶 workflow id，重跑幾次都是同三條。（UI 的 Import from File 每次生一條新的、雙告警——別用它來「更新」，只在 CLI 不可用時救急）
+2. **匯入後一律變停用**——即使快照裡是 `active: true` 也會被停用；要逐條進 UI 把 **Active** 開關打開
+3. **憑證不隨 JSON 走**——開每個有憑證的節點重新選取（名字對照見各卡片；沒有就照名字新建）
+
+> `setup` 腳本在**全新安裝**（volume 不存在）時會自動匯入一次；偵測到既有安裝則一律跳過，避免蓋掉 UI 內未匯出的修改。
 
 ## 匯出（在 UI 改完 workflow 後必做）
 
