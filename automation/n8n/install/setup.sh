@@ -9,7 +9,12 @@ if ! docker version --format '{{.Server.Version}}' >/dev/null 2>&1; then
 fi
 
 echo "[2/3] 啟動容器..."
-docker compose up -d
+if ! docker compose up -d; then
+  echo "docker compose 失敗，往上看錯誤訊息。常見兩種："
+  echo "  1) port 被占 → docker compose ls 揪出誰佔（別的專案就去那裡 stop）"
+  echo "  2) 版本降版與舊資料衝突 → 開發資料可拋則 docker compose down -v 重置後重跑本腳本"
+  exit 1
+fi
 
 echo "[3/3] 等待 n8n 就緒（最多 60 秒）..."
 for i in $(seq 1 30); do

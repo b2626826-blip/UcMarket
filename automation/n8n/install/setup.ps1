@@ -3,12 +3,18 @@ $ErrorActionPreference = "Stop"
 Set-Location (Split-Path $PSScriptRoot -Parent)   # compose 在上一層（automation/n8n/）
 
 Write-Host "[1/3] 檢查 Docker..."
-try { docker version --format '{{.Server.Version}}' | Out-Null }
-catch { Write-Host "Docker 引擎沒回應——請先開 Docker Desktop 再重跑" -ForegroundColor Red; exit 1 }
+$dockerOk = $false
+try { docker version --format '{{.Server.Version}}' | Out-Null; if ($LASTEXITCODE -eq 0) { $dockerOk = $true } } catch { }
+if (-not $dockerOk) { Write-Host "Docker 引擎沒回應——請先開 Docker Desktop 再重跑" -ForegroundColor Red; exit 1 }
 
 Write-Host "[2/3] 啟動容器..."
 docker compose up -d
-if ($LASTEXITCODE -ne 0) { Write-Host "docker compose 失敗，往上看錯誤訊息" -ForegroundColor Red; exit 1 }
+if ($LASTEXITCODE -ne 0) {
+    Write-Host "docker compose 失敗，往上看錯誤訊息。常見兩種：" -ForegroundColor Red
+    Write-Host "  1) port 被占 → docker compose ls 揪出誰佔（別的專案就去那裡 stop）"
+    Write-Host "  2) 版本降版與舊資料衝突 → 開發資料可拋則 docker compose down -v 重置後重跑本腳本"
+    exit 1
+}
 
 Write-Host "[3/3] 等待 n8n 就緒（最多 60 秒）..."
 $ok = $false
