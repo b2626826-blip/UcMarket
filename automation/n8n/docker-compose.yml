@@ -1,0 +1,21 @@
+services:
+  n8n:
+    image: n8nio/n8n:2.31.1          # 釘死版本（禁 latest）；升級前查 release notes
+    ports:
+      - "127.0.0.1:5678:5678"        # 只綁本機，同網段其他機器連不進來
+    volumes:
+      - n8n_data:/home/node/.n8n
+    environment:
+      - GENERIC_TIMEZONE=Asia/Taipei # n8n 排程用的時區
+      - TZ=Asia/Taipei
+    extra_hosts:
+      - "host.docker.internal:host-gateway" # Docker Desktop(Win/Mac) 本來就有；這行讓 Linux 隊友也通
+
+  mailpit:                            # 開發期假 SMTP；正式環境整個 service 移除
+    image: axllent/mailpit:v1.30.4   # 釘死版本（禁 latest）
+    ports:
+      - "127.0.0.1:1025:1025"        # SMTP —— n8n 容器內連線寫 mailpit:1025（服務名）
+      - "127.0.0.1:8025:8025"        # Web 收件匣 http://localhost:8025
+
+volumes:
+  n8n_data:

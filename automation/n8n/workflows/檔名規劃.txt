@@ -1,0 +1,10 @@
+[佔位檔] workflows/ 檔名規劃 — 每關驗綠後匯出 JSON 進版控，正式檔進來後刪除本檔
+命名規則：兩位數序號-功能.json（序號＝實作順序）
+
+01-health-alert.json       關卡2    健康告警（每分鐘打 /api/health，連續 3 次失敗才告警、恢復只報一次）
+02-daily-digest.json       關卡4    每日摘要（08:00 拉 digest API → Discord embed，staticData 防重）
+03-closing-reminder.json   關卡5    截止提醒（每小時拉 closing-markets → 彙總一則發 DC）
+04-notify-webhook.json     關卡6⭐  審核通知收信端（POST /webhook/notify，真寄出才回 200）
+05-failed-alert.json       關卡2b   FAILED 告警（後置：等 eagle 的 WP4 admin API 合入）
+
+注意：憑證不隨 JSON 匯出，還原時照 runbook.md 手動重建
