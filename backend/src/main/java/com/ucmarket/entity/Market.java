@@ -279,6 +279,7 @@ public class Market {
 	}
 
 	public int getSubmissionVersion() { return submissionVersion; }
+	public void incrementSubmissionVersion() { submissionVersion++; }
 
 	public String getMetadata() { return metadata; }
 	public void setMetadata(String metadata) { this.metadata = metadata; }

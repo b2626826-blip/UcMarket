@@ -7,9 +7,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -48,6 +50,21 @@ public class MarketService {
         this.resolutionService = resolutionService;
         this.positionRepository = positionRepository;
         this.walletService = walletService;
+    }
+
+    public Market submitMarket(UUID marketId, UUID userId) {
+        Market market = findMarket(marketId);
+
+        if (!market.getCreatorId().equals(userId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN);
+        }
+        if (market.getStatus() != MarketStatus.DRAFT) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only DRAFT markets can be submitted");
+        }
+
+        market.changeStatus(MarketStatus.PENDING);
+        market.incrementSubmissionVersion();
+        return marketRepository.save(market);
     }
 
     public Market approveMarket(UUID marketId, UUID adminId) {
