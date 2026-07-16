@@ -120,18 +120,7 @@ public class MarketController {
 
 	@PostMapping("/{id}/submit")
 	public Market submitMarket(@PathVariable UUID id, @AuthenticationPrincipal User user) {
-		Market market = marketRepository.findById(id)
-				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
-
-		if (!market.getCreatorId().equals(user.getId())) {
-			throw new ResponseStatusException(HttpStatus.FORBIDDEN);
-		}
-		if (market.getStatus() != MarketStatus.DRAFT) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only DRAFT markets can be submitted");
-		}
-
-		market.changeStatus(MarketStatus.PENDING);
-		return marketRepository.save(market);
+		return marketService.submitMarket(id, user.getId());
 	}
 
 	@PutMapping("/{id}")

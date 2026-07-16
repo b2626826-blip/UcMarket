@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -203,6 +204,23 @@ class MarketControllerTest {
         assertEquals("CURRENT_AFFAIRS", marketCaptor.getValue().getCategory());
         assertEquals("https://example.com/news", marketCaptor.getValue().getSourceUrl());
         assertEquals("https://example.com/image.jpg", marketCaptor.getValue().getImageUrl());
+    }
+
+    @Test
+    void submitMarket_shouldDelegateToServiceWithAuthenticatedUser() throws Exception {
+        UUID marketId = UUID.randomUUID();
+        Market submitted = createMarket(MarketStatus.PENDING);
+        ReflectionTestUtils.setField(submitted, "id", marketId);
+        ReflectionTestUtils.setField(submitted, "submissionVersion", 1);
+        when(marketService.submitMarket(marketId, AUTH_USER_ID)).thenReturn(submitted);
+
+        mockMvc.perform(post("/api/markets/{id}/submit", marketId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("PENDING"))
+                .andExpect(jsonPath("$.submissionVersion").value(1));
+
+        verify(marketService).submitMarket(marketId, AUTH_USER_ID);
+        verifyNoInteractions(marketRepository);
     }
 
     @Test

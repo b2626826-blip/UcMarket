@@ -110,6 +110,7 @@ public class NotificationJob {
 
 	public void markSent(LocalDateTime now) {
 		this.status = NotificationJobStatus.SENT;
+		this.attemptCount++;
 		this.sentAt = now;
 		this.lockedAt = null;
 		this.lockedBy = null;

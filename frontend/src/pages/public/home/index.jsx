@@ -528,7 +528,7 @@ export default function HomePage() {
         {category === '政治' && (
           <div className="view-all-weather">
             <Link to="/markets/politics" className="view-all-weather-link">
-              查看更多 <i className="fa-solid fa-arrow-right"></i>
+              查看更多政治 <i className="fa-solid fa-arrow-right"></i>
             </Link>
           </div>
         )}
@@ -536,7 +536,7 @@ export default function HomePage() {
         {category === '天氣' && (
           <div className="view-all-weather">
             <Link to="/markets/weather" className="view-all-weather-link">
-              查看更多 <i className="fa-solid fa-arrow-right"></i>
+              查看更多天氣 <i className="fa-solid fa-arrow-right"></i>
             </Link>
           </div>
         )}

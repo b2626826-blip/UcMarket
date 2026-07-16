@@ -20,7 +20,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
@@ -67,6 +69,49 @@ class MarketServiceTest {
         ReflectionTestUtils.setField(m, "status", status);
         ReflectionTestUtils.setField(m, "creatorId", UUID.randomUUID());
         return m;
+    }
+
+    @Test
+    void submitMarket_draftByCreator_shouldChangeStatusIncrementVersionAndPersist() {
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.DRAFT, creatorId);
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(marketRepository.save(market)).thenReturn(market);
+
+        Market result = marketService.submitMarket(marketId, creatorId);
+
+        assertEquals(MarketStatus.PENDING, result.getStatus());
+        assertEquals(1, result.getSubmissionVersion());
+        verify(marketRepository).save(market);
+    }
+
+    @Test
+    void submitMarket_shouldThrowForbidden_whenUserIsNotCreator() {
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.DRAFT, creatorId);
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> marketService.submitMarket(marketId, UUID.randomUUID()));
+
+        assertEquals(HttpStatus.FORBIDDEN, exception.getStatusCode());
+        assertEquals(MarketStatus.DRAFT, market.getStatus());
+        assertEquals(0, market.getSubmissionVersion());
+        verify(marketRepository, never()).save(any());
+    }
+
+    @Test
+    void submitMarket_shouldThrowBadRequest_whenMarketIsNotDraft() {
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.PENDING, creatorId);
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+
+        ResponseStatusException exception = assertThrows(ResponseStatusException.class,
+                () -> marketService.submitMarket(marketId, creatorId));
+
+        assertEquals(HttpStatus.BAD_REQUEST, exception.getStatusCode());
+        assertEquals(0, market.getSubmissionVersion());
+        verify(marketRepository, never()).save(any());
     }
 
     @Test
