@@ -101,4 +101,28 @@ class UserRepositoryIntegrationTest {
         repo.delete(saved);
         assertFalse(repo.findByUsername(uniqueName).isPresent());
     }
+
+    @Test
+    void findByRoleAndStatus_shouldReturnOnlyActiveAdmins() {
+        String suffix = UUID.randomUUID().toString().substring(0, 8);
+
+        User activeAdmin = new User("active_admin_" + suffix, "active_admin_" + suffix + "@test.com", "hashed");
+        activeAdmin.changeRole(UserRole.ADMIN);
+
+        User disabledAdmin = new User("disabled_admin_" + suffix, "disabled_admin_" + suffix + "@test.com", "hashed");
+        disabledAdmin.changeRole(UserRole.ADMIN);
+        disabledAdmin.changeStatus(UserStatus.DISABLED);
+
+        User activeUser = new User("active_user_" + suffix, "active_user_" + suffix + "@test.com", "hashed");
+
+        userRepository.save(activeAdmin);
+        userRepository.save(disabledAdmin);
+        userRepository.save(activeUser);
+
+        var result = userRepository.findByRoleAndStatus(UserRole.ADMIN, UserStatus.ACTIVE);
+
+        assertTrue(result.stream().anyMatch(user -> user.getId().equals(activeAdmin.getId())));
+        assertFalse(result.stream().anyMatch(user -> user.getId().equals(disabledAdmin.getId())));
+        assertFalse(result.stream().anyMatch(user -> user.getId().equals(activeUser.getId())));
+    }
 }

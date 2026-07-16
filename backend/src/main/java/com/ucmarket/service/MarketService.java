@@ -15,10 +15,12 @@ import org.springframework.web.server.ResponseStatusException;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.services.storage.model.Notification;
 import com.ucmarket.entity.AdminLog;
 import com.ucmarket.entity.Market;
 import com.ucmarket.entity.MarketReview;
 import com.ucmarket.entity.MarketReview.ReviewStatus;
+import com.ucmarket.notification.NotificationService;
 import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.entity.Position;
 import com.ucmarket.entity.PositionStatus;
@@ -26,6 +28,11 @@ import com.ucmarket.repository.AdminLogRepository;
 import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.MarketReviewRepository;
 import com.ucmarket.repository.PositionRepository;
+import com.ucmarket.repository.UserRepository;
+import com.ucmarket.entity.User;
+import com.ucmarket.notification.NotificationEventType;
+import com.ucmarket.entity.UserRole;
+import com.ucmarket.entity.UserStatus;
 
 import jakarta.persistence.EntityNotFoundException;
 
@@ -39,17 +46,22 @@ public class MarketService {
     private final ResolutionService resolutionService;
     private final PositionRepository positionRepository;
     private final WalletService walletService;
+    private final UserRepository userRepository;
+    private final NotificationService notificationService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public MarketService(MarketRepository marketRepository, MarketReviewRepository marketReviewRepository,
             AdminLogRepository adminLogRepository, ResolutionService resolutionService,
-            PositionRepository positionRepository, WalletService walletService) {
+            PositionRepository positionRepository, WalletService walletService, UserRepository userRepository,
+            NotificationService notificationService) {
         this.marketRepository = marketRepository;
         this.marketReviewRepository = marketReviewRepository;
         this.adminLogRepository = adminLogRepository;
         this.resolutionService = resolutionService;
         this.positionRepository = positionRepository;
         this.walletService = walletService;
+        this.userRepository = userRepository;
+        this.notificationService = notificationService;
     }
 
     public Market submitMarket(UUID marketId, UUID userId) {
@@ -64,7 +76,40 @@ public class MarketService {
 
         market.changeStatus(MarketStatus.PENDING);
         market.incrementSubmissionVersion();
-        return marketRepository.save(market);
+        Market saved = marketRepository.save(market);
+
+        User creator = userRepository.findById(market.getCreatorId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Market creator not found: " + market.getCreatorId()));
+        NotificationEventType eventType = NotificationEventType.MARKET_SUBMITTED;
+
+        notificationService.enqueue(
+                eventType,
+                creator.getId(),
+                creator.getEmail(),
+                saved.getId(),
+                toJson(Map.of(
+                        "marketTitle", saved.getTitle(),
+                        "recipientType", "CREATOR")),
+                "market:%s:submission:%s:%s:user:%s".formatted(
+                        saved.getId(), saved.getSubmissionVersion(), eventType, creator.getId()));
+
+        for (User admin : userRepository.findByRoleAndStatus(
+                UserRole.ADMIN, UserStatus.ACTIVE)) {
+            notificationService.enqueue(
+                    eventType,
+                    admin.getId(),
+                    admin.getEmail(),
+                    saved.getId(),
+                    toJson(Map.of(
+                            "marketTitle", saved.getTitle(),
+                            "recipientType", "ADMIN")),
+                    "market:%s:submission:%s:%s:user:%s".formatted(
+                            saved.getId(), saved.getSubmissionVersion(),
+                            eventType, admin.getId()));
+        }
+
+        return saved;
     }
 
     public Market approveMarket(UUID marketId, UUID adminId) {

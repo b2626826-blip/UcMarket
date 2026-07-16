@@ -57,6 +57,8 @@ import com.ucmarket.service.ResolutionService;
 import com.ucmarket.service.TradeQuoteService;
 import com.ucmarket.service.TradeService;
 import com.ucmarket.service.WalletService;
+import com.ucmarket.notification.NotificationService;
+import com.ucmarket.repository.UserRepository;
 
 /**
  * Core workflow test using real controllers, services and entities.
@@ -71,8 +73,7 @@ class CoreMarketLifecycleTest {
 	private final PositionRepository positionRepository = mock(PositionRepository.class);
 	private final TradeRepository tradeRepository = mock(TradeRepository.class);
 	private final WalletRepository walletRepository = mock(WalletRepository.class);
-	private final WalletTransactionRepository walletTransactionRepository =
-			mock(WalletTransactionRepository.class);
+	private final WalletTransactionRepository walletTransactionRepository = mock(WalletTransactionRepository.class);
 
 	private final Map<UUID, Market> markets = new HashMap<>();
 	private final Map<PositionKey, Position> positions = new HashMap<>();
@@ -81,6 +82,8 @@ class CoreMarketLifecycleTest {
 	private final List<Trade> trades = new ArrayList<>();
 	private final List<MarketReview> marketReviews = new ArrayList<>();
 	private final List<AdminLog> adminLogs = new ArrayList<>();
+	private final UserRepository userRepository = mock(UserRepository.class);
+	private final NotificationService notificationService = mock(NotificationService.class);
 
 	private MarketController marketController;
 	private TradeController tradeController;
@@ -99,32 +102,32 @@ class CoreMarketLifecycleTest {
 		PriceHistoryService priceHistoryService = new PriceHistoryService(
 				mock(MarketPriceHistoryRepository.class), marketRepository);
 		TradeQuoteService tradeQuoteService = new TradeQuoteService();
-		ResolutionService resolutionService =
-				new ResolutionService(marketRepository, positionRepository, walletService);
+		ResolutionService resolutionService = new ResolutionService(marketRepository, positionRepository,
+				walletService);
 		marketService = new MarketService(
 				marketRepository,
 				marketReviewRepository,
 				adminLogRepository,
 				resolutionService,
 				positionRepository,
-				walletService
-		);
+				walletService,
+				userRepository,
+				notificationService
+			);
 		TradeService tradeService = new TradeService(
 				marketRepository,
 				tradeRepository,
 				tradeQuoteService,
 				walletService,
 				positionService,
-				priceHistoryService
-		);
+				priceHistoryService);
 		marketController = new MarketController(
 				marketRepository,
 				tradeRepository,
 				marketService,
 				tradeQuoteService,
 				priceHistoryService,
-				Jackson2ObjectMapperBuilder.json().build()
-		);
+				Jackson2ObjectMapperBuilder.json().build());
 		tradeController = new TradeController(tradeService);
 	}
 
@@ -140,8 +143,7 @@ class CoreMarketLifecycleTest {
 				new BigDecimal("1000.00"),
 				"BONUS",
 				null,
-				"signup:seed-" + trader.getId()
-		);
+				"signup:seed-" + trader.getId());
 
 		Market market = marketController.createMarket(
 				creator,
@@ -154,9 +156,7 @@ class CoreMarketLifecycleTest {
 						null,
 						null,
 						"Resolve YES when the scenario completes.",
-						LocalDateTime.now().plusDays(1)
-				)
-		);
+						LocalDateTime.now().plusDays(1)));
 		assertThat(market.getStatus()).isEqualTo(MarketStatus.DRAFT);
 		assertThat(market.getCreatorId()).isEqualTo(creator.getId());
 
@@ -175,8 +175,7 @@ class CoreMarketLifecycleTest {
 		ResponseEntity<Trade> response = tradeController.placeTrade(
 				trader,
 				"trade-core-1",
-				new TradeRequest(market.getId(), MarketSide.YES, new BigDecimal("20.00"))
-		);
+				new TradeRequest(market.getId(), MarketSide.YES, new BigDecimal("20.00")));
 		Trade trade = response.getBody();
 		assertThat(trade).isNotNull();
 		assertThat(trade.getPrice()).isEqualByComparingTo("2.0000");
@@ -210,8 +209,7 @@ class CoreMarketLifecycleTest {
 				.containsExactly(
 						WalletTransactionType.SIGNUP_BONUS,
 						WalletTransactionType.TRADE_BUY,
-						WalletTransactionType.RESOLUTION_PAYOUT
-				);
+						WalletTransactionType.RESOLUTION_PAYOUT);
 		assertThat(walletTransactions.get("trade-core-1").getAmount())
 				.isEqualByComparingTo("-20.00");
 		assertThat(walletTransactions.get("resolution:" + position.getId()).getAmount())
@@ -230,10 +228,10 @@ class CoreMarketLifecycleTest {
 			markets.put(market.getId(), market);
 			return market;
 		});
-		when(marketRepository.findById(any(UUID.class))).thenAnswer(invocation ->
-				Optional.ofNullable(markets.get(invocation.getArgument(0))));
-		when(marketRepository.findByIdForUpdate(any(UUID.class))).thenAnswer(invocation ->
-				Optional.ofNullable(markets.get(invocation.getArgument(0))));
+		when(marketRepository.findById(any(UUID.class)))
+				.thenAnswer(invocation -> Optional.ofNullable(markets.get(invocation.getArgument(0))));
+		when(marketRepository.findByIdForUpdate(any(UUID.class)))
+				.thenAnswer(invocation -> Optional.ofNullable(markets.get(invocation.getArgument(0))));
 		when(marketRepository.findByStatusAndCloseAtBefore(any(MarketStatus.class), any(LocalDateTime.class)))
 				.thenAnswer(invocation -> {
 					MarketStatus status = invocation.getArgument(0);
@@ -288,12 +286,12 @@ class CoreMarketLifecycleTest {
 			});
 			return null;
 		}).when(walletRepository).insertIfAbsent(any(UUID.class), any(UUID.class));
-		when(walletRepository.findByUserId(any(UUID.class))).thenAnswer(invocation ->
-				Optional.ofNullable(wallets.get(invocation.getArgument(0))));
-		when(walletRepository.findByUserIdForUpdate(any(UUID.class))).thenAnswer(invocation ->
-				Optional.ofNullable(wallets.get(invocation.getArgument(0))));
-		when(walletTransactionRepository.findByIdempotencyKey(any(String.class))).thenAnswer(invocation ->
-				Optional.ofNullable(walletTransactions.get(invocation.getArgument(0))));
+		when(walletRepository.findByUserId(any(UUID.class)))
+				.thenAnswer(invocation -> Optional.ofNullable(wallets.get(invocation.getArgument(0))));
+		when(walletRepository.findByUserIdForUpdate(any(UUID.class)))
+				.thenAnswer(invocation -> Optional.ofNullable(wallets.get(invocation.getArgument(0))));
+		when(walletTransactionRepository.findByIdempotencyKey(any(String.class)))
+				.thenAnswer(invocation -> Optional.ofNullable(walletTransactions.get(invocation.getArgument(0))));
 		when(walletTransactionRepository.saveAndFlush(any(WalletTransaction.class))).thenAnswer(invocation -> {
 			WalletTransaction transaction = invocation.getArgument(0);
 			ReflectionTestUtils.setField(transaction, "id", UUID.randomUUID());

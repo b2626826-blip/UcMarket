@@ -8,10 +8,19 @@ import com.ucmarket.entity.MarketReview.ReviewStatus;
 import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.entity.Position;
 import com.ucmarket.entity.PositionStatus;
+import com.ucmarket.notification.NotificationService;
 import com.ucmarket.repository.AdminLogRepository;
 import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.MarketReviewRepository;
 import com.ucmarket.repository.PositionRepository;
+import com.ucmarket.repository.UserRepository;
+import com.ucmarket.entity.User;
+import com.ucmarket.notification.NotificationEventType;
+import com.ucmarket.notification.NotificationService;
+import com.ucmarket.repository.UserRepository;
+import com.ucmarket.entity.UserRole;
+import com.ucmarket.entity.UserStatus;
+
 import jakarta.persistence.EntityNotFoundException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -40,16 +49,29 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class MarketServiceTest {
 
-    @Mock private MarketRepository marketRepository;
-    @Mock private MarketReviewRepository marketReviewRepository;
-    @Mock private AdminLogRepository adminLogRepository;
-    @Mock private ResolutionService resolutionService;
-    @Mock private PositionRepository positionRepository;
-    @Mock private WalletService walletService;
+    @Mock
+    private MarketRepository marketRepository;
+    @Mock
+    private MarketReviewRepository marketReviewRepository;
+    @Mock
+    private AdminLogRepository adminLogRepository;
+    @Mock
+    private ResolutionService resolutionService;
+    @Mock
+    private PositionRepository positionRepository;
+    @Mock
+    private WalletService walletService;
+    @Mock
+    private UserRepository userRepository;
+    @Mock
+    private NotificationService notificationService;
 
-    @Captor private ArgumentCaptor<Market> marketCaptor;
-    @Captor private ArgumentCaptor<MarketReview> reviewCaptor;
-    @Captor private ArgumentCaptor<AdminLog> logCaptor;
+    @Captor
+    private ArgumentCaptor<Market> marketCaptor;
+    @Captor
+    private ArgumentCaptor<MarketReview> reviewCaptor;
+    @Captor
+    private ArgumentCaptor<AdminLog> logCaptor;
 
     private MarketService marketService;
     private UUID adminId;
@@ -58,7 +80,7 @@ class MarketServiceTest {
     @BeforeEach
     void setUp() {
         marketService = new MarketService(marketRepository, marketReviewRepository, adminLogRepository,
-                resolutionService, positionRepository, walletService);
+                resolutionService, positionRepository, walletService, userRepository, notificationService);
         adminId = UUID.randomUUID();
         marketId = UUID.randomUUID();
     }
@@ -75,8 +97,11 @@ class MarketServiceTest {
     void submitMarket_draftByCreator_shouldChangeStatusIncrementVersionAndPersist() {
         UUID creatorId = UUID.randomUUID();
         Market market = createMarket(MarketStatus.DRAFT, creatorId);
+        User creator = new User("creator", "creator@example.com", "hsah");
+        ReflectionTestUtils.setField(creator,"id", creatorId);
         when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
         when(marketRepository.save(market)).thenReturn(market);
+        when(userRepository.findById(creatorId)).thenReturn(Optional.of(creator));
 
         Market result = marketService.submitMarket(marketId, creatorId);
 
@@ -411,7 +436,8 @@ class MarketServiceTest {
             Position first = null;
             for (Position p : saved) {
                 count++;
-                if (first == null) first = p;
+                if (first == null)
+                    first = p;
             }
             return count == 1 && first != null && first.getStatus() == PositionStatus.CANCELED;
         }));
@@ -438,5 +464,56 @@ class MarketServiceTest {
 
         assertEquals(MarketStatus.CLOSED, market.getStatus());
         verify(marketRepository).saveAll(List.of(market));
+    }
+
+    @Test
+    void submitMarket_shouldEnqueueCreatorConfirmation() {
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.DRAFT, creatorId);
+        User creator = new User("creator", "creator@example.com", "hashed");
+        ReflectionTestUtils.setField(creator, "id", creatorId);
+
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(marketRepository.save(market)).thenReturn(market);
+        when(userRepository.findById(creatorId)).thenReturn(Optional.of(creator));
+
+        marketService.submitMarket(marketId, creatorId);
+
+        verify(notificationService).enqueue(
+                eq(NotificationEventType.MARKET_SUBMITTED),
+                eq(creatorId),
+                eq("creator@example.com"),
+                eq(marketId),
+                argThat(payload -> payload.contains("\"marketTitle\":\"Title\"")
+                        && payload.contains("\"recipientType\":\"CREATOR\"")),
+                eq("market:%s:submission:1:%s:user:%s".formatted(
+                        marketId, NotificationEventType.MARKET_SUBMITTED, creatorId)));
+    }
+
+    @Test
+    void submitMarket_shouldEnqueuePendingReviewForActiveAdmin() {
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.DRAFT, creatorId);
+        User creator = new User("creator", "creator@example.com", "hashed");
+        ReflectionTestUtils.setField(creator, "id", creatorId);
+
+        User admin = new User("reviewer", "reviewer@example.com", "hashed");
+        admin.changeRole(UserRole.ADMIN);
+        ReflectionTestUtils.setField(admin, "id", UUID.randomUUID());
+
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(marketRepository.save(market)).thenReturn(market);
+        when(userRepository.findById(creatorId)).thenReturn(Optional.of(creator));
+        when(userRepository.findByRoleAndStatus(UserRole.ADMIN, UserStatus.ACTIVE))
+                .thenReturn(List.of(admin));
+
+        marketService.submitMarket(marketId, creatorId);
+
+        verify(notificationService).enqueue(
+                eq(NotificationEventType.MARKET_SUBMITTED),
+                eq(admin.getId()), eq(admin.getEmail()), eq(marketId),
+                contains("\"recipientType\":\"ADMIN\""),
+                eq("market:%s:submission:1:%s:user:%s".formatted(
+                        marketId, NotificationEventType.MARKET_SUBMITTED, admin.getId())));
     }
 }

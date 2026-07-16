@@ -12,9 +12,16 @@ import com.ucmarket.entity.UserStatus;
 
 public interface UserRepository extends JpaRepository<User, UUID> {
     Optional<User> findByEmail(String email);
+
     Optional<User> findByUsername(String username);
+
     boolean existsByEmail(String email);
+
     boolean existsByUsername(String username);
+
     List<User> findByRole(UserRole role);
+
+    List<User> findByRoleAndStatus(UserRole role, UserStatus status);
+
     List<User> findByStatus(UserStatus status);
 }
