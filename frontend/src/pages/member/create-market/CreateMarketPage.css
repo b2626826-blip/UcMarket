@@ -25,25 +25,58 @@
 .create-market-form-card,
 .market-preview {
   background: var(--card);
-  border: 1px solid rgba(255, 255, 255, .18);
+  border: 1px solid rgba(255, 255, 255, .14);
   border-radius: 20px;
   overflow: hidden;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, .06), 0 12px 40px rgba(0, 0, 0, .25);
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .05), 0 16px 48px rgba(0, 0, 0, .28);
 }
 
-.create-market-form-card__header {
-  padding: 16px 24px;
-  border-bottom: 1px solid var(--border);
-  color: var(--text-primary, #eee);
-  font-size: 0.95rem;
+.create-market-form-card__header,
+.market-preview__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  background: linear-gradient(180deg, rgba(217, 170, 67, .06) 0%, transparent 100%);
+}
+
+.create-market-form-card__header h2,
+.market-preview__header h2 {
+  margin: 0;
+  font-size: 1.05rem;
   font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--text-primary, #f0f0f0);
+}
+
+.create-market-form-card__header p,
+.market-preview__header p {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted, #8a8a8a);
+  line-height: 1.4;
+}
+
+.create-market-form-card__badge,
+.market-preview__badge {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #c9b07a;
+  background: rgba(217, 170, 67, .12);
+  border: 1px solid rgba(217, 170, 67, .22);
+  letter-spacing: 0.02em;
 }
 
 .create-market-fields {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 18px 16px;
-  padding: 24px;
+  padding: 24px 28px;
 }
 
 .create-market-field {
@@ -301,18 +334,26 @@
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 12px;
-  padding: 16px 24px;
-  border-top: 1px solid var(--border);
+  padding: 16px 28px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
   background: rgba(0, 0, 0, .18);
 }
 
 .market-preview {
   position: sticky;
   top: 88px;
-  padding: 24px;
+  padding: 0 0 24px;
 }
 
-.market-preview__header,
+.market-preview > .market-preview__category,
+.market-preview > h2,
+.market-preview > .market-preview__description,
+.market-preview > .market-preview__outcomes,
+.market-preview > .market-preview__details {
+  margin-left: 28px;
+  margin-right: 28px;
+}
+
 .market-preview__outcomes,
 .market-preview__details > div {
   display: flex;
@@ -320,16 +361,6 @@
   gap: 16px;
 }
 
-.market-preview__header {
-  align-items: center;
-  color: #aaa;
-  font-size: 13px;
-  font-weight: 700;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-}
-
-.market-preview__header small,
 .market-preview__category {
   display: inline-flex;
   width: fit-content;
@@ -339,17 +370,17 @@
   padding: 5px 10px;
   font-size: 12px;
   font-weight: 700;
-}
-
-.market-preview__category {
   margin-top: 20px;
 }
 
-.market-preview h2 {
-  margin: 12px 0 0;
+.market-preview > h2 {
+  margin: 12px 28px 0;
   font-size: 1.5rem;
   line-height: 1.35;
   word-break: break-word;
+  color: var(--text-primary, #f0f0f0);
+  font-weight: 700;
+  letter-spacing: normal;
 }
 
 .market-preview__description {
@@ -410,6 +441,243 @@
   text-align: right;
 }
 
+/* ── My submissions list ── */
+.my-submissions {
+  margin-top: 32px;
+  background: var(--card);
+  border: 1px solid rgba(255, 255, 255, .14);
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, .05), 0 16px 48px rgba(0, 0, 0, .28);
+}
+
+.my-submissions__header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 22px 28px 18px;
+  border-bottom: 1px solid rgba(255, 255, 255, .08);
+  background: linear-gradient(180deg, rgba(217, 170, 67, .06) 0%, transparent 100%);
+}
+
+.my-submissions__header h2 {
+  margin: 0;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
+  color: var(--text-primary, #f0f0f0);
+}
+
+.my-submissions__header p {
+  margin: 6px 0 0;
+  font-size: 0.82rem;
+  color: var(--text-muted, #8a8a8a);
+  line-height: 1.4;
+}
+
+.my-submissions__count {
+  flex-shrink: 0;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #c9b07a;
+  background: rgba(217, 170, 67, .12);
+  border: 1px solid rgba(217, 170, 67, .22);
+}
+
+.my-submissions__table-wrap {
+  overflow-x: auto;
+}
+
+.my-submissions__table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.my-submissions__table thead th {
+  padding: 14px 28px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #9a9a9a;
+  text-align: left;
+  border-bottom: 1px solid rgba(255, 255, 255, .06);
+  background: rgba(0, 0, 0, .18);
+}
+
+/* 審核狀態 | 市場分類 | 市場名稱 | 送審時間 */
+.my-submissions__table thead th:nth-child(1) { width: 18%; text-align: left; }
+.my-submissions__table thead th:nth-child(2) { width: 16%; text-align: center; }
+.my-submissions__table thead th:nth-child(3) { width: 42%; }
+.my-submissions__table thead th:nth-child(4) { width: 24%; text-align: center; }
+
+.my-submissions__table tbody td {
+  padding: 16px 28px;
+  font-size: 0.9rem;
+  color: #e6e6e6;
+  border-bottom: 1px solid rgba(255, 255, 255, .05);
+  vertical-align: middle;
+}
+
+.my-submissions__table tbody td:nth-child(1) {
+  text-align: left;
+}
+
+.my-submissions__table tbody td:nth-child(2),
+.my-submissions__table tbody td:nth-child(4) {
+  text-align: center;
+}
+
+.my-submissions__table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.my-submissions__table tbody tr {
+  transition: background 0.15s ease;
+}
+
+.my-submissions__table tbody tr:hover td {
+  background: rgba(255, 255, 255, .03);
+}
+
+.my-submissions__cat {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #d4c08a;
+  background: rgba(217, 170, 67, .1);
+  border: 1px solid rgba(217, 170, 67, .18);
+}
+
+.my-submissions__title {
+  font-weight: 500;
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.my-submissions__time {
+  font-size: 0.88rem;
+  color: #b0b0b0;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.my-submissions__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.my-submissions__dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.my-submissions__badge--pending {
+  color: #e0b84a;
+  background: rgba(217, 170, 67, .12);
+  border: 1px solid rgba(217, 170, 67, .22);
+}
+.my-submissions__badge--pending .my-submissions__dot {
+  background: #d9aa43;
+  box-shadow: 0 0 0 3px rgba(217, 170, 67, .18);
+}
+
+.my-submissions__badge--passed {
+  color: #3dd68c;
+  background: rgba(0, 214, 111, .1);
+  border: 1px solid rgba(0, 214, 111, .2);
+}
+.my-submissions__badge--passed .my-submissions__dot {
+  background: #00d66f;
+  box-shadow: 0 0 0 3px rgba(0, 214, 111, .15);
+}
+
+.my-submissions__badge--rejected {
+  color: #ff6b8a;
+  background: rgba(255, 71, 109, .1);
+  border: 1px solid rgba(255, 71, 109, .2);
+}
+.my-submissions__badge--rejected .my-submissions__dot {
+  background: #ff476d;
+  box-shadow: 0 0 0 3px rgba(255, 71, 109, .15);
+}
+
+.my-submissions__empty {
+  text-align: center !important;
+  padding: 48px 24px !important;
+  color: #777 !important;
+  font-size: 0.88rem !important;
+}
+
+.my-submissions__empty-icon {
+  display: block;
+  margin: 0 auto 12px;
+  font-size: 1.6rem;
+  color: rgba(217, 170, 67, .45);
+}
+
+.my-submissions__pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 28px;
+  border-top: 1px solid rgba(255, 255, 255, .08);
+  background: rgba(0, 0, 0, .14);
+}
+
+.my-submissions__page-meta {
+  font-size: 0.78rem;
+  color: #8a8a8a;
+  font-weight: 500;
+}
+
+.my-submissions__page-btns {
+  display: flex;
+  gap: 8px;
+}
+
+.my-submissions__page-btn {
+  min-height: 34px;
+  padding: 6px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, .12);
+  background: rgba(255, 255, 255, .04);
+  color: #e2e2e2;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, opacity 0.15s ease;
+}
+
+.my-submissions__page-btn:hover:not(:disabled) {
+  border-color: rgba(217, 170, 67, .4);
+  background: rgba(217, 170, 67, .1);
+  color: #e8d5a0;
+}
+
+.my-submissions__page-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 @media (max-width: 1100px) {
   .create-market-layout {
     grid-template-columns: minmax(0, 1fr);
@@ -428,9 +696,16 @@
   }
 
   .create-market-form-card__header,
-  .create-market-actions {
+  .create-market-actions,
+  .market-preview__header {
     padding-left: 18px;
     padding-right: 18px;
+  }
+
+  .create-market-form-card__header,
+  .market-preview__header {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .create-market-field-head {
@@ -439,15 +714,76 @@
   }
 
   .market-preview {
-    padding: 18px;
+    padding-bottom: 18px;
   }
 
-  .create-market-field-head {
-    flex-direction: column;
-    align-items: flex-start;
+  .market-preview > .market-preview__category,
+  .market-preview > h2,
+  .market-preview > .market-preview__description,
+  .market-preview > .market-preview__outcomes,
+  .market-preview > .market-preview__details {
+    margin-left: 18px;
+    margin-right: 18px;
   }
 
-  .market-preview h2 {
+  .market-preview > h2 {
     font-size: 1.25rem;
+  }
+
+  .my-submissions__header {
+    padding: 18px 18px 14px;
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+  }
+
+  .my-submissions__count {
+    margin-top: 2px;
+  }
+
+  .my-submissions__pagination {
+    padding-left: 18px;
+    padding-right: 18px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .my-submissions__page-btns {
+    justify-content: center;
+  }
+
+  .my-submissions__table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .my-submissions__table {
+    table-layout: auto;
+    min-width: 540px;
+  }
+
+  .my-submissions__table thead th,
+  .my-submissions__table tbody td {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .my-submissions__table thead th:nth-child(1),
+  .my-submissions__table thead th:nth-child(2),
+  .my-submissions__table thead th:nth-child(3),
+  .my-submissions__table thead th:nth-child(4) {
+    width: auto;
+  }
+
+  .my-submissions__time,
+  .my-submissions__badge {
+    white-space: nowrap;
+  }
+
+  .my-submissions__title {
+    white-space: nowrap;
+    max-width: 140px;
   }
 }

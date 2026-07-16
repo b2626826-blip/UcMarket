@@ -24,7 +24,25 @@ public class EmailTemplateService {
     private EmailContent renderMarketSubmitted(String payload) {
         try {
             JsonNode root = objectMapper.readTree(payload);
+            if (root.isTextual()) {
+                root = objectMapper.readTree(root.asText());
+            }
             String marketTitle = root.path("marketTitle").asText();
+            String recipientType = root.path("recipientType").asText();
+
+            if ("CREATOR_ADMIN".equals(recipientType)) {
+                return new EmailContent(
+                        "[UcMarket] Market submitted and awaiting your review",
+                        "Your market \"%s\" was submitted and is awaiting your review."
+                                .formatted(marketTitle));
+            }
+
+            if ("ADMIN".equals(recipientType)) {
+                return new EmailContent(
+                        "[UcMarket] Market awaiting review",
+                        "Market \"%s\" was submitted and is awaiting review."
+                                .formatted(marketTitle));
+            }
 
             return new EmailContent(
                     "[UcMarket] Market submitted",

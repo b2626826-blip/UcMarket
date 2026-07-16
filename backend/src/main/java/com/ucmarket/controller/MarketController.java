@@ -8,6 +8,8 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -30,6 +32,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ucmarket.dto.CreateMarketRequest;
 import com.ucmarket.dto.MarketOddsResponse;
 import com.ucmarket.dto.MarketResponse;
+import com.ucmarket.dto.PageResponse;
 import com.ucmarket.dto.TradeQuoteRequest;
 import com.ucmarket.dto.TradeQuoteResponse;
 import com.ucmarket.dto.UpdateMarketRequest;
@@ -90,6 +93,30 @@ public class MarketController {
 
 		markets = marketRepository.findByStatus(MarketStatus.ACTIVE, pageable).getContent();
 		return toResponses(markets);
+	}
+
+	private static final List<MarketStatus> MY_REVIEW_STATUSES = List.of(
+			MarketStatus.PENDING,
+			MarketStatus.ACTIVE,
+			MarketStatus.CLOSED,
+			MarketStatus.RESOLVED,
+			MarketStatus.REJECTED);
+
+	@GetMapping("/me")
+	public PageResponse<MarketResponse> listMyMarkets(
+			@AuthenticationPrincipal User user,
+			@RequestParam(defaultValue = "0") int page,
+			@RequestParam(defaultValue = "10") int size) {
+		var pageable = PageRequest.of(
+				Math.max(page, 0),
+				Math.max(size, 1),
+				Sort.by("createdAt").descending());
+		Page<Market> markets = marketRepository.findByCreatorIdAndStatusIn(
+				user.getId(), MY_REVIEW_STATUSES, pageable);
+		return PageResponse.of(new PageImpl<>(
+				toResponses(markets.getContent()),
+				pageable,
+				markets.getTotalElements()));
 	}
 
 	@GetMapping("/{id}")

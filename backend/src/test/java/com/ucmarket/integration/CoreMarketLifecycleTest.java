@@ -57,6 +57,8 @@ import com.ucmarket.service.ResolutionService;
 import com.ucmarket.service.TradeQuoteService;
 import com.ucmarket.service.TradeService;
 import com.ucmarket.service.WalletService;
+import com.ucmarket.notification.NotificationService;
+import com.ucmarket.repository.UserRepository;
 
 /**
  * Core workflow test using real controllers, services and entities.
@@ -73,6 +75,8 @@ class CoreMarketLifecycleTest {
 	private final WalletRepository walletRepository = mock(WalletRepository.class);
 	private final WalletTransactionRepository walletTransactionRepository =
 			mock(WalletTransactionRepository.class);
+	private final UserRepository userRepository = mock(UserRepository.class);
+	private final NotificationService notificationService = mock(NotificationService.class);
 
 	private final Map<UUID, Market> markets = new HashMap<>();
 	private final Map<PositionKey, Position> positions = new HashMap<>();
@@ -107,7 +111,9 @@ class CoreMarketLifecycleTest {
 				adminLogRepository,
 				resolutionService,
 				positionRepository,
-				walletService
+				walletService,
+				userRepository,
+				notificationService
 		);
 		TradeService tradeService = new TradeService(
 				marketRepository,
@@ -133,6 +139,7 @@ class CoreMarketLifecycleTest {
 		User creator = user(UserRole.USER);
 		User trader = user(UserRole.USER);
 		User admin = user(UserRole.ADMIN);
+		when(userRepository.findById(creator.getId())).thenReturn(Optional.of(creator));
 
 		walletService.createWalletForUser(trader.getId());
 		walletService.credit(

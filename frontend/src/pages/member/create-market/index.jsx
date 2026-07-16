@@ -1,18 +1,14 @@
-import { useEffect, useRef, useState } from 'react';
-import { createMarket, searchTradingViewSymbols, submitMarket } from '../../../api/marketApi';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { createMarket, getMyMarkets, searchTradingViewSymbols, submitMarket } from '../../../api/marketApi';
 import Button from '../../../components/common/Button';
 import useUiStore from '../../../store/uiStore';
 import { CURRENT_EVENT_CATEGORY_CODE } from '../../../types/market';
+import { formatTime } from '../../../utils/format';
 import './CreateMarketPage.css';
 
 const FINANCE_CATEGORY = '金融';
 const SYMBOL_SEARCH_DEBOUNCE_MS = 300;
-
-const marketTypeLabels = {
-  BINARY: '二元（YES/NO）',
-  COUNT_RANGE: '區間',
-  MULTIPLE_CHOICE: '多選',
-};
+const PAGE_SIZE = 10;
 
 const CATEGORY_OPTS = [
   { label: '政治', value: '政治' },
@@ -21,7 +17,19 @@ const CATEGORY_OPTS = [
   { label: '時事', value: CURRENT_EVENT_CATEGORY_CODE },
   { label: '金融', value: FINANCE_CATEGORY },
 ];
-const categoryLabel = (v) => CATEGORY_OPTS.find((c) => c.value === v)?.label || v;
+const categoryLabel = (v) => CATEGORY_OPTS.find((c) => c.value === v)?.label || v || '—';
+
+const REVIEW_STATUS = {
+  PENDING: { label: '送審中', tone: 'pending' },
+  ACTIVE: { label: '通過', tone: 'passed' },
+  CLOSED: { label: '通過', tone: 'passed' },
+  RESOLVED: { label: '通過', tone: 'passed' },
+  REJECTED: { label: '未通過', tone: 'rejected' },
+};
+
+function reviewStatus(status) {
+  return REVIEW_STATUS[status] || null;
+}
 
 const initialForm = {
   title: '',
@@ -53,6 +61,33 @@ export default function CreateMarketPage() {
   const [symbolSearchMessage, setSymbolSearchMessage] = useState('');
   const symbolBlurTimeoutRef = useRef(null);
   const { showToast } = useUiStore();
+  const [myMarkets, setMyMarkets] = useState([]);
+  const [listLoading, setListLoading] = useState(true);
+  const [listPage, setListPage] = useState(0);
+  const [listTotalPages, setListTotalPages] = useState(0);
+  const [listTotal, setListTotal] = useState(0);
+
+  const loadMyMarkets = useCallback(async (page = 0) => {
+    setListLoading(true);
+    try {
+      const data = await getMyMarkets({ page, size: PAGE_SIZE });
+      const list = Array.isArray(data?.content) ? data.content : (Array.isArray(data) ? data : []);
+      setMyMarkets(list.filter((m) => reviewStatus(m.status)));
+      setListPage(data?.page ?? page);
+      setListTotalPages(data?.totalPages ?? 1);
+      setListTotal(data?.totalElements ?? list.length);
+    } catch {
+      setMyMarkets([]);
+      setListTotalPages(0);
+      setListTotal(0);
+    } finally {
+      setListLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadMyMarkets(0);
+  }, [loadMyMarkets]);
 
   function setField(k, v) {
     setForm((p) => {
@@ -132,14 +167,6 @@ export default function CreateMarketPage() {
     setSymbolSearchMessage('');
   }
 
-  async function handleSave() {
-    if (!validate()) return;
-    try {
-      await createMarket(buildBody());
-      showToast('success', '草稿已儲存');
-    } catch (err) { showToast('danger', '儲存失敗', err.message); }
-  }
-
   async function handleSubmit() {
     if (!validate()) return;
     try {
@@ -150,6 +177,8 @@ export default function CreateMarketPage() {
       setCloseAtText('選擇日期時間');
       setErrors({});
       clearSymbolSearchState();
+      setListPage(0);
+      loadMyMarkets(0);
     } catch (err) { showToast('danger', '送審失敗', err.message); }
   }
 
@@ -208,7 +237,13 @@ export default function CreateMarketPage() {
 
       <div className="create-market-layout">
         <div className="create-market-form-card">
-          <div className="create-market-form-card__header">市場基本資訊</div>
+          <div className="create-market-form-card__header">
+            <div>
+              <h2>市場基本資訊</h2>
+              <p>填寫後建立並送審，等待管理員審核</p>
+            </div>
+            <span className="create-market-form-card__badge">＊為必填</span>
+          </div>
           <form id="create-market-form" className="create-market-fields" onSubmit={(e) => e.preventDefault()}>
             <div className="create-market-field create-market-field--full">
               <label className="form-label">標題 *</label>
@@ -372,15 +407,17 @@ export default function CreateMarketPage() {
           </form>
 
           <div className="create-market-actions">
-            <Button variant="secondary" onClick={handleSave}>儲存草稿</Button>
             <Button onClick={handleSubmit}>建立並送審</Button>
           </div>
         </div>
 
         <aside className="market-preview" aria-label="市場即時預覽">
           <div className="market-preview__header">
-            <span>即時預覽</span>
-            <small>DRAFT</small>
+            <div>
+              <h2>即時預覽</h2>
+              <p>輸入內容會即時反映在此</p>
+            </div>
+            {/* <span className="market-preview__badge">DRAFT</span> */}
           </div>
           <span className="market-preview__category">{form.category ? categoryLabel(form.category) : '未選擇分類'}</span>
           <h2>{form.title || '你的市場標題會顯示在這裡'}</h2>
@@ -392,9 +429,6 @@ export default function CreateMarketPage() {
           </div>
 
           <dl className="market-preview__details">
-            {/** 市場類型預設為二元，暫不顯示
-            <div><dt>市場類型</dt><dd>{marketTypeLabels[form.marketType]}</dd></div>
-            */}
             <div><dt>截止時間</dt><dd>{formatCloseAt(form.closeAt)}</dd></div>
             <div><dt>資料來源</dt><dd>{form.sourceUrl || '尚未提供'}</dd></div>
             {form.category === CURRENT_EVENT_CATEGORY_CODE && (
@@ -407,6 +441,88 @@ export default function CreateMarketPage() {
           </dl>
         </aside>
       </div>
+
+      <section className="my-submissions" aria-label="我的送審紀錄">
+        <div className="my-submissions__header">
+          <div>
+            <h2>我的送審紀錄</h2>
+            <p>查看你建立的市場審核進度</p>
+          </div>
+          <span className="my-submissions__count">{listLoading ? '…' : `${listTotal} 筆`}</span>
+        </div>
+
+        <div className="my-submissions__table-wrap">
+          <table className="my-submissions__table">
+            <thead>
+              <tr>
+                <th>審核狀態</th>
+                <th>市場分類</th>
+                <th>市場名稱</th>
+                <th>送審時間</th>
+              </tr>
+            </thead>
+            <tbody>
+              {listLoading ? (
+                <tr>
+                  <td colSpan={4} className="my-submissions__empty">載入中…</td>
+                </tr>
+              ) : !myMarkets.length ? (
+                <tr>
+                  <td colSpan={4} className="my-submissions__empty">
+                    <i className="bi bi-inbox my-submissions__empty-icon" aria-hidden="true" />
+                    尚無送審紀錄，建立並送審後會顯示在這裡
+                  </td>
+                </tr>
+              ) : (
+                myMarkets.map((m) => {
+                  const rev = reviewStatus(m.status);
+                  return (
+                    <tr key={m.id}>
+                      <td>
+                        <span className={`my-submissions__badge my-submissions__badge--${rev.tone}`}>
+                          <span className="my-submissions__dot" />
+                          {rev.label}
+                        </span>
+                      </td>
+                      <td>
+                        <span className="my-submissions__cat">{categoryLabel(m.category)}</span>
+                      </td>
+                      <td className="my-submissions__title">{m.title || '—'}</td>
+                      <td className="my-submissions__time">{formatTime(m.createdAt, 16) || '—'}</td>
+                    </tr>
+                  );
+                })
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {listTotalPages > 1 && (
+          <div className="my-submissions__pagination">
+            <span className="my-submissions__page-meta">
+              第 {listPage + 1} / {listTotalPages} 頁
+            </span>
+            <div className="my-submissions__page-btns">
+              <button
+                type="button"
+                className="my-submissions__page-btn"
+                disabled={listLoading || listPage <= 0}
+                onClick={() => loadMyMarkets(listPage - 1)}
+              >
+                上一頁
+              </button>
+              <button
+                type="button"
+                className="my-submissions__page-btn"
+                disabled={listLoading || listPage >= listTotalPages - 1}
+                onClick={() => loadMyMarkets(listPage + 1)}
+              >
+                下一頁
+              </button>
+            </div>
+          </div>
+        )}
+      </section>
     </div>
   );
 }
