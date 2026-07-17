@@ -5,7 +5,9 @@ import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Stream;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -32,6 +34,10 @@ import com.ucmarket.notification.NotificationEventType;
 import com.ucmarket.notification.NotificationService;
 import com.ucmarket.entity.UserRole;
 import com.ucmarket.entity.UserStatus;
+import com.ucmarket.notification.MarketApprovedPayload;
+import com.ucmarket.notification.MarketChangesRequestedPayload;
+import com.ucmarket.notification.MarketRejectedPayload;
+import com.ucmarket.notification.MarketResolvedPayload;
 import com.ucmarket.notification.MarketSubmittedPayload;
 import com.ucmarket.notification.MarketSubmittedPayload.RecipientType;
 
@@ -135,6 +141,19 @@ public class MarketService {
         adminLogRepository.save(new AdminLog(adminId, "MARKET_APPROVE", "MARKET", marketId,
                 toJson(Map.of("status", "ACTIVE"))));
 
+        User creator = userRepository.findById(market.getCreatorId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Market creator not found: " + market.getCreatorId()));
+        NotificationEventType eventType = NotificationEventType.MARKET_APPROVED;
+        notificationService.enqueue(
+                eventType,
+                creator.getId(),
+                creator.getEmail(),
+                market.getId(),
+                toJson(new MarketApprovedPayload(market.getTitle())),
+                "market:%s:submission:%s:%s:user:%s".formatted(
+                        market.getId(), market.getSubmissionVersion(), eventType, creator.getId()));
+
         return market;
     }
 
@@ -151,6 +170,19 @@ public class MarketService {
         marketReviewRepository.save(new MarketReview(marketId, adminId, ReviewStatus.REJECTED, reason));
         adminLogRepository.save(new AdminLog(adminId, "MARKET_REJECT", "MARKET", marketId,
                 toJson(Collections.singletonMap("reason", reason))));
+
+        User creator = userRepository.findById(market.getCreatorId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Market creator not found: " + market.getCreatorId()));
+        NotificationEventType eventType = NotificationEventType.MARKET_REJECTED;
+        notificationService.enqueue(
+                eventType,
+                creator.getId(),
+                creator.getEmail(),
+                market.getId(),
+                toJson(new MarketRejectedPayload(market.getTitle(), reason)),
+                "market:%s:submission:%s:%s:user:%s".formatted(
+                        market.getId(), market.getSubmissionVersion(), eventType, creator.getId()));
 
         return market;
     }
@@ -169,14 +201,52 @@ public class MarketService {
         adminLogRepository.save(new AdminLog(adminId, "MARKET_REQUEST_CHANGES", "MARKET", marketId,
                 toJson(Collections.singletonMap("comment", comment))));
 
+        User creator = userRepository.findById(market.getCreatorId())
+                .orElseThrow(() -> new EntityNotFoundException(
+                        "Market creator not found: " + market.getCreatorId()));
+        NotificationEventType eventType = NotificationEventType.MARKET_CHANGES_REQUESTED;
+        notificationService.enqueue(
+                eventType,
+                creator.getId(),
+                creator.getEmail(),
+                market.getId(),
+                toJson(new MarketChangesRequestedPayload(market.getTitle(), comment)),
+                "market:%s:submission:%s:%s:user:%s".formatted(
+                        market.getId(), market.getSubmissionVersion(), eventType, creator.getId()));
+
         return market;
     }
 
     public Market resolveMarket(UUID marketId, UUID adminId, com.ucmarket.entity.MarketResult result) {
+        List<UUID> holderIds = positionRepository.findByMarketIdAndStatus(
+                        marketId, PositionStatus.OPEN)
+                .stream()
+                .map(Position::getUserId)
+                .distinct()
+                .toList();
+
         Market market = resolutionService.resolveMarket(marketId, result, adminId);
 
         adminLogRepository.save(new AdminLog(adminId, "MARKET_RESOLVE", "MARKET", marketId,
                 toJson(Map.of("result", result.name()))));
+
+        NotificationEventType eventType = NotificationEventType.MARKET_RESOLVED;
+        String payload = toJson(new MarketResolvedPayload(
+                market.getTitle(), result.name()));
+        Stream.concat(holderIds.stream(), Stream.of(market.getCreatorId()))
+                .distinct()
+                .map(userRepository::findById)
+                .flatMap(Optional::stream)
+                .filter(user -> user.getId().equals(market.getCreatorId())
+                        || user.getStatus() == UserStatus.ACTIVE)
+                .forEach(user -> notificationService.enqueue(
+                        eventType,
+                        user.getId(),
+                        user.getEmail(),
+                        marketId,
+                        payload,
+                        "market:%s:%s:user:%s".formatted(
+                                marketId, eventType, user.getId())));
 
         return market;
     }
