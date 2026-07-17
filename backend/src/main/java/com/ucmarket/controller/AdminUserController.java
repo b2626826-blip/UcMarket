@@ -20,10 +20,12 @@ import com.ucmarket.dto.WalletTransactionResponse;
 import com.ucmarket.dto.admin.AdminUserResponse;
 import com.ucmarket.dto.admin.AdminUserWalletResponse;
 import com.ucmarket.dto.admin.AdminWalletAdjustRequest;
+import com.ucmarket.entity.AdminLog;
 import com.ucmarket.entity.User;
 import com.ucmarket.entity.UserRole;
 import com.ucmarket.entity.UserStatus;
 import com.ucmarket.entity.WalletTransaction;
+import com.ucmarket.repository.AdminLogRepository;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.service.WalletService;
 import com.ucmarket.util.PageParams;
@@ -36,10 +38,13 @@ public class AdminUserController {
 
     private final UserRepository userRepository;
     private final WalletService walletService;
+    private final AdminLogRepository adminLogRepository;
 
-    public AdminUserController(UserRepository userRepository, WalletService walletService) {
+    public AdminUserController(UserRepository userRepository, WalletService walletService,
+            AdminLogRepository adminLogRepository) {
         this.userRepository = userRepository;
         this.walletService = walletService;
+        this.adminLogRepository = adminLogRepository;
     }
 
     @GetMapping
@@ -59,20 +64,32 @@ public class AdminUserController {
     }
 
     @PostMapping("/{id}/suspend")
-    public ResponseEntity<AdminUserResponse> suspendUser(@PathVariable UUID id) {
+    public ResponseEntity<AdminUserResponse> suspendUser(
+            @PathVariable UUID id, @AuthenticationPrincipal User admin) {
+        if (admin.getId().equals(id)) {
+            throw new IllegalArgumentException("不可停權自己");
+        }
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + id));
         user.changeStatus(UserStatus.BANNED);
         userRepository.save(user);
+        adminLogRepository.save(new AdminLog(
+                admin.getId(), "USER_SUSPEND", "USER", id, "{\"status\":\"BANNED\"}"));
         return ResponseEntity.ok(AdminUserResponse.from(user));
     }
 
     @PostMapping("/{id}/unsuspend")
-    public ResponseEntity<AdminUserResponse> unsuspendUser(@PathVariable UUID id) {
+    public ResponseEntity<AdminUserResponse> unsuspendUser(
+            @PathVariable UUID id, @AuthenticationPrincipal User admin) {
+        if (admin.getId().equals(id)) {
+            throw new IllegalArgumentException("不可解除自己的停權");
+        }
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new EntityNotFoundException("User not found: " + id));
         user.changeStatus(UserStatus.ACTIVE);
         userRepository.save(user);
+        adminLogRepository.save(new AdminLog(
+                admin.getId(), "USER_UNSUSPEND", "USER", id, "{\"status\":\"ACTIVE\"}"));
         return ResponseEntity.ok(AdminUserResponse.from(user));
     }
 
