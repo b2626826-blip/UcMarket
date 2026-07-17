@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import "./style.css";
 import { fetchRankings } from "../../../api/rankingApi";
 import useAuthStore from "../../../store/authStore";
+import rankingHeroGif from "../../../assets/ranking-hero.gif";
 
 
 function formatCurrency(value) {
@@ -65,21 +66,34 @@ const TABS = [
 ];
 
 function MyRankingCard({ data, currentUserId }) {
-  const currentUser = data.find((u) => u.userId === currentUserId);
+  const currentUser = currentUserId
+    ? data.find((u) => u.userId === currentUserId)
+    : null;
 
   return (
     <section className="my-ranking-card" aria-label="我的排名">
       <h2>我的排名</h2>
 
-      {!currentUser ? (
+      {!currentUserId ? (
+        <p className="my-ranking-login-message">登入可以查看排名</p>
+      ) : !currentUser ? (
         <p>目前沒有你的排行榜資料。</p>
       ) : (
         <div className="my-ranking-content">
-          <strong>#{currentUser.rank}</strong>
-          <span>{currentUser.name}</span>
-          <span className="green">{formatProfit(currentUser.profit)}</span>
-          <span>勝率 {formatPercent(currentUser.winRate)}</span>
-          <span>資產 {formatCurrency(currentUser.assets)}</span>
+          <strong className="my-ranking-rank">#{currentUser.rank}</strong>
+          <strong className="my-ranking-user">{currentUser.name}</strong>
+          <div className="my-ranking-stat">
+            <span>盈虧</span>
+            <strong className="green">{formatProfit(currentUser.profit)}</strong>
+          </div>
+          <div className="my-ranking-stat">
+            <span>勝率</span>
+            <strong>{formatPercent(currentUser.winRate)}</strong>
+          </div>
+          <div className="my-ranking-stat">
+            <span>資產</span>
+            <strong>{formatCurrency(currentUser.assets)}</strong>
+          </div>
         </div>
       )}
 
@@ -222,10 +236,16 @@ export default function RankingsPage() {
           <h1>排行榜</h1>
           <p className="ranking-description">一直賭 一直爽。</p>
         </div>
-        {authUser && (
-          <MyRankingCard data={allData} currentUserId={authUser.id} />
-        )}
+        <div className="ranking-hero-aside">
+          <img
+            className="ranking-hero-gif"
+            src={rankingHeroGif}
+            alt="自從開始用 UcMarket"
+          />
+        </div>
       </section>
+
+      <MyRankingCard data={allData} currentUserId={authUser?.id} />
 
       <div className="ranking-tabs" aria-label="排行榜類型">
         {TABS.map((tab) => (
