@@ -15,7 +15,10 @@ import com.ucmarket.dto.auth.AuthResponse.UserInfo;
 import com.ucmarket.dto.auth.LoginRequest;
 import com.ucmarket.dto.auth.RegisterRequest;
 import com.ucmarket.entity.User;
+import com.ucmarket.entity.UserRole;
 import com.ucmarket.entity.UserSession;
+import com.ucmarket.entity.UserStatus;
+import com.ucmarket.repository.UserOAuthAccountRepository;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.repository.UserSessionRepository;
 import com.ucmarket.security.JwtTokenProvider;
@@ -29,14 +32,17 @@ public class AuthService {
 
     private final UserRepository userRepository;
     private final UserSessionRepository userSessionRepository;
+    private final UserOAuthAccountRepository userOAuthAccountRepository;
     private final WalletService walletService;
     private final JwtTokenProvider jwtTokenProvider;
     private final PasswordEncoder passwordEncoder;
 
     public AuthService(UserRepository userRepository, UserSessionRepository userSessionRepository,
-            WalletService walletService, JwtTokenProvider jwtTokenProvider, PasswordEncoder passwordEncoder) {
+            UserOAuthAccountRepository userOAuthAccountRepository, WalletService walletService,
+            JwtTokenProvider jwtTokenProvider, PasswordEncoder passwordEncoder) {
         this.userRepository = userRepository;
         this.userSessionRepository = userSessionRepository;
+        this.userOAuthAccountRepository = userOAuthAccountRepository;
         this.walletService = walletService;
         this.jwtTokenProvider = jwtTokenProvider;
         this.passwordEncoder = passwordEncoder;
@@ -44,10 +50,10 @@ public class AuthService {
 
     public AuthResponse register(RegisterRequest request) {
         if (userRepository.existsByEmail(request.email())) {
-            throw new IllegalArgumentException("Email already registered");
+            throw new IllegalArgumentException("此 Email 已被註冊");
         }
         if (userRepository.existsByUsername(request.username())) {
-            throw new IllegalArgumentException("Username already taken");
+            throw new IllegalArgumentException("此使用者名稱已被使用");
         }
 
         User user = new User(request.username(), request.email(), passwordEncoder.encode(request.password()));
@@ -64,14 +70,15 @@ public class AuthService {
 
     public AuthResponse login(LoginRequest request) {
         User user = userRepository.findByEmail(request.email())
-                .orElseThrow(() -> new IllegalArgumentException("Invalid email or password"));
+                .orElseThrow(() -> new IllegalArgumentException("Email 或密碼錯誤"));
 
-        if (!passwordEncoder.matches(request.password(), user.getPasswordHash())) {
-            throw new IllegalArgumentException("Invalid email or password");
+        if (user.getPasswordHash() == null
+                || !passwordEncoder.matches(request.password(), user.getPasswordHash())) {
+            throw new IllegalArgumentException("Email 或密碼錯誤");
         }
 
-        if (user.getStatus() != com.ucmarket.entity.UserStatus.ACTIVE) {
-            throw new IllegalStateException("Account is not active");
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new IllegalStateException("帳號未啟用或已停用");
         }
 
         user.recordLogin(LocalDateTime.now());
@@ -82,7 +89,7 @@ public class AuthService {
 
     public UserInfo getCurrentUser(UUID userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("找不到使用者"));
         return new UserInfo(user.getId(), user.getUsername(), user.getEmail(), user.getRole().name(),
                 user.getStatus().name(), user.getReputation(), user.getAvatarUrl(), user.getBio(),
                 user.getPasswordHash() != null, user.getCreatedAt());
@@ -91,9 +98,9 @@ public class AuthService {
     public void logout(UUID userId, String refreshToken) {
         String hash = sha256(refreshToken);
         UserSession session = userSessionRepository.findByRefreshTokenHash(hash)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
+                .orElseThrow(() -> new IllegalArgumentException("無效的重新整理權杖"));
         if (!session.getUserId().equals(userId)) {
-            throw new IllegalArgumentException("Token does not belong to current user");
+            throw new IllegalArgumentException("權杖不屬於目前使用者");
         }
         session.revoke();
         userSessionRepository.save(session);
@@ -102,31 +109,62 @@ public class AuthService {
     public AuthResponse refresh(String rawRefreshToken) {
         String hash = sha256(rawRefreshToken);
         UserSession session = userSessionRepository.findByRefreshTokenHash(hash)
-                .orElseThrow(() -> new IllegalArgumentException("Invalid refresh token"));
+                .orElseThrow(() -> new IllegalArgumentException("無效的重新整理權杖"));
 
         if (session.getRevokedAt() != null) {
-            throw new IllegalArgumentException("Refresh token has been revoked");
+            throw new IllegalArgumentException("重新整理權杖已失效");
         }
         if (session.getExpiresAt().isBefore(LocalDateTime.now())) {
-            throw new IllegalArgumentException("Refresh token has expired");
+            throw new IllegalArgumentException("重新整理權杖已過期");
         }
 
         session.revoke();
         userSessionRepository.save(session);
 
         User user = userRepository.findById(session.getUserId())
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("找不到使用者"));
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new IllegalStateException("帳號未啟用或已停用");
+        }
 
         return buildAuthResponse(user);
     }
 
+    public void deleteAccount(UUID userId, String password) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("找不到使用者"));
+
+        if (user.getRole() == UserRole.ADMIN) {
+            throw new IllegalStateException("管理員無法自行註銷帳號");
+        }
+
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new IllegalStateException("帳號未啟用或已停用");
+        }
+
+        if (user.getPasswordHash() != null) {
+            if (password == null || password.isBlank()) {
+                throw new IllegalArgumentException("請輸入目前密碼");
+            }
+            if (!passwordEncoder.matches(password, user.getPasswordHash())) {
+                throw new IllegalArgumentException("目前密碼不正確");
+            }
+        }
+
+        user.anonymizeForDeletion();
+        userRepository.save(user);
+        userSessionRepository.deleteByUserId(userId);
+        userOAuthAccountRepository.deleteByUserId(userId);
+    }
+
     public UserInfo updateProfile(UUID userId, String username, String avatarUrl, String bio) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("找不到使用者"));
 
         if (username != null && !username.equals(user.getUsername())) {
             if (userRepository.existsByUsername(username)) {
-                throw new IllegalArgumentException("Username already taken");
+                throw new IllegalArgumentException("此使用者名稱已被使用");
             }
             user.setUsername(username);
         }
@@ -140,14 +178,14 @@ public class AuthService {
 
     public void changePassword(UUID userId, String oldPassword, String newPassword) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                .orElseThrow(() -> new IllegalArgumentException("找不到使用者"));
 
         if (user.getPasswordHash() == null) {
-            throw new IllegalStateException("OAuth users cannot change password");
+            throw new IllegalStateException("第三方登入帳號無法在此變更密碼");
         }
 
         if (!passwordEncoder.matches(oldPassword, user.getPasswordHash())) {
-            throw new IllegalArgumentException("Current password is incorrect");
+            throw new IllegalArgumentException("目前密碼不正確");
         }
 
         user.setPasswordHash(passwordEncoder.encode(newPassword));

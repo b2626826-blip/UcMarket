@@ -59,21 +59,27 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
     public ResponseEntity<Map<String, Object>> handleValidation(MethodArgumentNotValidException ex) {
-        StringBuilder sb = new StringBuilder("Validation failed: ");
+        StringBuilder sb = new StringBuilder();
         for (FieldError fe : ex.getBindingResult().getFieldErrors()) {
-            sb.append(fe.getField()).append(" - ").append(fe.getDefaultMessage()).append("; ");
+            if (sb.length() > 0) {
+                sb.append("；");
+            }
+            sb.append(fe.getDefaultMessage());
+        }
+        if (sb.length() == 0) {
+            sb.append("資料驗證失敗");
         }
         return build(HttpStatus.BAD_REQUEST, sb.toString());
     }
 
     @ExceptionHandler(AuthenticationException.class)
     public ResponseEntity<Map<String, Object>> handleAuth(AuthenticationException ex) {
-        return build(HttpStatus.UNAUTHORIZED, "Unauthorized");
+        return build(HttpStatus.UNAUTHORIZED, "未授權，請重新登入");
     }
 
     @ExceptionHandler(AccessDeniedException.class)
     public ResponseEntity<Map<String, Object>> handleForbidden(AccessDeniedException ex) {
-        return build(HttpStatus.FORBIDDEN, "Forbidden");
+        return build(HttpStatus.FORBIDDEN, "沒有權限執行此操作");
     }
 
     @ExceptionHandler(ResponseStatusException.class)
@@ -85,7 +91,7 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<Map<String, Object>> handleGeneral(Exception ex) {
         log.error("Unhandled exception", ex);
-        return build(HttpStatus.INTERNAL_SERVER_ERROR, "Internal server error");
+        return build(HttpStatus.INTERNAL_SERVER_ERROR, "伺服器發生錯誤，請稍後再試");
     }
 
     private ResponseEntity<Map<String, Object>> build(HttpStatus status, String message) {

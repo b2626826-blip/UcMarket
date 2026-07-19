@@ -47,6 +47,16 @@
   border: 1px solid rgba(255, 71, 109, 0.25);
 }
 
+.btn--danger {
+  background: #ff476d;
+  color: #fff;
+  border-color: transparent;
+}
+
+.btn--danger:hover:not(:disabled) {
+  background: #e63b5f;
+}
+
 .btn--sm {
   padding: 8px 14px;
   font-size: 13px;

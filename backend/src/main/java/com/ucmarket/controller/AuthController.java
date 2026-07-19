@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ucmarket.dto.auth.AuthResponse;
 import com.ucmarket.dto.auth.AuthResponse.UserInfo;
 import com.ucmarket.dto.auth.ChangePasswordRequest;
+import com.ucmarket.dto.auth.DeleteAccountRequest;
 import com.ucmarket.dto.auth.FirebaseLoginRequest;
 import com.ucmarket.dto.auth.LoginRequest;
 import com.ucmarket.dto.auth.LogoutRequest;
@@ -93,6 +95,17 @@ public class AuthController {
     public ResponseEntity<Void> changePassword(@AuthenticationPrincipal User user,
             @Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(user.getId(), request.oldPassword(), request.newPassword());
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteAccount(@AuthenticationPrincipal User user,
+            @RequestBody(required = false) DeleteAccountRequest request) {
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String password = request != null ? request.password() : null;
+        authService.deleteAccount(user.getId(), password);
         return ResponseEntity.noContent().build();
     }
 }

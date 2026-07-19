@@ -127,4 +127,12 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void deleteAccount_shouldReturn401_whenNotAuthenticated() throws Exception {
+        mockMvc.perform(delete("/api/auth/me")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"password\":\"secret\"}"))
+                .andExpect(status().isUnauthorized());
+    }
 }

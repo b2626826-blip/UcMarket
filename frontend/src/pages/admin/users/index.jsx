@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getAdminUsers, suspendUser, unsuspendUser } from '../../../api/adminApi';
+import useAuthStore from '../../../store/authStore';
 import useUiStore from '../../../store/uiStore';
 import StatusBadge from '../../../components/common/StatusBadge';
 import Pagination from '../../../components/admin/Pagination';
@@ -15,6 +16,7 @@ export default function UsersPage() {
   const [totalPages, setTotalPages] = useState(0);
   const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
+  const currentUser = useAuthStore((s) => s.user);
   const showToast = useUiStore((s) => s.showToast);
 
   const loadUsers = useCallback(async () => {
@@ -133,9 +135,9 @@ export default function UsersPage() {
                     <td>{formatTime(u.createdAt, 16) || '-'}</td>
                     <td>{formatTime(u.lastLoginAt, 16) || '-'}</td>
                     <td>
-                      {u.status === 'ACTIVE' && <button className="icon-btn text-danger" title="停權" onClick={() => handleSuspend(u.id)}><i className="bi bi-shield-slash"></i></button>}
-                      {u.status === 'BANNED' && <button className="icon-btn text-success" title="啟用" onClick={() => handleUnsuspend(u.id)}><i className="bi bi-shield-check"></i></button>}
-                      {!['ACTIVE','BANNED'].includes(u.status) && <span className="text-secondary small">—</span>}
+                      {u.id !== currentUser?.id && u.status === 'ACTIVE' && <button className="icon-btn text-danger" title="停權" onClick={() => handleSuspend(u.id)}><i className="bi bi-shield-slash"></i></button>}
+                      {u.id !== currentUser?.id && u.status === 'BANNED' && <button className="icon-btn text-success" title="啟用" onClick={() => handleUnsuspend(u.id)}><i className="bi bi-shield-check"></i></button>}
+                      {(u.id === currentUser?.id || !['ACTIVE','BANNED'].includes(u.status)) && <span className="text-secondary small">—</span>}
                     </td>
                   </tr>
                 ))}

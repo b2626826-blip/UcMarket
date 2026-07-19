@@ -14,6 +14,44 @@ const ACTION_CLASS = {
   MARKET_REQUEST_CHANGES: 'status-pending', USER_SUSPEND: 'status-rejected', USER_UNSUSPEND: 'status-approved',
 };
 
+function parseMetadata(metadata) {
+  if (metadata == null || metadata === '') return null;
+  if (typeof metadata === 'object') return metadata;
+  try {
+    return JSON.parse(metadata);
+  } catch {
+    return null;
+  }
+}
+
+function formatLogDetail(action, metadata) {
+  if (metadata == null || metadata === '') return '—';
+  const data = parseMetadata(metadata);
+
+  switch (action) {
+    case 'MARKET_APPROVE':
+      if (data?.status === 'ACTIVE') return '狀態：進行中';
+      return data?.status ? `狀態：${data.status}` : '狀態：進行中';
+    case 'MARKET_REJECT':
+      return data?.reason != null && data.reason !== '' ? `原因：${data.reason}` : '原因：—';
+    case 'MARKET_REQUEST_CHANGES':
+      return data?.comment != null && data.comment !== '' ? `備註：${data.comment}` : '備註：—';
+    case 'MARKET_RESOLVE':
+      return data?.result != null && data.result !== '' ? `結果：${data.result}` : '結果：—';
+    case 'USER_SUSPEND':
+      return '停權用戶';
+    case 'USER_UNSUSPEND':
+      return '解除停權';
+    default:
+      if (data && typeof data === 'object') {
+        return Object.entries(data)
+          .map(([k, v]) => `${k}：${v}`)
+          .join('、') || String(metadata);
+      }
+      return String(metadata);
+  }
+}
+
 export default function LogsPage() {
   const [logs, setLogs] = useState([]);
   const [filters, setFilters] = useState({ keyword: '', action: '' });
@@ -117,7 +155,7 @@ export default function LogsPage() {
                       <td><span className={`status-badge ${cls}`}><span className="status-dot"></span>{label}</span></td>
                       <td>{l.targetType || ''}</td>
                       <td className="fw-semibold small">{l.targetCode || (l.targetId || '').substring(0, 8)}</td>
-                      <td className="small text-secondary">{l.metadata || ''}</td>
+                      <td className="small text-secondary">{formatLogDetail(l.action, l.metadata)}</td>
                     </tr>
                   );
                 })}

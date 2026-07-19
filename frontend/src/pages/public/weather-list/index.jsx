@@ -2,9 +2,21 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getMarketsByCategory } from '../../../api/marketApi';
 import { groupWeatherMarkets, parseMetadata } from '../../../utils/weatherHelpers';
 import WeatherEventCard from '../../../components/market/WeatherEventCard';
+import heroImg from './weather-list-hero.png';
 import './WeatherListPage.css';
 
 const PAGE_SIZE = 9;
+
+const WEATHER_HERO_LINES = [
+  '賭狗們，天氣也給你們賭 !',
+  '預報準？那你還在這幹嘛？',
+  '別裝了，承認你就是手癢。',
+  '隨便下注，輸了記得怪天不怪自己。',
+  '一時看天一時爽，一直下注一直爽 !',
+  '如果不拚高賠，那你還是別玩了吧 !',
+  '雨下多少，賭狗說了算。',
+  '看天吃飯？不，看盤吃飯。',
+];
 
 export default function WeatherListPage() {
   const [groups, setGroups] = useState([]);
@@ -15,7 +27,15 @@ export default function WeatherListPage() {
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
   const [canScrollLeft, setCanScrollLeft] = useState(false);
   const [canScrollRight, setCanScrollRight] = useState(false);
+  const [heroLineIndex, setHeroLineIndex] = useState(0);
   const pillTrackRef = useRef(null);
+
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setHeroLineIndex((index) => (index + 1) % WEATHER_HERO_LINES.length);
+    }, 4000);
+    return () => clearInterval(timer);
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -108,45 +128,51 @@ export default function WeatherListPage() {
 
   return (
     <div className="weather-list-page">
-      <div className="weather-list-header">
-        <h1>天氣預測市場</h1>
-        <p>選擇城市，查看該地區未來天氣預測事件</p>
-      </div>
-
-      <div className={`weather-city-filter${canScrollLeft ? ' is-left' : ''}${canScrollRight ? ' is-right' : ''}`}>
-        <button
-          type="button"
-          className="weather-city-filter__arrow weather-city-filter__arrow--left"
-          aria-label="向左捲動篩選"
-          disabled={!canScrollLeft}
-          onClick={() => scrollPills(-1)}
-        >
-          <i className="fa-solid fa-chevron-left" aria-hidden="true" />
-        </button>
-
-        <div className="weather-city-filter__track" ref={pillTrackRef}>
-          {pills.map((pill) => (
-            <button
-              key={pill}
-              className={selectedCity === pill ? 'active' : ''}
-              onClick={() => handlePillClick(pill)}
-              type="button"
-            >
-              {pill}
-            </button>
-          ))}
+      <section className="weather-list-hero" aria-label="天氣預測市場">
+        <img className="weather-list-hero__bg" src={heroImg} alt="" aria-hidden="true" />
+        <div className="weather-list-hero__content">
+          <h1>天氣預測市場</h1>
+          <p key={heroLineIndex} className="weather-list-hero__line">
+            {WEATHER_HERO_LINES[heroLineIndex]}
+          </p>
         </div>
+        <div className="weather-list-hero__filter">
+          <div className={`weather-city-filter${canScrollLeft ? ' is-left' : ''}${canScrollRight ? ' is-right' : ''}`}>
+            <button
+              type="button"
+              className="weather-city-filter__arrow weather-city-filter__arrow--left"
+              aria-label="向左捲動篩選"
+              disabled={!canScrollLeft}
+              onClick={() => scrollPills(-1)}
+            >
+              <i className="fa-solid fa-chevron-left" aria-hidden="true" />
+            </button>
 
-        <button
-          type="button"
-          className="weather-city-filter__arrow weather-city-filter__arrow--right"
-          aria-label="向右捲動篩選"
-          disabled={!canScrollRight}
-          onClick={() => scrollPills(1)}
-        >
-          <i className="fa-solid fa-chevron-right" aria-hidden="true" />
-        </button>
-      </div>
+            <div className="weather-city-filter__track" ref={pillTrackRef}>
+              {pills.map((pill) => (
+                <button
+                  key={pill}
+                  className={selectedCity === pill ? 'active' : ''}
+                  onClick={() => handlePillClick(pill)}
+                  type="button"
+                >
+                  {pill}
+                </button>
+              ))}
+            </div>
+
+            <button
+              type="button"
+              className="weather-city-filter__arrow weather-city-filter__arrow--right"
+              aria-label="向右捲動篩選"
+              disabled={!canScrollRight}
+              onClick={() => scrollPills(1)}
+            >
+              <i className="fa-solid fa-chevron-right" aria-hidden="true" />
+            </button>
+          </div>
+        </div>
+      </section>
 
       {loading && <p className="weather-list-loading">載入中...</p>}
       {error && <p className="weather-list-error">{error}</p>}

@@ -8,6 +8,7 @@ import com.ucmarket.entity.User;
 import com.ucmarket.entity.UserRole;
 import com.ucmarket.entity.UserSession;
 import com.ucmarket.entity.UserStatus;
+import com.ucmarket.repository.UserOAuthAccountRepository;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.repository.UserSessionRepository;
 import com.ucmarket.security.JwtTokenProvider;
@@ -34,6 +35,7 @@ class AuthServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private UserSessionRepository userSessionRepository;
+    @Mock private UserOAuthAccountRepository userOAuthAccountRepository;
     @Mock private WalletService walletService;
     @Mock private JwtTokenProvider jwtTokenProvider;
     @Mock private PasswordEncoder passwordEncoder;
@@ -45,8 +47,8 @@ class AuthServiceTest {
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, userSessionRepository, walletService,
-                jwtTokenProvider, passwordEncoder);
+        authService = new AuthService(userRepository, userSessionRepository, userOAuthAccountRepository,
+                walletService, jwtTokenProvider, passwordEncoder);
     }
 
     @Test
@@ -197,5 +199,104 @@ class AuthServiceTest {
         assertThrows(IllegalArgumentException.class, () -> authService.logout(userId, "some-token"));
 
         verify(userSessionRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteAccount_shouldSoftDeletePasswordUser() {
+        UUID userId = UUID.randomUUID();
+        User user = new User("testuser", "user@test.com", "encodedPwd");
+        ReflectionTestUtils.setField(user, "id", userId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("correctPwd", "encodedPwd")).thenReturn(true);
+
+        authService.deleteAccount(userId, "correctPwd");
+
+        assertEquals(UserStatus.DISABLED, user.getStatus());
+        assertNull(user.getPasswordHash());
+        assertTrue(user.getEmail().startsWith("deleted+"));
+        assertTrue(user.getUsername().startsWith("deleted_"));
+        assertNull(user.getAvatarUrl());
+        assertNull(user.getBio());
+        verify(userRepository).save(user);
+        verify(userSessionRepository).deleteByUserId(userId);
+        verify(userOAuthAccountRepository).deleteByUserId(userId);
+    }
+
+    @Test
+    void deleteAccount_shouldSoftDeleteOAuthUser_withoutPassword() {
+        UUID userId = UUID.randomUUID();
+        User user = new User("oauthuser", "oauth@test.com", null);
+        ReflectionTestUtils.setField(user, "id", userId);
+
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        authService.deleteAccount(userId, null);
+
+        assertEquals(UserStatus.DISABLED, user.getStatus());
+        verify(userSessionRepository).deleteByUserId(userId);
+        verify(userOAuthAccountRepository).deleteByUserId(userId);
+    }
+
+    @Test
+    void deleteAccount_shouldThrow_whenPasswordMissing() {
+        UUID userId = UUID.randomUUID();
+        User user = new User("testuser", "user@test.com", "encodedPwd");
+        ReflectionTestUtils.setField(user, "id", userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        assertThrows(IllegalArgumentException.class, () -> authService.deleteAccount(userId, null));
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteAccount_shouldThrow_whenPasswordIncorrect() {
+        UUID userId = UUID.randomUUID();
+        User user = new User("testuser", "user@test.com", "encodedPwd");
+        ReflectionTestUtils.setField(user, "id", userId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.matches("wrong", "encodedPwd")).thenReturn(false);
+
+        assertThrows(IllegalArgumentException.class, () -> authService.deleteAccount(userId, "wrong"));
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteAccount_shouldThrow_whenAdmin() {
+        UUID userId = UUID.randomUUID();
+        User user = new User("admin", "admin@test.com", "encodedPwd");
+        ReflectionTestUtils.setField(user, "id", userId);
+        ReflectionTestUtils.setField(user, "role", UserRole.ADMIN);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        assertThrows(IllegalStateException.class, () -> authService.deleteAccount(userId, "pwd"));
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void deleteAccount_shouldThrow_whenAlreadyDisabled() {
+        UUID userId = UUID.randomUUID();
+        User user = new User("gone", "gone@test.com", "encodedPwd");
+        ReflectionTestUtils.setField(user, "id", userId);
+        ReflectionTestUtils.setField(user, "status", UserStatus.DISABLED);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        assertThrows(IllegalStateException.class, () -> authService.deleteAccount(userId, "pwd"));
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void refresh_shouldThrow_whenUserNotActive() {
+        UUID userId = UUID.randomUUID();
+        UserSession session = new UserSession(userId, "hash",
+                java.time.LocalDateTime.now().plusDays(1), null);
+        User user = new User("gone", "gone@test.com", "pwd");
+        ReflectionTestUtils.setField(user, "id", userId);
+        ReflectionTestUtils.setField(user, "status", UserStatus.DISABLED);
+
+        when(userSessionRepository.findByRefreshTokenHash(any())).thenReturn(Optional.of(session));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+
+        assertThrows(IllegalStateException.class, () -> authService.refresh("raw-refresh"));
     }
 }
