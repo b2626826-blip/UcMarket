@@ -1,0 +1,251 @@
+{
+  "name": "05-failed-alert",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        0
+      ],
+      "id": "36880d9c-79e2-454d-b924-878f6ad37e33",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "url": "http://host.docker.internal:8080/api/admin/notifications",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "status",
+              "value": "FAILED"
+            },
+            {
+              "name": "size",
+              "value": "100"
+            }
+          ]
+        },
+        "options": {
+          "pagination": {
+            "pagination": {
+              "paginationMode": "updateAParameterInEachRequest",
+              "parameters": {
+                "parameters": [
+                  {
+                    "type": "qs",
+                    "name": "page",
+                    "value": "={{ $pageCount }}"
+                  }
+                ]
+              },
+              "paginationCompleteWhen": "other",
+              "completeExpression": "={{ $response.body.hasNext !== true }}",
+              "limitPagesFetched": false,
+              "requestInterval": 0
+            }
+          },
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 5000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        224,
+        0
+      ],
+      "id": "4b753044-91bd-45b3-bd48-5adfd8b4b296",
+      "name": "Fetch All FAILED Pages",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "bind-in-local-n8n",
+          "name": "ucmarket-n8n-service-token"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const pages = $input.all().map((item) => item.json);\n\nconst authFailure = pages.find((page) => page.statusCode === 401 || page.statusCode === 403);\nif (authFailure) {\n  throw new Error(`05-failed-alert authentication rejected (HTTP ${authFailure.statusCode}); check ucmarket-n8n-service-token`);\n}\n\nconst unavailable = pages.length === 0 || pages.some((page) =>\n  page.error || page.statusCode == null || page.statusCode >= 500\n);\nif (unavailable) {\n  // 連線失敗與後端 5xx 由 01-health-alert 負責；本 workflow 不重複告警，也不更新狀態。\n  return [];\n}\n\nconst unexpected = pages.find((page) => page.statusCode !== 200);\nif (unexpected) {\n  throw new Error(`05-failed-alert unexpected API status (HTTP ${unexpected.statusCode})`);\n}\n\nconst orderedPages = [...pages].sort((a, b) => a.body.page - b.body.page);\nfor (let index = 0; index < orderedPages.length; index++) {\n  const body = orderedPages[index].body;\n  if (!body || !Array.isArray(body.content) || body.page !== index) {\n    throw new Error(`05-failed-alert invalid pagination response at page ${index}`);\n  }\n  if (index < orderedPages.length - 1 && body.hasNext !== true) {\n    throw new Error(`05-failed-alert pagination ended before page ${index + 1}`);\n  }\n}\nif (orderedPages.at(-1).body.hasNext !== false) {\n  throw new Error('05-failed-alert pagination did not reach the last page');\n}\n\nconst jobsById = new Map();\nfor (const page of orderedPages) {\n  for (const job of page.body.content) {\n    if (!job?.id || !Number.isInteger(job.attemptCount)) {\n      throw new Error('05-failed-alert received an invalid FAILED job');\n    }\n    const existing = jobsById.get(job.id);\n    if (!existing || job.attemptCount > existing.attemptCount) {\n      jobsById.set(job.id, job);\n    }\n  }\n}\n\nconst staticData = $getWorkflowStaticData('global');\nconst previous = staticData.alertedAttempts && typeof staticData.alertedAttempts === 'object'\n  ? staticData.alertedAttempts\n  : {};\nconst jobs = [...jobsById.values()];\nconst currentAttempts = Object.fromEntries(\n  jobs.map((job) => [job.id, job.attemptCount])\n);\nconst newFailures = jobs\n  .filter((job) => previous[job.id] !== job.attemptCount)\n  .sort((a, b) => String(b.updatedAt).localeCompare(String(a.updatedAt)));\n\nconst detailLimit = 10;\nconst details = newFailures.slice(0, detailLimit).map((job) =>\n  `• ${job.id} | ${job.eventType} | attempt ${job.attemptCount} | ${String(job.updatedAt).replace('T', ' ')}`\n);\nconst omitted = newFailures.length - details.length;\nconst at = new Date().toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' });\nconst message = [\n  `🚨 UcMarket 通知工作 FAILED：本輪新增 ${newFailures.length} 筆／目前共 ${jobs.length} 筆`,\n  ...details,\n  ...(omitted > 0 ? [`…另 ${omitted} 筆，請至管理後台查詢`] : []),\n  `時間：${at}`,\n].join('\\n');\n\nreturn [{\n  json: {\n    action: newFailures.length > 0 ? 'alert' : 'commit',\n    currentAttempts,\n    newFailureCount: newFailures.length,\n    totalFailed: jobs.length,\n    message,\n  },\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "83cb49a9-0d09-4d82-af1b-e34b26bc2743",
+      "name": "Analyze FAILED Snapshot"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "14a460f2-f5fb-4bce-a5d5-75da488409b6",
+              "leftValue": "={{ $json.action }}",
+              "rightValue": "alert",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        0
+      ],
+      "id": "c56034cb-3893-4ba6-aede-7b8ec6dc92a5",
+      "name": "Has New FAILED"
+    },
+    {
+      "parameters": {
+        "authentication": "webhook",
+        "content": "={{ $json.message }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.discord",
+      "typeVersion": 2,
+      "position": [
+        896,
+        -96
+      ],
+      "id": "5f5c1cde-bc63-4e60-b29b-590e8c235c46",
+      "name": "Send FAILED Alert",
+      "webhookId": "1311c83b-fe06-4366-8f6a-2e78297b4997",
+      "credentials": {
+        "discordWebhookApi": {
+          "id": "dsWoYzhNJ0sd0M5j",
+          "name": "discord-ucmarket-通知"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const snapshot = $('Analyze FAILED Snapshot').first().json.currentAttempts;\nconst staticData = $getWorkflowStaticData('global');\nstaticData.alertedAttempts = snapshot;\nreturn [];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        0
+      ],
+      "id": "dc513ff2-adca-4c96-8355-700c388e2074",
+      "name": "Commit Alert State"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch All FAILED Pages",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch All FAILED Pages": {
+      "main": [
+        [
+          {
+            "node": "Analyze FAILED Snapshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Analyze FAILED Snapshot": {
+      "main": [
+        [
+          {
+            "node": "Has New FAILED",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has New FAILED": {
+      "main": [
+        [
+          {
+            "node": "Send FAILED Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Commit Alert State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send FAILED Alert": {
+      "main": [
+        [
+          {
+            "node": "Commit Alert State",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false,
+    "timeSavedMode": "fixed",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "15f5cbd8-7a40-4505-ba1e-985d7522e9d9",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5648f470325e0ceae17af0ab93dd3c788cfe1e8227c30bdcd46578144b08be8b"
+  },
+  "nodeGroups": [],
+  "id": "05FailedAlertV1",
+  "tags": []
+}
