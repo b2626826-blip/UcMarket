@@ -24,6 +24,7 @@ import com.ucmarket.entity.MarketReview.ReviewStatus;
 import com.ucmarket.entity.MarketStatus;
 import com.ucmarket.entity.Position;
 import com.ucmarket.entity.PositionStatus;
+import com.ucmarket.exception.MarketPreReviewBlockedException;
 import com.ucmarket.repository.AdminLogRepository;
 import com.ucmarket.repository.MarketRepository;
 import com.ucmarket.repository.MarketReviewRepository;
@@ -55,12 +56,13 @@ public class MarketService {
     private final WalletService walletService;
     private final UserRepository userRepository;
     private final NotificationService notificationService;
+    private final MarketPreReviewService preReviewService;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     public MarketService(MarketRepository marketRepository, MarketReviewRepository marketReviewRepository,
             AdminLogRepository adminLogRepository, ResolutionService resolutionService,
             PositionRepository positionRepository, WalletService walletService, UserRepository userRepository,
-            NotificationService notificationService) {
+            NotificationService notificationService, MarketPreReviewService preReviewService) {
         this.marketRepository = marketRepository;
         this.marketReviewRepository = marketReviewRepository;
         this.adminLogRepository = adminLogRepository;
@@ -69,8 +71,10 @@ public class MarketService {
         this.walletService = walletService;
         this.userRepository = userRepository;
         this.notificationService = notificationService;
+        this.preReviewService = preReviewService;
     }
 
+    @Transactional(noRollbackFor = MarketPreReviewBlockedException.class)
     public Market submitMarket(UUID marketId, UUID userId) {
         Market market = findMarket(marketId);
 
@@ -79,6 +83,11 @@ public class MarketService {
         }
         if (market.getStatus() != MarketStatus.DRAFT) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Only DRAFT markets can be submitted");
+        }
+
+        MarketPreReviewResult preReview = preReviewService.reviewForSubmission(market);
+        if (preReview.blocked()) {
+            throw new MarketPreReviewBlockedException(preReview.blockingRuleCodes());
         }
 
         market.changeStatus(MarketStatus.PENDING);

@@ -57,6 +57,7 @@ class MarketServiceTest {
     @Mock private WalletService walletService;
     @Mock private UserRepository userRepository;
     @Mock private NotificationService notificationService;
+    @Mock private MarketPreReviewService preReviewService;
 
     @Captor private ArgumentCaptor<Market> marketCaptor;
     @Captor private ArgumentCaptor<MarketReview> reviewCaptor;
@@ -69,7 +70,10 @@ class MarketServiceTest {
     @BeforeEach
     void setUp() {
         marketService = new MarketService(marketRepository, marketReviewRepository, adminLogRepository,
-                resolutionService, positionRepository, walletService, userRepository, notificationService);
+                resolutionService, positionRepository, walletService, userRepository, notificationService,
+                preReviewService);
+        lenient().when(preReviewService.reviewForSubmission(any()))
+                .thenReturn(new MarketPreReviewResult(List.of(), List.of()));
         adminId = UUID.randomUUID();
         marketId = UUID.randomUUID();
     }
