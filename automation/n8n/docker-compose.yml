@@ -16,6 +16,13 @@ services:
       - TZ=Asia/Taipei
     extra_hosts:
       - "host.docker.internal:host-gateway" # Docker Desktop(Win/Mac) 本來就有；這行讓 Linux 隊友也通
+    healthcheck:
+      # 映像內沒有 curl，只有 BusyBox wget（已實測）——別改成 curl，會永遠 unhealthy
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "-T", "3", "http://localhost:5678/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s # 首次啟動要初始化，這段內失敗不計
 
   mailpit:                            # 開發期假 SMTP；正式環境整個 service 移除
     image: axllent/mailpit:v1.30.4   # 釘死版本（禁 latest）
