@@ -1,6 +1,6 @@
 package com.ucmarket.notification;
 
-// 市場通知事件
+// 通知事件
 public enum NotificationEventType {
 	MARKET_SUBMITTED,
 	MARKET_APPROVED,
@@ -8,5 +8,6 @@ public enum NotificationEventType {
 	MARKET_CHANGES_REQUESTED,
 	DAILY_PENDING_REVIEW_SUMMARY,
 	MARKET_CLOSING_REMINDER,
-	MARKET_RESOLVED
+	MARKET_RESOLVED,
+	PASSWORD_RESET
 }

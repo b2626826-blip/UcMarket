@@ -189,4 +189,25 @@ public class EmailTemplateServiceTest {
                 "Market \"Will the index rise?\" was resolved as YES.",
                 email.body());
     }
+
+    @Test
+    void render_passwordReset_usesPayloadSnapshot() {
+        EmailTemplateService service = new EmailTemplateService(new ObjectMapper());
+
+        EmailTemplateService.EmailContent email = service.render(
+                NotificationEventType.PASSWORD_RESET,
+                """
+                        {
+                            "resetUrl": "http://localhost:5173/auth/reset-password?token=abc",
+                            "username": "alice",
+                            "expiresInMinutes": 10
+                        }
+                        """);
+
+        assertEquals("[UcMarket] 重設密碼", email.subject());
+        org.junit.jupiter.api.Assertions.assertTrue(email.body().contains("alice"));
+        org.junit.jupiter.api.Assertions.assertTrue(email.body().contains("10 分鐘"));
+        org.junit.jupiter.api.Assertions.assertTrue(
+                email.body().contains("http://localhost:5173/auth/reset-password?token=abc"));
+    }
 }

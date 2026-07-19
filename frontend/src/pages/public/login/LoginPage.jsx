@@ -1,8 +1,9 @@
 import { useState } from "react";
 import { signInWithPopup } from "firebase/auth";
-import { useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { auth, firebaseEnabled, OAuthProviders } from "../../../config/firebase";
 import useAuthStore from "../../../store/authStore";
+import { safeInternalPath } from "../../../utils/safeInternalPath";
 import "./LoginPage.css";
 
 export default function LoginPage() {
@@ -14,6 +15,8 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const { login, checkAuth, firebaseLogin } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = safeInternalPath(location.state?.from) || "/";
 
   async function handleSubmit(event) {
     event.preventDefault();
@@ -26,7 +29,7 @@ export default function LoginPage() {
       setShowToast(true);
       setTimeout(() => {
         setShowToast(false);
-        navigate("/", { replace: true });
+        navigate(redirectTo, { replace: true });
       }, 800);
     } catch (err) {
       setError(err?.message || "登入失敗，請確認 Email 與密碼。");
@@ -46,7 +49,10 @@ export default function LoginPage() {
       await firebaseLogin(idToken, providerName);
 
       setShowToast(true);
-      setTimeout(() => setShowToast(false), 1800);
+      setTimeout(() => {
+        setShowToast(false);
+        navigate(redirectTo, { replace: true });
+      }, 800);
     } catch (err) {
       let message = "第三方登入失敗。";
       if (err.code === "auth/account-exists-with-different-credential") {
@@ -97,7 +103,7 @@ export default function LoginPage() {
             <div className="form-group">
               <div className="label-row">
                 <label>密碼</label>
-                <a href="#">忘記密碼？</a>
+                <Link to="/auth/forgot-password">忘記密碼？</Link>
               </div>
 
               <div className="input-box">

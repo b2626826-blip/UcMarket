@@ -33,6 +33,14 @@ export function deleteAccount(password) {
   return deleteApi('/api/auth/me', body);
 }
 
+export function forgotPassword(email) {
+  return postApi('/api/auth/forgot-password', { email });
+}
+
+export function resetPassword(token, newPassword) {
+  return postApi('/api/auth/reset-password', { token, newPassword });
+}
+
 export function checkAdminSession() {
   return getApi('/api/auth/me');
 }
