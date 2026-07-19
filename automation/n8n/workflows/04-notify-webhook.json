@@ -5,6 +5,7 @@
       "parameters": {
         "httpMethod": "POST",
         "path": "notify",
+        "authentication": "headerAuth",
         "responseMode": "responseNode",
         "options": {}
       },
@@ -16,7 +17,13 @@
       ],
       "id": "84b191ec-0ddf-44b3-8ece-d14ac829fd17",
       "name": "Webhook",
-      "webhookId": "cb2522ea-ee19-4991-9da1-2270e93c5ae4"
+      "webhookId": "cb2522ea-ee19-4991-9da1-2270e93c5ae4",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "fa56a3d8586aaf2e",
+          "name": "ucmarket-notify-webhook-token"
+        }
+      }
     },
     {
       "parameters": {
@@ -74,6 +81,23 @@
     },
     {
       "parameters": {
+        "url": "http://mailpit:8025/api/v1/info",
+        "options": {
+          "timeout": 2000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        -96
+      ],
+      "id": "09271bf3-7d14-4600-8452-88c1e0f4eac8",
+      "name": "Check Mailpit",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
         "respondWith": "json",
         "responseBody": "{\"status\":\"REJECTED\",\"error\":\"missing required field\"}",
         "options": {
@@ -92,16 +116,16 @@
     {
       "parameters": {
         "fromEmail": "n8n@ucmarket.local",
-        "toEmail": "={{ $json.body.recipientEmail }}",
-        "subject": "={{ $json.body.subject }}",
+        "toEmail": "={{ $('Webhook').item.json.body.recipientEmail }}",
+        "subject": "={{ $('Webhook').item.json.body.subject }}",
         "emailFormat": "text",
-        "text": "={{ $json.body.body }}",
+        "text": "={{ $('Webhook').item.json.body.body }}",
         "options": {}
       },
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [
-        416,
+        624,
         -96
       ],
       "id": "572a65f0-d3c2-4745-ae9d-81edd1030b0b",
@@ -126,7 +150,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        624,
+        832,
         0
       ],
       "id": "8e994715-c13d-4381-b504-29e3f2eaee8a",
@@ -141,7 +165,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.5,
       "position": [
-        624,
+        832,
         -192
       ],
       "id": "9f33ce5b-3f5e-4b3c-a122-f096947e87e0",
@@ -165,7 +189,7 @@
       "main": [
         [
           {
-            "node": "Send an Email",
+            "node": "Check Mailpit",
             "type": "main",
             "index": 0
           }
@@ -173,6 +197,24 @@
         [
           {
             "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Mailpit": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook2",
             "type": "main",
             "index": 0
           }
