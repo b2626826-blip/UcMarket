@@ -1,0 +1,257 @@
+{
+  "name": "04-notify-webhook",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "notify",
+        "authentication": "headerAuth",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "84b191ec-0ddf-44b3-8ece-d14ac829fd17",
+      "name": "Webhook",
+      "webhookId": "cb2522ea-ee19-4991-9da1-2270e93c5ae4",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "fa56a3d8586aaf2e",
+          "name": "ucmarket-notify-webhook-token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a1da6b49-3d9b-4d77-9e25-63a8adcaacf0",
+              "leftValue": "={{ $json.body.recipientEmail }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "f7e81646-de70-4a46-b5d4-b090e494d905",
+              "leftValue": "={{ $json.body.subject }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "ff58d191-f100-46fd-9769-80dac132e883",
+              "leftValue": "={{ $json.body.body }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        208,
+        0
+      ],
+      "id": "aab79045-9870-4c82-9acf-170e0a990545",
+      "name": "If"
+    },
+    {
+      "parameters": {
+        "url": "http://mailpit:8025/api/v1/info",
+        "options": {
+          "timeout": 2000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        416,
+        -96
+      ],
+      "id": "09271bf3-7d14-4600-8452-88c1e0f4eac8",
+      "name": "Check Mailpit",
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\":\"REJECTED\",\"error\":\"missing required field\"}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        416,
+        96
+      ],
+      "id": "3357044f-a640-4c13-9add-ccbd1f20b771",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "fromEmail": "n8n@ucmarket.local",
+        "toEmail": "={{ $('Webhook').item.json.body.recipientEmail }}",
+        "subject": "={{ $('Webhook').item.json.body.subject }}",
+        "emailFormat": "text",
+        "text": "={{ $('Webhook').item.json.body.body }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        624,
+        -96
+      ],
+      "id": "572a65f0-d3c2-4745-ae9d-81edd1030b0b",
+      "name": "Send an Email",
+      "webhookId": "0570d02d-0a54-4b25-85d2-27cc574a6c3f",
+      "credentials": {
+        "smtp": {
+          "id": "eCxRQu4TNE1q0dI3",
+          "name": "smtp-mailpit"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\":\"FAILED\",\"error\":\"send failed\"}",
+        "options": {
+          "responseCode": 500
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        832,
+        0
+      ],
+      "id": "8e994715-c13d-4381-b504-29e3f2eaee8a",
+      "name": "Respond to Webhook2"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "{\"status\":\"SENT\"}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.5,
+      "position": [
+        832,
+        -192
+      ],
+      "id": "9f33ce5b-3f5e-4b3c-a122-f096947e87e0",
+      "name": "Respond to Webhook1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "If",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "If": {
+      "main": [
+        [
+          {
+            "node": "Check Mailpit",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Mailpit": {
+      "main": [
+        [
+          {
+            "node": "Send an Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send an Email": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond to Webhook2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "08a5d4d6-1ef5-49c9-80b5-3a8b16c74bd3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "5648f470325e0ceae17af0ab93dd3c788cfe1e8227c30bdcd46578144b08be8b"
+  },
+  "nodeGroups": [],
+  "id": "tqRjjktsP7sSnl4m",
+  "tags": []
+}

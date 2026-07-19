@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Captor;
+import org.mockito.InOrder;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
@@ -130,8 +131,12 @@ class MarketServiceTest {
     @Test
     void approveMarket_shouldChangeStatusToActive() {
         Market market = createMarket(MarketStatus.PENDING);
+        UUID creatorId = market.getCreatorId();
+        User creator = new User("creator", "creator@example.com", "hashed");
+        ReflectionTestUtils.setField(creator, "id", creatorId);
         when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
         when(marketRepository.save(any())).thenReturn(market);
+        when(userRepository.findById(creatorId)).thenReturn(Optional.of(creator));
 
         Market result = marketService.approveMarket(marketId, adminId);
 
@@ -144,6 +149,31 @@ class MarketServiceTest {
 
         verify(adminLogRepository).save(logCaptor.capture());
         assertEquals("MARKET_APPROVE", logCaptor.getValue().getAction());
+    }
+
+    @Test
+    void approveMarket_shouldEnqueueCreatorNotification() {
+        NotificationEventType eventType = NotificationEventType.MARKET_APPROVED;
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.PENDING, creatorId);
+        ReflectionTestUtils.setField(market, "submissionVersion", 7);
+        User creator = new User("creator", "creator@example.com", "hashed");
+        ReflectionTestUtils.setField(creator, "id", creatorId);
+
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(marketRepository.save(market)).thenReturn(market);
+        when(userRepository.findById(creatorId)).thenReturn(Optional.of(creator));
+
+        marketService.approveMarket(marketId, adminId);
+
+        verify(notificationService, times(1)).enqueue(
+                eq(eventType),
+                eq(creatorId),
+                eq("creator@example.com"),
+                eq(marketId),
+                eq("{\"marketTitle\":\"Title\"}"),
+                eq("market:%s:submission:7:%s:user:%s".formatted(
+                        marketId, eventType, creatorId)));
     }
 
     @Test
@@ -170,8 +200,12 @@ class MarketServiceTest {
     @Test
     void rejectMarket_shouldChangeStatusToRejected() {
         Market market = createMarket(MarketStatus.PENDING);
+        UUID creatorId = market.getCreatorId();
+        User creator = new User("creator", "creator@example.com", "hashed");
+        ReflectionTestUtils.setField(creator, "id", creatorId);
         when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
         when(marketRepository.save(any())).thenReturn(market);
+        when(userRepository.findById(creatorId)).thenReturn(Optional.of(creator));
 
         Market result = marketService.rejectMarket(marketId, adminId, "Invalid source");
 
@@ -182,16 +216,71 @@ class MarketServiceTest {
     }
 
     @Test
+    void rejectMarket_shouldEnqueueCreatorNotification() {
+        NotificationEventType eventType = NotificationEventType.MARKET_REJECTED;
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.PENDING, creatorId);
+        ReflectionTestUtils.setField(market, "submissionVersion", 8);
+        User creator = new User("creator", "creator@example.com", "hashed");
+        ReflectionTestUtils.setField(creator, "id", creatorId);
+
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(marketRepository.save(market)).thenReturn(market);
+        when(userRepository.findById(creatorId)).thenReturn(Optional.of(creator));
+
+        marketService.rejectMarket(marketId, adminId, "Invalid source");
+
+        verify(notificationService, times(1)).enqueue(
+                eq(eventType),
+                eq(creatorId),
+                eq("creator@example.com"),
+                eq(marketId),
+                eq("{\"marketTitle\":\"Title\",\"reason\":\"Invalid source\"}"),
+                eq("market:%s:submission:8:%s:user:%s".formatted(
+                        marketId, eventType, creatorId)));
+    }
+
+    @Test
     void requestChanges_shouldRevertToDraft() {
         Market market = createMarket(MarketStatus.PENDING);
+        UUID creatorId = market.getCreatorId();
+        User creator = new User("creator", "creator@example.com", "hashed");
+        ReflectionTestUtils.setField(creator, "id", creatorId);
         when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
         when(marketRepository.save(any())).thenReturn(market);
+        when(userRepository.findById(creatorId)).thenReturn(Optional.of(creator));
 
         Market result = marketService.requestChanges(marketId, adminId, "Need more sources");
 
         assertEquals(MarketStatus.DRAFT, result.getStatus());
         verify(marketReviewRepository).save(reviewCaptor.capture());
         assertEquals(ReviewStatus.CHANGES_REQUESTED, reviewCaptor.getValue().getStatus());
+    }
+
+    @Test
+    void requestChanges_shouldEnqueueCreatorNotification() {
+        NotificationEventType eventType =
+                NotificationEventType.MARKET_CHANGES_REQUESTED;
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.PENDING, creatorId);
+        ReflectionTestUtils.setField(market, "submissionVersion", 9);
+        User creator = new User("creator", "creator@example.com", "hashed");
+        ReflectionTestUtils.setField(creator, "id", creatorId);
+
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(marketRepository.save(market)).thenReturn(market);
+        when(userRepository.findById(creatorId)).thenReturn(Optional.of(creator));
+
+        marketService.requestChanges(marketId, adminId, "Need more sources");
+
+        verify(notificationService, times(1)).enqueue(
+                eq(eventType),
+                eq(creatorId),
+                eq("creator@example.com"),
+                eq(marketId),
+                eq("{\"marketTitle\":\"Title\",\"comment\":\"Need more sources\"}"),
+                eq("market:%s:submission:9:%s:user:%s".formatted(
+                        marketId, eventType, creatorId)));
     }
 
     @Test
@@ -224,6 +313,93 @@ class MarketServiceTest {
 
         assertEquals(MarketStatus.RESOLVED, result.getStatus());
         assertEquals(MarketResult.NO, result.getResult());
+    }
+
+    @Test
+    void resolveMarket_shouldEnqueueUniqueActiveHoldersAndCreator() {
+        UUID creatorId = UUID.randomUUID();
+        UUID holderId = UUID.randomUUID();
+        UUID bannedHolderId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.CLOSED, creatorId);
+        User creator = user(creatorId, "creator@example.com", UserStatus.ACTIVE);
+        User holder = user(holderId, "holder@example.com", UserStatus.ACTIVE);
+        User bannedHolder = user(
+                bannedHolderId, "banned@example.com", UserStatus.BANNED);
+
+        when(positionRepository.findByMarketIdAndStatus(
+                marketId, PositionStatus.OPEN))
+                .thenReturn(List.of(
+                        position(holderId),
+                        position(holderId),
+                        position(bannedHolderId)));
+        when(resolutionService.resolveMarket(marketId, MarketResult.YES, adminId))
+                .thenAnswer(invocation -> {
+                    market.resolve(MarketResult.YES, adminId);
+                    return market;
+                });
+        when(userRepository.findById(holderId)).thenReturn(Optional.of(holder));
+        when(userRepository.findById(bannedHolderId))
+                .thenReturn(Optional.of(bannedHolder));
+        when(userRepository.findById(creatorId)).thenReturn(Optional.of(creator));
+
+        marketService.resolveMarket(marketId, adminId, MarketResult.YES);
+
+        InOrder order = inOrder(positionRepository, resolutionService);
+        order.verify(positionRepository).findByMarketIdAndStatus(
+                marketId, PositionStatus.OPEN);
+        order.verify(resolutionService).resolveMarket(
+                marketId, MarketResult.YES, adminId);
+        verify(notificationService).enqueue(
+                eq(NotificationEventType.MARKET_RESOLVED),
+                eq(holderId),
+                eq("holder@example.com"),
+                eq(marketId),
+                eq("{\"marketTitle\":\"Title\",\"result\":\"YES\"}"),
+                eq("market:%s:%s:user:%s".formatted(
+                        marketId, NotificationEventType.MARKET_RESOLVED, holderId)));
+        verify(notificationService).enqueue(
+                eq(NotificationEventType.MARKET_RESOLVED),
+                eq(creatorId),
+                eq("creator@example.com"),
+                eq(marketId),
+                eq("{\"marketTitle\":\"Title\",\"result\":\"YES\"}"),
+                eq("market:%s:%s:user:%s".formatted(
+                        marketId, NotificationEventType.MARKET_RESOLVED, creatorId)));
+        verify(notificationService, never()).enqueue(
+                eq(NotificationEventType.MARKET_RESOLVED),
+                eq(bannedHolderId),
+                anyString(),
+                eq(marketId),
+                anyString(),
+                anyString());
+    }
+
+    @Test
+    void resolveMarket_shouldEnqueueCreator_whenCreatorIsNotActive() {
+        UUID creatorId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.CLOSED, creatorId);
+        User creator = user(creatorId, "creator@example.com", UserStatus.BANNED);
+
+        when(positionRepository.findByMarketIdAndStatus(
+                marketId, PositionStatus.OPEN))
+                .thenReturn(List.of());
+        when(resolutionService.resolveMarket(marketId, MarketResult.YES, adminId))
+                .thenAnswer(invocation -> {
+                    market.resolve(MarketResult.YES, adminId);
+                    return market;
+                });
+        when(userRepository.findById(creatorId)).thenReturn(Optional.of(creator));
+
+        marketService.resolveMarket(marketId, adminId, MarketResult.YES);
+
+        verify(notificationService).enqueue(
+                eq(NotificationEventType.MARKET_RESOLVED),
+                eq(creatorId),
+                eq("creator@example.com"),
+                eq(marketId),
+                eq("{\"marketTitle\":\"Title\",\"result\":\"YES\"}"),
+                eq("market:%s:%s:user:%s".formatted(
+                        marketId, NotificationEventType.MARKET_RESOLVED, creatorId)));
     }
 
     @Test
@@ -266,6 +442,21 @@ class MarketServiceTest {
         ReflectionTestUtils.setField(m, "status", status);
         ReflectionTestUtils.setField(m, "creatorId", creatorId);
         return m;
+    }
+
+    private Position position(UUID userId) {
+        Position position = new Position();
+        position.setMarketId(marketId);
+        position.setUserId(userId);
+        position.setStatus(PositionStatus.OPEN);
+        return position;
+    }
+
+    private User user(UUID id, String email, UserStatus status) {
+        User user = new User("user_" + id, email, "hashed");
+        ReflectionTestUtils.setField(user, "id", id);
+        user.changeStatus(status);
+        return user;
     }
 
     @Test

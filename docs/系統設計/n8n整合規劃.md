@@ -5,7 +5,7 @@
 ## 1. 決策摘要
 
 - 核心交易、市場狀態、結算與錢包仍由 Spring Boot Service 層負責，不變。
-- 通知的可靠性保證（不漏發、不重發、重試、失敗紀錄）由 Java outbox（`notification_jobs`）負責，不變；WP0–WP4 照《自動化系統分工計畫》執行，不受本文件影響。
+- 通知的可靠性保證（不漏發、不重發、重試、失敗紀錄）由 Java outbox（`notification_jobs`）負責，不變；WP0–WP5 已完成。
 - 通知的實際送出（Email、Discord、LINE、Telegram 等渠道）由 n8n 負責：`EmailSender` 的正式實作為 HTTP POST 到 n8n webhook。
 - 外部資料進出（賽果、報價、新聞、氣象）、系統監控告警、營運報表與社群發布由 n8n 負責。
 - n8n 一律透過後端 REST API 與專屬 service token 操作，不直連 PostgreSQL。
@@ -16,7 +16,7 @@
 | 職責 | 歸屬 | 理由 |
 |---|---|---|
 | 市場狀態、交易、結算、錢 | Spring Boot Service | 需要資料庫交易，不可妥協 |
-| 通知的「不漏發、不重發」保證 | Spring Boot outbox（V6 `notification_jobs`） | webhook 天生會漏；冪等鍵與重試已在實作中 |
+| 通知的「不漏發、不重發」保證 | Spring Boot outbox（V6 `notification_jobs`） | webhook 天生會漏；冪等鍵與重試已完成 |
 | 通知的「實際送出去」 | n8n（Email、Discord、LINE、Telegram） | 多渠道是 n8n 強項，Java 接多套渠道 SDK 維護成本高 |
 | 外部資料進出（賽果、報價、新聞、氣象） | n8n | 低程式碼串 API；改資料源不改後端、不重新部署 |
 | 監控、告警、報表、社群發布 | n8n | 非交易關鍵，壞了不影響平台 |
@@ -41,7 +41,7 @@ flowchart LR
 
 接合點只有兩個，且都是既有設計預留的：
 
-1. **`EmailSender` 介面**：《自動化系統規劃》第 5 節本來就定義成可替換的 Adapter。第一版用 `RecordingEmailSender` 驗收流程，之後新增 `N8nWebhookEmailSender` 即接上，WP0–WP4 零改動。
+1. **`EmailSender` 介面**：《自動化系統規劃》第 5 節本來就定義成可替換的 Adapter。WP0–WP5 已用 `RecordingEmailSender` 驗收；下一步新增 `N8nWebhookEmailSender`，不修改既有 outbox、Worker 或事件。
 2. **admin／公開 REST API**：n8n 定時輪詢或呼叫結算入口，比照 `POST /api/admin/weather/resolve` 的模式。
 
 ## 4. 可靠性分析
@@ -53,24 +53,24 @@ flowchart LR
 
 ## 5. 分階段實作
 
-### 階段一：Java outbox 垂直切片（進行中，不變）
+### 階段一：Java outbox 與市場事件通知（已完成）
 
-WP0–WP4 照《自動化系統分工計畫》執行，使用 `RecordingEmailSender` 驗收。本文件不改變其任何範圍與驗收條件。
+WP0–WP5 已完成並以 `RecordingEmailSender`、定向測試與 backend 全測試驗收。Java 已涵蓋送審、核准、駁回、要求修改、每日待審摘要、截止提醒及結算通知。
 
-### 階段一．五：n8n 監控告警（可立即平行進行，零依賴）
+### 階段一．五：n8n 監控告警（部分完成）
 
-部署 n8n（Docker 單容器），先跑兩條不碰核心的 workflow：
+Docker／Mailpit 環境、`01-health-alert` 與 `06-heartbeat` 已完成。尚待：
 
-1. **健康檢查**：定時打 `GET /api/health`，連續失敗發告警到管理員即時通訊。
-2. **FAILED 告警**：輪詢 WP4 的 `GET /api/admin/notifications?status=FAILED`，數量超過門檻即告警。此即《自動化系統規劃》7.4「外部監控告警另行整合」預留的位子，並解掉「Email 管線壞了但告警也走 Email」的死結。
+1. **FAILED 告警**：輪詢已完成的 WP4 `GET /api/admin/notifications?status=FAILED`；須先提供 n8n 專用 service token，不能使用人工 ADMIN JWT。
 
 驗收：後端停機 5 分鐘內收到告警；FAILED 工作出現後 10 分鐘內收到告警；n8n 停機期間平台功能不受任何影響。
 
 ### 階段二：n8n 接管實際寄送
 
-- 新增 `N8nWebhookEmailSender` 實作（含 timeout、webhook URL 與 token 設定鍵）。
-- n8n 端建立收信 webhook、Email 模板與渠道分發。
-- 之後 WP5 的每個新事件（核准、駁回、截止提醒、結算）自動獲得多渠道能力，後端只需新增事件與 payload。
+- n8n `04-notify-webhook` 已完成 `POST /webhook/notify`：接收 `{recipientEmail, subject, body}`，成功回 200、缺欄回 400、寄送失敗回 500；目前尚未驗證 token。
+- **下一工作包**：新增 `N8nWebhookEmailSender`（含 timeout、webhook URL 與 token 設定鍵），並完成 webhook token 驗證。
+- WP5 的既有事件會自動共用此寄送路徑，不需修改 event、payload 或 template。
+- 不新增 `/api/internal/notifications/digest`、`/closing-markets` 或 n8n `02`／`03` 排程；每日摘要及截止提醒已由 Java WP5 負責，避免重複通知。
 
 驗收：暫停 n8n 後觸發送審，工作進入 `RETRY`；恢復 n8n 後自動補寄且不重複；`notification_job_attempts` 完整記錄每次 webhook 嘗試。
 
@@ -95,7 +95,7 @@ WP0–WP4 照《自動化系統分工計畫》執行，使用 `RecordingEmailSen
 
 ## 6. 前置需求
 
-1. 後端新增 n8n 專用 service token 機制（目前僅有 ADMIN role）；token 僅授權必要端點。
+1. n8n 呼叫後端 admin／internal API 前，新增專用 service token 機制；此項是 `05-failed-alert` 與未來外部資料整合的前置，不阻擋 Java 呼叫 n8n webhook。
 2. 部署一台 n8n：Docker 單容器即可，與後端同網段，webhook 端點不對公網開放或以 token 保護。
 3. n8n workflow JSON 匯出檔納入版控，放在 `automation/n8n/workflows/`。
 
@@ -106,11 +106,11 @@ WP0–WP4 照《自動化系統分工計畫》執行，使用 `RecordingEmailSen
 - 直接讀寫 PostgreSQL——繞過商業規則與 audit log，一律禁止。
 - 在資料庫交易內被同步呼叫——webhook 只由 Worker 在交易外觸發。
 
-## 8. 與既有文件的差異（需同步修改）
+## 8. 與既有文件的對齊結果
 
 | # | 文件與原文 | 本規劃調整 | 原因 |
 |---|---|---|---|
 | 1 | 《自動化系統規劃》第 9 節：「確認不再使用 n8n 後，可移除空目錄並更新原有技術架構文件中的 n8n 說明」；《自動化系統分工計畫》第 1 節收尾工作含「移除 `automation/n8n/`」 | 保留 `automation/n8n/workflows/` 目錄，改放 workflow JSON 匯出檔納入版控 | n8n 重新定位為周邊整合層，workflow 需要版控 |
 | 2 | 《自動化系統規劃》第 5 節：`EmailSender` 搭配「SMTP 或 Email Provider Adapter」 | 正式實作方向定為 `N8nWebhookEmailSender`，SMTP 由 n8n 端負責 | 渠道彈性集中在 n8n，後端零改動即可換渠道 |
 
-上述差異僅影響 WP2 之後的一個新類別與收尾工作，不影響 WP0–WP4 的現行分工與驗收。
+上述差異已同步回《自動化系統規劃》與《自動化系統分工計畫》。WP0–WP5 保持完成狀態；下一步只新增正式 sender 與必要設定。

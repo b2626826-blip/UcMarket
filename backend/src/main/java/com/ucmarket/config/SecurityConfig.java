@@ -34,6 +34,7 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                 .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/refresh", "/api/auth/oauth/**").permitAll()
                 .requestMatchers("/api/health").permitAll()
+                .requestMatchers("/api/internal/**").permitAll() // 機器對機器：ServiceTokenFilter 驗 X-Service-Token
                 .requestMatchers(HttpMethod.GET, "/api/markets/me").authenticated()
                 .requestMatchers(HttpMethod.GET, "/api/markets/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/current-affairs/markets").permitAll()

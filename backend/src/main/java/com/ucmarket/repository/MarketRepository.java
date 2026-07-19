@@ -30,6 +30,11 @@ public interface MarketRepository extends JpaRepository<Market, UUID> {
 
 	List<Market> findByStatusAndCloseAtBefore(MarketStatus status, LocalDateTime dateTime);
 
+	List<Market> findByStatusAndCloseAtAfterAndCloseAtLessThanEqual(
+			MarketStatus status,
+			LocalDateTime after,
+			LocalDateTime beforeOrEqual);
+
 	Optional<Market> findByCode(String code);
 
 	List<Market> findByCategory(String category);
