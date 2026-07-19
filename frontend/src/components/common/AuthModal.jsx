@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { signInWithPopup } from 'firebase/auth';
 import { auth, firebaseEnabled, OAuthProviders } from '../../config/firebase';
 import useAuthStore from '../../store/authStore';
@@ -212,6 +213,7 @@ export default function AuthModal({ open, onClose, initialTab }) {
             <div className="form-group">
               <div className="label-row">
                 <label>密碼</label>
+                <Link to="/auth/forgot-password" onClick={onClose}>忘記密碼？</Link>
               </div>
               <div className="input-box">
                 <input type={showPwd ? 'text' : 'password'} value={loginForm.password} onChange={(event) => { setLoginForm((prev) => ({ ...prev, password: event.target.value })); setLoginErrors((prev) => ({ ...prev, password: '' })); }} placeholder="請輸入您的密碼" />
