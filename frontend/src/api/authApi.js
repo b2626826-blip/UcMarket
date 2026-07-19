@@ -28,6 +28,14 @@ export function changePassword(oldPassword, newPassword) {
   return postApi('/api/auth/change-password', { oldPassword, newPassword });
 }
 
+export function forgotPassword(email) {
+  return postApi('/api/auth/forgot-password', { email });
+}
+
+export function resetPassword(token, newPassword) {
+  return postApi('/api/auth/reset-password', { token, newPassword });
+}
+
 export function checkAdminSession() {
   return getApi('/api/auth/me');
 }

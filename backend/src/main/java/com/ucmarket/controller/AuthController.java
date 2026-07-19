@@ -16,10 +16,13 @@ import com.ucmarket.dto.auth.AuthResponse;
 import com.ucmarket.dto.auth.AuthResponse.UserInfo;
 import com.ucmarket.dto.auth.ChangePasswordRequest;
 import com.ucmarket.dto.auth.FirebaseLoginRequest;
+import com.ucmarket.dto.auth.ForgotPasswordRequest;
 import com.ucmarket.dto.auth.LoginRequest;
 import com.ucmarket.dto.auth.LogoutRequest;
+import com.ucmarket.dto.auth.MessageResponse;
 import com.ucmarket.dto.auth.RefreshRequest;
 import com.ucmarket.dto.auth.RegisterRequest;
+import com.ucmarket.dto.auth.ResetPasswordRequest;
 import com.ucmarket.dto.auth.UpdateProfileRequest;
 import com.ucmarket.entity.User;
 import com.ucmarket.service.AuthService;
@@ -55,6 +58,18 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<MessageResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        String message = authService.forgotPassword(request.email());
+        return ResponseEntity.ok(new MessageResponse(message));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<MessageResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.token(), request.newPassword());
+        return ResponseEntity.ok(new MessageResponse("密碼已重設，請使用新密碼登入。"));
     }
 
     @GetMapping("/me")

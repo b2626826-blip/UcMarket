@@ -24,7 +24,34 @@ public class EmailTemplateService {
             case DAILY_PENDING_REVIEW_SUMMARY -> renderDailyPendingReviewSummary(payload);
             case MARKET_CLOSING_REMINDER -> renderMarketClosingReminder(payload);
             case MARKET_RESOLVED -> renderMarketResolved(payload);
+            case PASSWORD_RESET -> renderPasswordReset(payload);
         };
+    }
+
+    private EmailContent renderPasswordReset(String payload) {
+        try {
+            JsonNode root = objectMapper.readTree(payload);
+            if (root.isTextual()) {
+                root = objectMapper.readTree(root.asText());
+            }
+            String resetUrl = root.path("resetUrl").asText();
+            String username = root.path("username").asText("使用者");
+            int expiresInMinutes = root.path("expiresInMinutes").asInt(10);
+
+            return new EmailContent(
+                    "[UcMarket] 重設密碼",
+                    """
+                    您好 %s，
+
+                    我們收到您的密碼重設請求。請於 %d 分鐘內點擊以下連結完成重設：
+
+                    %s
+
+                    若您沒有提出此請求，請忽略本信件，帳號密碼不會變更。
+                    """.formatted(username, expiresInMinutes, resetUrl).strip());
+        } catch (JsonProcessingException e) {
+            throw new IllegalArgumentException("Invalid notification payload", e);
+        }
     }
 
     private EmailContent renderMarketResolved(String payload) {

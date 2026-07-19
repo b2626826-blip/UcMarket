@@ -4,13 +4,18 @@ import com.ucmarket.dto.auth.AuthResponse;
 import com.ucmarket.dto.auth.AuthResponse.UserInfo;
 import com.ucmarket.dto.auth.LoginRequest;
 import com.ucmarket.dto.auth.RegisterRequest;
+import com.ucmarket.entity.PasswordResetToken;
 import com.ucmarket.entity.User;
 import com.ucmarket.entity.UserRole;
 import com.ucmarket.entity.UserSession;
 import com.ucmarket.entity.UserStatus;
+import com.ucmarket.notification.NotificationEventType;
+import com.ucmarket.notification.NotificationService;
+import com.ucmarket.repository.PasswordResetTokenRepository;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.repository.UserSessionRepository;
 import com.ucmarket.security.JwtTokenProvider;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.junit.jupiter.api.Test;
@@ -22,6 +27,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.math.BigDecimal;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.time.LocalDateTime;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -34,19 +42,23 @@ class AuthServiceTest {
 
     @Mock private UserRepository userRepository;
     @Mock private UserSessionRepository userSessionRepository;
+    @Mock private PasswordResetTokenRepository passwordResetTokenRepository;
+    @Mock private NotificationService notificationService;
     @Mock private WalletService walletService;
     @Mock private JwtTokenProvider jwtTokenProvider;
     @Mock private PasswordEncoder passwordEncoder;
 
     @Captor private ArgumentCaptor<User> userCaptor;
     @Captor private ArgumentCaptor<UserSession> sessionCaptor;
+    @Captor private ArgumentCaptor<PasswordResetToken> resetTokenCaptor;
 
     private AuthService authService;
 
     @BeforeEach
     void setUp() {
-        authService = new AuthService(userRepository, userSessionRepository, walletService,
-                jwtTokenProvider, passwordEncoder);
+        authService = new AuthService(userRepository, userSessionRepository,
+                passwordResetTokenRepository, notificationService, walletService,
+                jwtTokenProvider, passwordEncoder, new ObjectMapper(), "http://localhost:5173");
     }
 
     @Test
@@ -197,5 +209,116 @@ class AuthServiceTest {
         assertThrows(IllegalArgumentException.class, () -> authService.logout(userId, "some-token"));
 
         verify(userSessionRepository, never()).save(any());
+    }
+
+    @Test
+    void forgotPassword_shouldEnqueueReset_forActivePasswordUser() {
+        UUID userId = UUID.randomUUID();
+        User user = new User("testuser", "user@test.com", "encodedPwd");
+        ReflectionTestUtils.setField(user, "id", userId);
+
+        when(userRepository.findByEmail("user@test.com")).thenReturn(Optional.of(user));
+        when(passwordResetTokenRepository.save(any())).thenAnswer(inv -> inv.getArgument(0));
+
+        String message = authService.forgotPassword("user@test.com");
+
+        assertEquals("若此 Email 已註冊，我們已寄出重設信件。", message);
+        verify(passwordResetTokenRepository).invalidateUnusedByUserId(eq(userId), any());
+        verify(passwordResetTokenRepository).save(resetTokenCaptor.capture());
+        PasswordResetToken saved = resetTokenCaptor.getValue();
+        assertEquals(userId, saved.getUserId());
+        assertNotNull(saved.getTokenHash());
+        assertTrue(saved.getExpiresAt().isAfter(LocalDateTime.now().plusMinutes(9)));
+
+        verify(notificationService).enqueue(
+                eq(NotificationEventType.PASSWORD_RESET),
+                eq(userId),
+                eq("user@test.com"),
+                isNull(),
+                contains("reset-password?token="),
+                startsWith("password-reset:" + userId + ":"));
+    }
+
+    @Test
+    void forgotPassword_shouldNotEnqueue_whenEmailUnknown() {
+        when(userRepository.findByEmail("missing@test.com")).thenReturn(Optional.empty());
+
+        String message = authService.forgotPassword("missing@test.com");
+
+        assertEquals("若此 Email 已註冊，我們已寄出重設信件。", message);
+        verify(passwordResetTokenRepository, never()).save(any());
+        verify(notificationService, never()).enqueue(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void forgotPassword_shouldNotEnqueue_whenOAuthOnly() {
+        UUID userId = UUID.randomUUID();
+        User user = new User("oauth", "oauth@test.com", null);
+        ReflectionTestUtils.setField(user, "id", userId);
+        when(userRepository.findByEmail("oauth@test.com")).thenReturn(Optional.of(user));
+
+        String message = authService.forgotPassword("oauth@test.com");
+
+        assertEquals("若此 Email 已註冊，我們已寄出重設信件。", message);
+        verify(notificationService, never()).enqueue(any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void resetPassword_shouldUpdatePasswordAndClearSessions() {
+        UUID userId = UUID.randomUUID();
+        User user = new User("testuser", "user@test.com", "oldHash");
+        ReflectionTestUtils.setField(user, "id", userId);
+
+        String rawToken = "raw-reset-token";
+        String hash = sha256Hex(rawToken);
+        PasswordResetToken token = new PasswordResetToken(userId, hash, LocalDateTime.now().plusMinutes(10));
+
+        when(passwordResetTokenRepository.findByTokenHash(hash)).thenReturn(Optional.of(token));
+        when(userRepository.findById(userId)).thenReturn(Optional.of(user));
+        when(passwordEncoder.encode("new-password")).thenReturn("newHash");
+
+        authService.resetPassword(rawToken, "new-password");
+
+        assertEquals("newHash", user.getPasswordHash());
+        assertNotNull(token.getUsedAt());
+        verify(userRepository).save(user);
+        verify(passwordResetTokenRepository).save(token);
+        verify(userSessionRepository).deleteByUserId(userId);
+    }
+
+    @Test
+    void resetPassword_shouldThrow_whenTokenInvalid() {
+        when(passwordResetTokenRepository.findByTokenHash(any())).thenReturn(Optional.empty());
+
+        assertThrows(IllegalArgumentException.class,
+                () -> authService.resetPassword("bad-token", "new-password"));
+        verify(userRepository, never()).save(any());
+    }
+
+    @Test
+    void resetPassword_shouldThrow_whenTokenExpired() {
+        UUID userId = UUID.randomUUID();
+        String rawToken = "expired-token";
+        String hash = sha256Hex(rawToken);
+        PasswordResetToken token = new PasswordResetToken(userId, hash, LocalDateTime.now().minusMinutes(1));
+        when(passwordResetTokenRepository.findByTokenHash(hash)).thenReturn(Optional.of(token));
+
+        assertThrows(IllegalArgumentException.class,
+                () -> authService.resetPassword(rawToken, "new-password"));
+        verify(userRepository, never()).save(any());
+    }
+
+    private static String sha256Hex(String value) {
+        try {
+            MessageDigest md = MessageDigest.getInstance("SHA-256");
+            byte[] digest = md.digest(value.getBytes(StandardCharsets.UTF_8));
+            StringBuilder sb = new StringBuilder();
+            for (byte b : digest) {
+                sb.append(String.format("%02x", b));
+            }
+            return sb.toString();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
     }
 }

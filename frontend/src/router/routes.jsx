@@ -8,6 +8,8 @@ import LandingPage from "../pages/public/landing";
 import HomePage from "../pages/public/home";
 import LoginPage from "../pages/public/login/LoginPage";
 import RegisterPage from "../pages/public/register/RegisterPage";
+import ForgotPasswordPage from "../pages/public/forgot-password/ForgotPasswordPage";
+import ResetPasswordPage from "../pages/public/reset-password/ResetPasswordPage";
 import WeatherDetailPage from "../pages/public/market-detail-weather";
 import WeatherListPage from "../pages/public/weather-list";
 import PoliticsListPage from "../pages/public/market-politics";
@@ -52,6 +54,8 @@ const router = createBrowserRouter([
       { path: "markets/finance/:id", element: <FinanceDetailPage /> },
       { path: "auth/login", element: <LoginPage /> },
       { path: "auth/register", element: <RegisterPage /> },
+      { path: "auth/forgot-password", element: <ForgotPasswordPage /> },
+      { path: "auth/reset-password", element: <ResetPasswordPage /> },
       { path: "rankings", element: <RankingsPage /> },
       { path: "portfolio", element: (<AuthGuard><PortfolioPage /></AuthGuard>) },
       { path: "wallet", element: (<AuthGuard><WalletPage /></AuthGuard>) },
