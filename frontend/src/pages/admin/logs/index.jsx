@@ -14,6 +14,32 @@ const ACTION_CLASS = {
   MARKET_REQUEST_CHANGES: 'status-pending', USER_SUSPEND: 'status-rejected', USER_UNSUSPEND: 'status-approved',
 };
 
+function formatLogDetail(action, metadata) {
+  let m = metadata;
+  if (typeof m === 'string') {
+    try { m = JSON.parse(m); } catch { return m || '—'; }
+  }
+  if (!m || typeof m !== 'object') return ACTION_LABEL[action] || '—';
+  switch (action) {
+    case 'MARKET_APPROVE':
+      return m.status === 'ACTIVE' ? '狀態：進行中' : (m.status ? `狀態：${m.status}` : ACTION_LABEL.MARKET_APPROVE);
+    case 'MARKET_REJECT':
+      return m.reason ? `原因：${m.reason}` : ACTION_LABEL.MARKET_REJECT;
+    case 'MARKET_REQUEST_CHANGES':
+      return m.comment ? `備註：${m.comment}` : ACTION_LABEL.MARKET_REQUEST_CHANGES;
+    case 'MARKET_RESOLVE':
+      return m.result ? `結果：${m.result}` : ACTION_LABEL.MARKET_RESOLVE;
+    case 'USER_SUSPEND':
+      return ACTION_LABEL.USER_SUSPEND;
+    case 'USER_UNSUSPEND':
+      return ACTION_LABEL.USER_UNSUSPEND;
+    default:
+      if (m.reason) return `原因：${m.reason}`;
+      if (m.comment) return `備註：${m.comment}`;
+      return Object.entries(m).map(([k, v]) => `${k}: ${v}`).join(' · ') || '—';
+  }
+}
+
 export default function LogsPage() {
   const [logs, setLogs] = useState([]);
   const [filters, setFilters] = useState({ keyword: '', action: '' });
@@ -117,7 +143,7 @@ export default function LogsPage() {
                       <td><span className={`status-badge ${cls}`}><span className="status-dot"></span>{label}</span></td>
                       <td>{l.targetType || ''}</td>
                       <td className="fw-semibold small">{l.targetCode || (l.targetId || '').substring(0, 8)}</td>
-                      <td className="small text-secondary">{l.metadata || ''}</td>
+                      <td className="small text-secondary">{formatLogDetail(l.action, l.metadata)}</td>
                     </tr>
                   );
                 })}

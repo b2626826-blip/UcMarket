@@ -2,10 +2,13 @@ package com.ucmarket.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ucmarket.dto.admin.AdminWalletAdjustRequest;
+import com.ucmarket.entity.AdminLog;
 import com.ucmarket.entity.User;
 import com.ucmarket.entity.UserRole;
+import com.ucmarket.entity.UserStatus;
 import com.ucmarket.entity.WalletTransaction;
 import com.ucmarket.entity.WalletTransactionType;
+import com.ucmarket.repository.AdminLogRepository;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.security.JwtTokenProvider;
 import com.ucmarket.service.WalletService;
@@ -41,14 +44,17 @@ class AdminUserControllerTest {
 
     @MockitoBean private UserRepository userRepository;
     @MockitoBean private WalletService walletService;
+    @MockitoBean private AdminLogRepository adminLogRepository;
     @MockitoBean private JwtTokenProvider jwtTokenProvider;
 
     private User adminUser;
+    private UUID adminId;
 
     @BeforeEach
     void setUp() {
+        adminId = UUID.randomUUID();
         adminUser = new User("admin", "admin@test.com", "encoded");
-        ReflectionTestUtils.setField(adminUser, "id", UUID.randomUUID());
+        ReflectionTestUtils.setField(adminUser, "id", adminId);
         ReflectionTestUtils.setField(adminUser, "role", UserRole.ADMIN);
         var auth = new UsernamePasswordAuthenticationToken(
                 adminUser, null, List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
@@ -59,6 +65,7 @@ class AdminUserControllerTest {
         User u = new User("u" + id.toString().substring(0, 6), id + "@test.com", "enc");
         ReflectionTestUtils.setField(u, "id", id);
         ReflectionTestUtils.setField(u, "role", role);
+        ReflectionTestUtils.setField(u, "status", UserStatus.ACTIVE);
         return u;
     }
 
@@ -123,5 +130,50 @@ class AdminUserControllerTest {
                 .andExpect(jsonPath("$.balance").value(1500))
                 .andExpect(jsonPath("$.transactions").isArray())
                 .andExpect(jsonPath("$.transactions[0].memo").value("活動補發"));
+    }
+
+    @Test
+    void suspendUser_happyPath_writesAdminLog() throws Exception {
+        UUID targetId = UUID.randomUUID();
+        when(userRepository.findById(targetId)).thenReturn(Optional.of(user(targetId, UserRole.USER)));
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(adminLogRepository.save(any(AdminLog.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        mockMvc.perform(post("/api/admin/users/{id}/suspend", targetId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("BANNED"));
+
+        verify(adminLogRepository).save(argThat(log ->
+                "USER_SUSPEND".equals(log.getAction())
+                        && "USER".equals(log.getTargetType())
+                        && targetId.equals(log.getTargetId())
+                        && adminId.equals(log.getAdminUserId())));
+    }
+
+    @Test
+    void suspendUser_self_returns400AndNoLog() throws Exception {
+        mockMvc.perform(post("/api/admin/users/{id}/suspend", adminId))
+                .andExpect(status().isBadRequest());
+
+        verify(userRepository, never()).save(any());
+        verify(adminLogRepository, never()).save(any());
+    }
+
+    @Test
+    void unsuspendUser_happyPath_writesAdminLog() throws Exception {
+        UUID targetId = UUID.randomUUID();
+        User banned = user(targetId, UserRole.USER);
+        ReflectionTestUtils.setField(banned, "status", UserStatus.BANNED);
+        when(userRepository.findById(targetId)).thenReturn(Optional.of(banned));
+        when(userRepository.save(any(User.class))).thenAnswer(inv -> inv.getArgument(0));
+        when(adminLogRepository.save(any(AdminLog.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        mockMvc.perform(post("/api/admin/users/{id}/unsuspend", targetId))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACTIVE"));
+
+        verify(adminLogRepository).save(argThat(log ->
+                "USER_UNSUSPEND".equals(log.getAction())
+                        && targetId.equals(log.getTargetId())));
     }
 }
