@@ -13,6 +13,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.ucmarket.security.JwtAuthFilter;
+import com.ucmarket.security.N8nServiceTokenAuthFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -20,9 +21,13 @@ import com.ucmarket.security.JwtAuthFilter;
 public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
+    private final N8nServiceTokenAuthFilter n8nServiceTokenAuthFilter;
 
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter) {
+    public SecurityConfig(
+            JwtAuthFilter jwtAuthFilter,
+            N8nServiceTokenAuthFilter n8nServiceTokenAuthFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
+        this.n8nServiceTokenAuthFilter = n8nServiceTokenAuthFilter;
     }
 
     @Bean
@@ -38,10 +43,13 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/markets/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/current-affairs/markets").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/rankings/**").permitAll()
+                .requestMatchers(HttpMethod.GET, "/api/admin/notifications")
+                    .hasAnyAuthority("ROLE_ADMIN", N8nServiceTokenAuthFilter.AUTHORITY)
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterAfter(n8nServiceTokenAuthFilter, JwtAuthFilter.class);
 
         return http.build();
     }
