@@ -9,8 +9,8 @@ n8n 自動化的家：容器定義、一鍵安裝、workflow 版控。維護：H
 |---|---|
 | `docker-compose.yml` | 容器定義（n8n `2.29.11`＋mailpit `v1.30.4`；專案名由 `name: n8n` 釘死，跟資料夾無關）。**日常 up/stop/logs 都在本層打** |
 | `install/` | 一次性安裝與快照匯入：`setup.ps1`（Win）／`setup.sh`（mac/Linux）一鍵啟動（全新安裝自動匯入**版控內 3 筆憑證＋workflows**、完成自動開網頁）；`import-workflows` 與 `import-credentials`（`.ps1`／`.sh`）以 git 快照覆蓋本機（照 id 覆蓋不長重複）；`credentials.json`（3 筆開發憑證，含 Discord webhook——**公開 repo 前必須輪替並移除**，見文件真相規則 3）。`04` 使用的 `ucmarket-notify-webhook-token` 含新秘密，刻意不進此檔，須在各 n8n instance 的 credential store 建立；`安裝部署.md` 含完整步驟 |
-| `workflows/` | workflow JSON 匯出＝**版控真相源**（目前三條：`01` 健康告警、`04` 通知 webhook ⭐、`06` 心跳）；每條的用途與驗法見該資料夾 README |
-| `runbook.md` | （待產出）災難還原五步＋憑證重建 |
+| `workflows/` | workflow JSON 匯出＝**版控真相源**（目前四條：`01` 健康告警、`04` 通知 webhook ⭐、`05` FAILED 工作告警、`06` 心跳）；每條的用途與驗法見該資料夾 README |
+| [`runbook.md`](runbook.md) | 災難還原五步、credential 重建、告警位置與定期演練 |
 | `開發進度.md` | **已實作／未實作看板**——想知道做到哪先看這份（關卡狀態變動時同 commit 更新） |
 | `Docker 指令完整參考手冊.md` | Docker 指令速查 |
 | `.gitignore`／`.gitattributes`／`.env.example` | 擋 `.env`／強制 `*.sh` LF／環境變數範本 |
