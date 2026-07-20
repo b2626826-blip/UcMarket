@@ -454,7 +454,7 @@
   "settings": {
     "executionOrder": "v1",
     "binaryMode": "separate",
-    "saveDataErrorExecution": "none",
+    "saveDataErrorExecution": "all",
     "saveDataSuccessExecution": "none",
     "saveManualExecutions": false,
     "saveExecutionProgress": false,
