@@ -33,6 +33,7 @@ import com.ucmarket.dto.ResolutionEvidenceResponse;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.security.JwtAuthFilter;
 import com.ucmarket.security.JwtTokenProvider;
+import com.ucmarket.security.N8nResolutionEvidenceCandidateTokenAuthFilter;
 import com.ucmarket.security.N8nResolutionEvidenceTokenAuthFilter;
 import com.ucmarket.security.N8nServiceTokenAuthFilter;
 import com.ucmarket.service.MarketResolutionEvidenceService;
@@ -43,7 +44,8 @@ import com.ucmarket.service.MarketResolutionEvidenceService;
         SecurityConfig.class,
         JwtAuthFilter.class,
         N8nServiceTokenAuthFilter.class,
-        N8nResolutionEvidenceTokenAuthFilter.class
+        N8nResolutionEvidenceTokenAuthFilter.class,
+        N8nResolutionEvidenceCandidateTokenAuthFilter.class
 })
 class ResolutionEvidenceControllerTest {
 

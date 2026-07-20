@@ -13,6 +13,7 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 import com.ucmarket.security.JwtAuthFilter;
+import com.ucmarket.security.N8nResolutionEvidenceCandidateTokenAuthFilter;
 import com.ucmarket.security.N8nServiceTokenAuthFilter;
 import com.ucmarket.security.N8nResolutionEvidenceTokenAuthFilter;
 
@@ -24,14 +25,20 @@ public class SecurityConfig {
     private final JwtAuthFilter jwtAuthFilter;
     private final N8nServiceTokenAuthFilter n8nServiceTokenAuthFilter;
     private final N8nResolutionEvidenceTokenAuthFilter n8nResolutionEvidenceTokenAuthFilter;
+    private final N8nResolutionEvidenceCandidateTokenAuthFilter
+            n8nResolutionEvidenceCandidateTokenAuthFilter;
 
     public SecurityConfig(
             JwtAuthFilter jwtAuthFilter,
             N8nServiceTokenAuthFilter n8nServiceTokenAuthFilter,
-            N8nResolutionEvidenceTokenAuthFilter n8nResolutionEvidenceTokenAuthFilter) {
+            N8nResolutionEvidenceTokenAuthFilter n8nResolutionEvidenceTokenAuthFilter,
+            N8nResolutionEvidenceCandidateTokenAuthFilter
+                    n8nResolutionEvidenceCandidateTokenAuthFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.n8nServiceTokenAuthFilter = n8nServiceTokenAuthFilter;
         this.n8nResolutionEvidenceTokenAuthFilter = n8nResolutionEvidenceTokenAuthFilter;
+        this.n8nResolutionEvidenceCandidateTokenAuthFilter =
+                n8nResolutionEvidenceCandidateTokenAuthFilter;
     }
 
     @Bean
@@ -59,12 +66,19 @@ public class SecurityConfig {
                         HttpMethod.POST,
                         "/api/internal/current-affairs/markets/*/resolution-evidence")
                     .hasAuthority(N8nResolutionEvidenceTokenAuthFilter.AUTHORITY)
+                .requestMatchers(
+                        HttpMethod.GET,
+                        "/api/internal/current-affairs/resolution-evidence-candidates")
+                    .hasAuthority(N8nResolutionEvidenceCandidateTokenAuthFilter.AUTHORITY)
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(n8nServiceTokenAuthFilter, JwtAuthFilter.class)
-            .addFilterAfter(n8nResolutionEvidenceTokenAuthFilter, N8nServiceTokenAuthFilter.class);
+            .addFilterAfter(n8nResolutionEvidenceTokenAuthFilter, N8nServiceTokenAuthFilter.class)
+            .addFilterAfter(
+                    n8nResolutionEvidenceCandidateTokenAuthFilter,
+                    N8nResolutionEvidenceTokenAuthFilter.class);
 
         return http.build();
     }

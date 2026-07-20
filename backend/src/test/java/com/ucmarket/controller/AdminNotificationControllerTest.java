@@ -40,6 +40,7 @@ import com.ucmarket.notification.NotificationJobStatus;
 import com.ucmarket.repository.UserRepository;
 import com.ucmarket.security.JwtAuthFilter;
 import com.ucmarket.security.JwtTokenProvider;
+import com.ucmarket.security.N8nResolutionEvidenceCandidateTokenAuthFilter;
 import com.ucmarket.security.N8nServiceTokenAuthFilter;
 import com.ucmarket.security.N8nResolutionEvidenceTokenAuthFilter;
 import com.ucmarket.service.AdminNotificationService;
@@ -52,7 +53,8 @@ import jakarta.persistence.EntityNotFoundException;
         SecurityConfig.class,
         JwtAuthFilter.class,
         N8nServiceTokenAuthFilter.class,
-        N8nResolutionEvidenceTokenAuthFilter.class
+        N8nResolutionEvidenceTokenAuthFilter.class,
+        N8nResolutionEvidenceCandidateTokenAuthFilter.class
 })
 class AdminNotificationControllerTest {
 

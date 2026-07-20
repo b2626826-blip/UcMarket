@@ -48,6 +48,20 @@ public interface MarketRepository extends JpaRepository<Market, UUID> {
 		MarketStatus status,
 		Pageable pageable);
 
+	@Query("""
+			SELECT m FROM Market m
+			WHERE m.status = :status
+			AND m.category = :category
+			AND NOT EXISTS (
+				SELECT e.id FROM MarketResolutionEvidence e
+				WHERE e.marketId = m.id
+			)
+			""")
+	Page<Market> findResolutionEvidenceCandidates(
+			@Param("status") MarketStatus status,
+			@Param("category") String category,
+			Pageable pageable);
+
 	Page<Market> findByCreatorId(UUID creatorId, Pageable pageable);
 
 	Page<Market> findByCreatorIdAndStatusIn(
