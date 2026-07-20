@@ -10,6 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -57,11 +58,25 @@ class MarketSubmissionNotificationIntegrationTest {
     @Autowired
     private EmailTemplateService emailTemplateService;
 
+    @BeforeEach
+    void setUpMarketForSubmission() {
+        jdbc.update("""
+                UPDATE markets
+                SET source_url = 'https://example.com',
+                    resolution_rule = 'Official result'
+                WHERE id = ?
+                """, DRAFT_MARKET_ID);
+    }
+
     @Test
     void submitMarket_whenSecondNotificationFails_rollsBackMarketAndJobs() {
         Market before = marketRepository.findById(DRAFT_MARKET_ID).orElseThrow();
         User creator = userRepository.findById(CREATOR_ID).orElseThrow();
         long jobCountBefore = notificationJobRepository.count();
+        int checkCountBefore = jdbc.queryForObject(
+                "SELECT COUNT(*) FROM market_review_checks WHERE market_id = ?",
+                Integer.class,
+                DRAFT_MARKET_ID);
 
         assertEquals(MarketStatus.DRAFT, before.getStatus());
         assertEquals(0, before.getSubmissionVersion());
@@ -82,10 +97,18 @@ class MarketSubmissionNotificationIntegrationTest {
         assertEquals(MarketStatus.DRAFT, after.getStatus());
         assertEquals(0, after.getSubmissionVersion());
         assertEquals(jobCountBefore, notificationJobRepository.count());
+        assertEquals(checkCountBefore, jdbc.queryForObject(
+                "SELECT COUNT(*) FROM market_review_checks WHERE market_id = ?",
+                Integer.class,
+                DRAFT_MARKET_ID));
     }
 
     @AfterEach
     void cleanup() {
+        jdbc.update(
+                "DELETE FROM market_review_checks WHERE market_id = ?",
+                DRAFT_MARKET_ID);
+
         jdbc.update("""
                 DELETE FROM notification_job_attempts
                 WHERE job_id IN (
@@ -99,7 +122,10 @@ class MarketSubmissionNotificationIntegrationTest {
 
         jdbc.update("""
                 UPDATE markets
-                SET status = 'DRAFT', submission_version = 0
+                SET source_url = NULL,
+                    resolution_rule = NULL,
+                    status = 'DRAFT',
+                    submission_version = 0
                 WHERE id = ?
                 """, DRAFT_MARKET_ID);
 

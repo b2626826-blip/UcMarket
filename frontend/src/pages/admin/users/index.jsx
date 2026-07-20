@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { getAdminUsers, suspendUser, unsuspendUser } from '../../../api/adminApi';
 import useUiStore from '../../../store/uiStore';
+import useAuthStore from '../../../store/authStore';
 import StatusBadge from '../../../components/common/StatusBadge';
 import Pagination from '../../../components/admin/Pagination';
 import { formatTime, formatBalance } from '../../../utils/format';
@@ -16,6 +17,7 @@ export default function UsersPage() {
   const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
   const showToast = useUiStore((s) => s.showToast);
+  const meId = useAuthStore((s) => s.user?.id);
 
   const loadUsers = useCallback(async () => {
     setLoading(true);
@@ -133,9 +135,10 @@ export default function UsersPage() {
                     <td>{formatTime(u.createdAt, 16) || '-'}</td>
                     <td>{formatTime(u.lastLoginAt, 16) || '-'}</td>
                     <td>
-                      {u.status === 'ACTIVE' && <button className="icon-btn text-danger" title="停權" onClick={() => handleSuspend(u.id)}><i className="bi bi-shield-slash"></i></button>}
-                      {u.status === 'BANNED' && <button className="icon-btn text-success" title="啟用" onClick={() => handleUnsuspend(u.id)}><i className="bi bi-shield-check"></i></button>}
-                      {!['ACTIVE','BANNED'].includes(u.status) && <span className="text-secondary small">—</span>}
+                      {u.id === meId ? <span className="text-secondary small">—</span>
+                        : u.status === 'ACTIVE' ? <button className="icon-btn text-danger" title="停權" onClick={() => handleSuspend(u.id)}><i className="bi bi-shield-slash"></i></button>
+                        : u.status === 'BANNED' ? <button className="icon-btn text-success" title="啟用" onClick={() => handleUnsuspend(u.id)}><i className="bi bi-shield-check"></i></button>
+                        : <span className="text-secondary small">—</span>}
                     </td>
                   </tr>
                 ))}

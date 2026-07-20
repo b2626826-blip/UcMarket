@@ -178,4 +178,15 @@ public class User {
 		this.avatarUrl = avatarUrl;
 		this.bio = bio;
 	}
+
+	public void anonymizeForDeletion() {
+		String idPart = id != null ? id.toString().replace("-", "") : UUID.randomUUID().toString().replace("-", "");
+		String shortId = idPart.substring(0, Math.min(8, idPart.length()));
+		this.username = "deleted_" + shortId;
+		this.email = "deleted+" + (id != null ? id : shortId) + "@deleted.local";
+		this.passwordHash = null;
+		this.avatarUrl = null;
+		this.bio = null;
+		this.status = UserStatus.DISABLED;
+	}
 }

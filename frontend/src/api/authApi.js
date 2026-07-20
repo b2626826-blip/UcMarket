@@ -1,4 +1,4 @@
-import { getApi, postApi, putApi } from './client';
+import { getApi, postApi, putApi, deleteApi } from './client';
 
 export function getCurrentUser() {
   return getApi('/api/auth/me');
@@ -26,6 +26,19 @@ export function updateProfile(profile) {
 
 export function changePassword(oldPassword, newPassword) {
   return postApi('/api/auth/change-password', { oldPassword, newPassword });
+}
+
+export function forgotPassword(email) {
+  return postApi('/api/auth/forgot-password', { email });
+}
+
+export function resetPassword(token, newPassword) {
+  return postApi('/api/auth/reset-password', { token, newPassword });
+}
+
+export function deleteAccount(password) {
+  const body = password != null && password !== '' ? { password } : {};
+  return deleteApi('/api/auth/me', body);
 }
 
 export function checkAdminSession() {

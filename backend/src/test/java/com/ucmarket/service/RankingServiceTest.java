@@ -7,6 +7,7 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -144,7 +145,7 @@ class RankingServiceTest {
 	@Test
 	void getRankingSnapshotReturnsOneConsistentResponse() {
 		UUID userId = UUID.randomUUID();
-		OffsetDateTime asOf = OffsetDateTime.parse("2026-07-10T08:23:41Z");
+		Instant asOf = Instant.parse("2026-07-10T08:23:41Z");
 		when(rankingSnapshotRow.getRank()).thenReturn(1L);
 		when(rankingSnapshotRow.getUserId()).thenReturn(userId);
 		when(rankingSnapshotRow.getUsername()).thenReturn("eagleaby");
@@ -161,13 +162,24 @@ class RankingServiceTest {
 		RankingSnapshotResponse snapshot = rankingService.getRankingSnapshot("assets");
 
 		assertThat(snapshot.metric()).isEqualTo("assets");
-		assertThat(snapshot.asOf()).isEqualTo(asOf.toInstant());
+		assertThat(snapshot.asOf()).isEqualTo(asOf);
 		assertThat(snapshot.items()).singleElement().satisfies(item -> {
 			assertThat(item.rank()).isEqualTo(1L);
 			assertThat(item.userId()).isEqualTo(userId);
 			assertThat(item.totalAssetValue()).isEqualByComparingTo("112.50");
 		});
 		verify(rankingRepository).findRankingSnapshot("assets");
+	}
+
+	@Test
+	void getRankingSnapshotNormalizesOffsetDateTime() {
+		OffsetDateTime asOf = OffsetDateTime.parse("2026-07-10T16:23:41+08:00");
+		when(rankingSnapshotRow.getAsOf()).thenReturn(asOf);
+		when(rankingRepository.findRankingSnapshot("profit")).thenReturn(List.of(rankingSnapshotRow));
+
+		RankingSnapshotResponse snapshot = rankingService.getRankingSnapshot("profit");
+
+		assertThat(snapshot.asOf()).isEqualTo(asOf.toInstant());
 	}
 
 	@Test

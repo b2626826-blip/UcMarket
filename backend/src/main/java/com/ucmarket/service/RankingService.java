@@ -1,5 +1,7 @@
 package com.ucmarket.service;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.util.List;
 
 import org.springframework.http.HttpStatus;
@@ -60,7 +62,7 @@ public class RankingService {
 		}
 
 		List<RankingSnapshotRow> rows = rankingRepository.findRankingSnapshot(metric);
-		var asOf = rows.getFirst().getAsOf().toInstant();
+		var asOf = toInstant(rows.getFirst().getAsOf());
 		return new RankingSnapshotResponse(
 				metric,
 				asOf,
@@ -69,6 +71,16 @@ public class RankingService {
 						.map(this::toSnapshotItemResponse)
 						.toList()
 		);
+	}
+
+	private Instant toInstant(Object value) {
+		if (value instanceof Instant instant) {
+			return instant;
+		}
+		if (value instanceof OffsetDateTime offsetDateTime) {
+			return offsetDateTime.toInstant();
+		}
+		throw new IllegalStateException("Unsupported ranking timestamp type: " + value.getClass().getName());
 	}
 
 	private RankingProfitResponse toProfitResponse(RankingProfitRow row) {

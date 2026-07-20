@@ -71,6 +71,7 @@ class TradeConcurrencyTest {
 	void cleanup() {
 		jdbc.update("DELETE FROM trades WHERE market_id = ?", marketId);
 		jdbc.update("DELETE FROM positions WHERE market_id = ?", marketId);
+		jdbc.update("DELETE FROM market_price_history WHERE market_id = ?", marketId);
 		jdbc.update("DELETE FROM markets WHERE id = ?", marketId);
 		jdbc.update("DELETE FROM wallet_transactions WHERE wallet_id IN "
 				+ "(SELECT id FROM wallets WHERE user_id = ?)", userId);

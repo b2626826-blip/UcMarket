@@ -5,6 +5,7 @@ import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -15,11 +16,15 @@ import org.springframework.web.bind.annotation.RestController;
 import com.ucmarket.dto.auth.AuthResponse;
 import com.ucmarket.dto.auth.AuthResponse.UserInfo;
 import com.ucmarket.dto.auth.ChangePasswordRequest;
+import com.ucmarket.dto.auth.DeleteAccountRequest;
 import com.ucmarket.dto.auth.FirebaseLoginRequest;
+import com.ucmarket.dto.auth.ForgotPasswordRequest;
 import com.ucmarket.dto.auth.LoginRequest;
 import com.ucmarket.dto.auth.LogoutRequest;
+import com.ucmarket.dto.auth.MessageResponse;
 import com.ucmarket.dto.auth.RefreshRequest;
 import com.ucmarket.dto.auth.RegisterRequest;
+import com.ucmarket.dto.auth.ResetPasswordRequest;
 import com.ucmarket.dto.auth.UpdateProfileRequest;
 import com.ucmarket.entity.User;
 import com.ucmarket.service.AuthService;
@@ -55,6 +60,18 @@ public class AuthController {
     public ResponseEntity<AuthResponse> login(@Valid @RequestBody LoginRequest request) {
         AuthResponse response = authService.login(request);
         return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/forgot-password")
+    public ResponseEntity<MessageResponse> forgotPassword(@Valid @RequestBody ForgotPasswordRequest request) {
+        String message = authService.forgotPassword(request.email());
+        return ResponseEntity.ok(new MessageResponse(message));
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<MessageResponse> resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        authService.resetPassword(request.token(), request.newPassword());
+        return ResponseEntity.ok(new MessageResponse("密碼已重設，請使用新密碼登入。"));
     }
 
     @GetMapping("/me")
@@ -93,6 +110,17 @@ public class AuthController {
     public ResponseEntity<Void> changePassword(@AuthenticationPrincipal User user,
             @Valid @RequestBody ChangePasswordRequest request) {
         authService.changePassword(user.getId(), request.oldPassword(), request.newPassword());
+        return ResponseEntity.noContent().build();
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteAccount(@AuthenticationPrincipal User user,
+            @RequestBody(required = false) DeleteAccountRequest request) {
+        if (user == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        String password = request != null ? request.password() : null;
+        authService.deleteAccount(user.getId(), password);
         return ResponseEntity.noContent().build();
     }
 }

@@ -51,6 +51,8 @@ import com.ucmarket.repository.TradeRepository;
 import com.ucmarket.repository.WalletRepository;
 import com.ucmarket.repository.WalletTransactionRepository;
 import com.ucmarket.service.MarketService;
+import com.ucmarket.service.MarketPreReviewResult;
+import com.ucmarket.service.MarketPreReviewService;
 import com.ucmarket.service.PriceHistoryService;
 import com.ucmarket.service.PositionService;
 import com.ucmarket.service.ResolutionService;
@@ -77,6 +79,7 @@ class CoreMarketLifecycleTest {
 			mock(WalletTransactionRepository.class);
 	private final UserRepository userRepository = mock(UserRepository.class);
 	private final NotificationService notificationService = mock(NotificationService.class);
+	private final MarketPreReviewService preReviewService = mock(MarketPreReviewService.class);
 
 	private final Map<UUID, Market> markets = new HashMap<>();
 	private final Map<PositionKey, Position> positions = new HashMap<>();
@@ -97,6 +100,8 @@ class CoreMarketLifecycleTest {
 		stubPositionRepository();
 		stubWalletRepositories();
 		stubTradeAndAuditRepositories();
+		when(preReviewService.reviewForSubmission(any()))
+				.thenReturn(new MarketPreReviewResult(List.of(), List.of()));
 
 		walletService = new WalletService(walletRepository, walletTransactionRepository);
 		PositionService positionService = new PositionService(positionRepository);
@@ -113,7 +118,8 @@ class CoreMarketLifecycleTest {
 				positionRepository,
 				walletService,
 				userRepository,
-				notificationService
+				notificationService,
+				preReviewService
 		);
 		TradeService tradeService = new TradeService(
 				marketRepository,

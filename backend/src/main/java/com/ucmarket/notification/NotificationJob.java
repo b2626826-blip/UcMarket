@@ -155,5 +155,6 @@ public class NotificationJob {
 	public String getLockedBy() { return lockedBy; }
 	public String getLastError() { return lastError; }
 	public LocalDateTime getCreatedAt() { return createdAt; }
+	public LocalDateTime getUpdatedAt() { return updatedAt; }
 	public LocalDateTime getSentAt() { return sentAt; }
 }

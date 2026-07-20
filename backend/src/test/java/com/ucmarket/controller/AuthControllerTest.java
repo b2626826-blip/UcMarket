@@ -127,4 +127,51 @@ class AuthControllerTest {
                 .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest());
     }
+
+    @Test
+    void deleteAccount_shouldReturn401_whenNotAuthenticated() throws Exception {
+        mockMvc.perform(delete("/api/auth/me")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"password\":\"secret\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void forgotPassword_shouldReturn200() throws Exception {
+        when(authService.forgotPassword("user@test.com"))
+                .thenReturn("若此 Email 已註冊，我們已寄出重設信件。");
+
+        mockMvc.perform(post("/api/auth/forgot-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"user@test.com\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("若此 Email 已註冊，我們已寄出重設信件。"));
+    }
+
+    @Test
+    void forgotPassword_shouldReturn400_whenValidationFails() throws Exception {
+        mockMvc.perform(post("/api/auth/forgot-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"not-an-email\"}"))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void resetPassword_shouldReturn200() throws Exception {
+        mockMvc.perform(post("/api/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"token\":\"abc\",\"newPassword\":\"password123\"}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("密碼已重設，請使用新密碼登入。"));
+
+        verify(authService).resetPassword("abc", "password123");
+    }
+
+    @Test
+    void resetPassword_shouldReturn400_whenValidationFails() throws Exception {
+        mockMvc.perform(post("/api/auth/reset-password")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"token\":\"\",\"newPassword\":\"12\"}"))
+                .andExpect(status().isBadRequest());
+    }
 }

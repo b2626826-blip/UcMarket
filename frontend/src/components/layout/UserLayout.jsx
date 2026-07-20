@@ -3,6 +3,7 @@ import { Outlet, Link, useLocation } from 'react-router-dom';
 import useAuthStore from '../../store/authStore';
 import AuthModal from '../common/AuthModal';
 import Toast from '../common/Toast';
+import SupportChatWidget from '../support/SupportChatWidget';
 import logoImg from '../../assets/logos/ucmarket-logo.png';
 
 export default function UserLayout() {
@@ -167,6 +168,7 @@ export default function UserLayout() {
       )}
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialTab={authTab} />
       <Toast />
+      <SupportChatWidget />
     </>
   );
 }

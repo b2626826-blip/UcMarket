@@ -2,7 +2,7 @@ import { vi } from 'vitest';
 
 // 共用測試工具：不是測試檔（vitest include 只抓 *.test.js），供各 API 測試 import。
 
-const BASE = 'http://localhost:8080';
+const BASE = '';
 
 export function apiUrl(path) {
   return BASE + path;

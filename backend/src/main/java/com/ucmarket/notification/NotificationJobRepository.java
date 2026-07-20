@@ -62,7 +62,7 @@ public interface NotificationJobRepository extends JpaRepository<NotificationJob
     @Modifying(clearAutomatically = true)
     @Query("""
             update NotificationJob j
-            set j.status = com.ucmarket.notification.NotificationJobStatus.PENDING,
+            set j.status = com.ucmarket.notification.NotificationJobStatus.RETRY,
                 j.nextAttemptAt = :now,
                 j.lockedAt = null,
                 j.lockedBy = null,

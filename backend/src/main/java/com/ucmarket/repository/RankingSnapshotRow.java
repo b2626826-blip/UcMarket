@@ -1,7 +1,6 @@
 package com.ucmarket.repository;
 
 import java.math.BigDecimal;
-import java.time.OffsetDateTime;
 import java.util.UUID;
 
 public interface RankingSnapshotRow {
@@ -26,5 +25,5 @@ public interface RankingSnapshotRow {
 
 	BigDecimal getTotalAssetValue();
 
-	OffsetDateTime getAsOf();
+	Object getAsOf();
 }

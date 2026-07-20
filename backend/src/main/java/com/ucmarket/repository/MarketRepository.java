@@ -30,6 +30,11 @@ public interface MarketRepository extends JpaRepository<Market, UUID> {
 
 	List<Market> findByStatusAndCloseAtBefore(MarketStatus status, LocalDateTime dateTime);
 
+	List<Market> findByStatusAndCloseAtAfterAndCloseAtLessThanEqual(
+			MarketStatus status,
+			LocalDateTime after,
+			LocalDateTime beforeOrEqual);
+
 	Optional<Market> findByCode(String code);
 
 	List<Market> findByCategory(String category);
@@ -42,6 +47,20 @@ public interface MarketRepository extends JpaRepository<Market, UUID> {
 		String category,
 		MarketStatus status,
 		Pageable pageable);
+
+	@Query("""
+			SELECT m FROM Market m
+			WHERE m.status = :status
+			AND m.category = :category
+			AND NOT EXISTS (
+				SELECT e.id FROM MarketResolutionEvidence e
+				WHERE e.marketId = m.id
+			)
+			""")
+	Page<Market> findResolutionEvidenceCandidates(
+			@Param("status") MarketStatus status,
+			@Param("category") String category,
+			Pageable pageable);
 
 	Page<Market> findByCreatorId(UUID creatorId, Pageable pageable);
 
