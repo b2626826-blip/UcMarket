@@ -3,14 +3,7 @@
 	email {$ACME_EMAIL}
 }
 
-(demo_auth) {
-	basic_auth {
-		{$DEMO_AUTH_USERNAME} {$DEMO_AUTH_PASSWORD_HASH}
-	}
-}
-
 ucmarket.online, www.ucmarket.online {
-	import demo_auth
 	encode zstd gzip
 
 	@api path /api/*
@@ -31,6 +24,5 @@ n8n.ucmarket.online {
 		reverse_proxy n8n:5678
 	}
 
-	import demo_auth
 	reverse_proxy n8n:5678
 }

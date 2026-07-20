@@ -7,7 +7,6 @@ RUNTIME_DIR="${RUNTIME_DIR:-/run/ucmarket}"
 SECRET_API="https://secretmanager.googleapis.com/v1/projects/${PROJECT_ID}/secrets"
 FIREBASE_RUNTIME_UID="${FIREBASE_RUNTIME_UID:-999}"
 FIREBASE_RUNTIME_GID="${FIREBASE_RUNTIME_GID:-999}"
-CADDY_HASH_IMAGE="${CADDY_HASH_IMAGE:-caddy:2.11.4-alpine}"
 
 umask 077
 install -d -m 0700 "${RUNTIME_DIR}"
@@ -86,21 +85,7 @@ write_secret_env "${N8N_ENV}" N8N_ENCRYPTION_KEY ucmarket-n8n-encryption-key
 : > "${WEB_ENV}"
 cat >> "${WEB_ENV}" <<'EOF'
 ACME_EMAIL=b2626826@gmail.com
-DEMO_AUTH_USERNAME=ucmarket
 EOF
-if [[ "${DEPLOY_MODE}" == "production" ]]; then
-  demo_auth_password_hash="$(
-    {
-      access_secret ucmarket-demo-web-password
-      printf '\n'
-    } | docker run --rm -i "${CADDY_HASH_IMAGE}" \
-      caddy hash-password --algorithm bcrypt
-  )"
-  printf "DEMO_AUTH_PASSWORD_HASH='%s'\n" \
-    "${demo_auth_password_hash}" >> "${WEB_ENV}"
-else
-  printf 'DEMO_AUTH_PASSWORD_HASH=\n' >> "${WEB_ENV}"
-fi
 
 if curl -fsS \
   -H "Authorization: Bearer ${ACCESS_TOKEN}" \

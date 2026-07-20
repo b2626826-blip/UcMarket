@@ -178,7 +178,7 @@ gcloud compute ssh ucmarketvm \
 2. 保留 `www` CNAME 指向 apex。
 3. 新增 `n8n` A 指向 `35.201.185.156`。
 4. 新增 target `ucmarket-demo` 的 public firewall：TCP 80/443 from `0.0.0.0/0`。
-5. 產生 demo Basic Auth secret/hash，切換 production Caddy 並取得 HTTPS certificate。
+5. 切換 production Caddy 並取得 HTTPS certificate；依使用者決定不啟用網站 Basic Auth。
 6. 以 Secret Manager 的 Gmail App Password 建立 `b2626826@gmail.com` SMTP credential。
 7. 將 04 從 staging Mailpit 切到 Gmail production credential。
 8. 以全新 Discord webhook 建立 01/05/06 credentials。
@@ -186,5 +186,5 @@ gcloud compute ssh ucmarketvm \
 10. 正式 Email 只寄 `b2626826@gmail.com`，驗 SENT/RETRY/FAILED、重送與不重複。
 
 影響：`ucmarket.online`、`www.ucmarket.online`、`n8n.ucmarket.online` 將可從 Internet
-連線；網站與 n8n editor 會有 Basic Auth，n8n editor 另有 owner login，
-`/webhook/notify` 只以專用 header token 保護。
+連線；網站不設入口密碼，n8n editor 仍須以 n8n owner login 保護，
+`/webhook/notify` 只以專用 header token 保護。公開前必須確認 n8n owner login 已完成設定。
