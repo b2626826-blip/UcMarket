@@ -5,6 +5,8 @@ __MACOSX/
 
 # Java / Maven
 target/
+# jqwik property-based test 的失敗樣本快取（本機產物，不進版控）
+backend/.jqwik-database
 
 # Node / React
 node_modules/
