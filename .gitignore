@@ -23,6 +23,7 @@ dist/
 # Environment
 .env
 frontend/.env
+deploy/gcp/deploy.env
 
 # Firebase service account credentials
 backend/src/main/resources/firebase-service-account.json

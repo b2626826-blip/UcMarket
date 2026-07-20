@@ -1,0 +1,16 @@
+.git
+.github
+.claude
+.codex
+.agents
+**/.DS_Store
+**/*.log
+**/node_modules
+**/target
+frontend/.env
+frontend/.env.*
+!frontend/.env.example
+**/firebase-service-account.json
+automation/n8n/.env
+automation/n8n/install/credentials.json
+docs/資料庫設計/db-backups

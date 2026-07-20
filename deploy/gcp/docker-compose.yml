@@ -1,0 +1,89 @@
+name: ucmarket
+
+services:
+  cloud-sql-proxy:
+    image: gcr.io/cloud-sql-connectors/cloud-sql-proxy:2.23.0
+    command:
+      - "--address=0.0.0.0"
+      - "--port=5432"
+      - "--health-check"
+      - "--http-address=0.0.0.0"
+      - "--http-port=9090"
+      - "${CLOUD_SQL_CONNECTION_NAME}"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "/cloud-sql-proxy", "wait", "--http-address=0.0.0.0", "--http-port=9090"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  backend:
+    image: "${BACKEND_IMAGE}"
+    networks:
+      default:
+        aliases:
+          - host.docker.internal
+    env_file:
+      - "${RUNTIME_DIR:-/run/ucmarket}/backend.env"
+    volumes:
+      - "${RUNTIME_DIR:-/run/ucmarket}/firebase-service-account.json:/run/secrets/firebase-service-account.json:ro"
+    ports:
+      - "127.0.0.1:8081:8080"
+    depends_on:
+      cloud-sql-proxy:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:8080/api/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 20
+      start_period: 45s
+
+  web:
+    image: "${WEB_IMAGE}"
+    env_file:
+      - "${RUNTIME_DIR:-/run/ucmarket}/web.env"
+    volumes:
+      - "${CADDYFILE_PATH}:/etc/caddy/Caddyfile:ro"
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "${WEB_BIND_ADDRESS}:80"
+      - "${WEB_TLS_BIND_ADDRESS}:443"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+
+  n8n:
+    image: n8nio/n8n:2.29.11
+    env_file:
+      - "${RUNTIME_DIR:-/run/ucmarket}/n8n.env"
+    ports:
+      - "127.0.0.1:5678:5678"
+    volumes:
+      - n8n_data:/home/node/.n8n
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "-T", "3", "http://127.0.0.1:5678/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  mailpit:
+    image: axllent/mailpit:v1.30.4
+    profiles: ["staging"]
+    ports:
+      - "127.0.0.1:1025:1025"
+      - "127.0.0.1:8025:8025"
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:
+  n8n_data:
