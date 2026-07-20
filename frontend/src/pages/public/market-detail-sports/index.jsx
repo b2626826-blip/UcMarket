@@ -11,6 +11,11 @@ const STATUS_LABEL = {
   CLOSED: '已截止', RESOLVED: '已結算', REJECTED: '已拒絕', CANCELED: '已取消',
 };
 
+// 市場類型中文對照（與建立市場表單一致）
+const MARKET_TYPE_LABEL = {
+  BINARY: '二元（YES/NO）', COUNT_RANGE: '區間', MULTIPLE_CHOICE: '多選',
+};
+
 // 分類 → 圖示（Font Awesome，全站 CDN 已載入）
 const CATEGORY_ICON = {
   運動: 'fa-futbol', 政治: 'fa-landmark', 天氣: 'fa-cloud-sun',
@@ -168,12 +173,12 @@ function RelatedContent({ title, category }) {
   return (
     <section className="trade-market-card" style={{ marginTop: 24 }}>
       <h3 className="news-head"><i className="fa-solid fa-newspaper"></i> 相關新聞與影片</h3>
-      <p className="news-sub">依市場標題「{query}」自動抓取，無需人工維護</p>
+      <p className="news-sub">與「{query}」相關的即時報導</p>
 
       {/* 1) 新聞文字 */}
       {news.loading && <p className="news-status">載入中…</p>}
       {!news.loading && news.items.length === 0 && (
-        <p className="news-status">公開代理暫時忙碌，抓不到即時清單 —— 可用下方按鈕直接搜尋。</p>
+        <p className="news-status">深度搜尋中…完整結果可用下方按鈕直接查看。</p>
       )}
       {news.items.length > 0 && (
         <div className="news-list">
@@ -254,7 +259,7 @@ export default function SportsDetailPage() {
 
   if (loading || error || !market) {
     return (
-      <DetailPageTemplate id={id} subtitle="運動賽事預測市場" marketId={id} tradePanel={<div className='trade-panel'><p>
+      <DetailPageTemplate id={id} category="運動" subtitle="運動賽事預測市場" marketId={id} tradePanel={<div className='trade-panel'><p>
         {loading ? '市場資料載入中…' : '此市場目前無法交易'}
       </p></div>}>
         <p style={{ padding: '48px 16px', textAlign: 'center', color: error ? '#ff476d' : '#8f8f8f' }}>
@@ -269,12 +274,17 @@ export default function SportsDetailPage() {
   const icon = CATEGORY_ICON[market.category] || 'fa-medal';
 
   return (
-    <DetailPageTemplate id={id} subtitle={market.title} marketId={market.id ?? id} market={market}>
+    <DetailPageTemplate
+      id={market.code || id}
+      category={market.title}
+      subtitle="運動賽事預測市場"
+      marketId={market.id ?? id}
+      market={market}
+    >
       <div className="trade-market-card">
         <div className="trade-card-header">
           <div>
             <div className="market-type"><i className={`fa-solid ${icon}`}></i> {market.category}</div>
-            <h2>{market.title}</h2>
             {market.description && <p>{market.description}</p>}
           </div>
           <div className={`market-status ${market.status === 'ACTIVE' ? 'live' : ''}`}>
@@ -299,24 +309,8 @@ export default function SportsDetailPage() {
           <div className="price-board" style={{ gridTemplateColumns: '1fr' }}>
             <div className="price-box">
               <span>市場類型</span>
-              <strong style={{ fontSize: 26 }}>{market.marketType}</strong>
-              <p>此類型的選項與賠率由後端提供</p>
-            </div>
-          </div>
-        )}
-
-        {isBinary && (
-          <div className="market-option-section">
-            <h3>可選擇方向</h3>
-            <div className="option-grid" style={{ gridTemplateColumns: 'repeat(2, 1fr)' }}>
-              <button className="option-card active">
-                <span>YES 看好</span>
-                <strong>${price.yes.toFixed(2)}</strong>
-              </button>
-              <button className="option-card">
-                <span>NO 看衰</span>
-                <strong>${price.no.toFixed(2)}</strong>
-              </button>
+              <strong style={{ fontSize: 26 }}>{MARKET_TYPE_LABEL[market.marketType] || market.marketType}</strong>
+              <p>請於右側交易面板選擇下注選項</p>
             </div>
           </div>
         )}
