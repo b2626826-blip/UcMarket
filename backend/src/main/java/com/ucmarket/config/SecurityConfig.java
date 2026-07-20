@@ -14,6 +14,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 import com.ucmarket.security.JwtAuthFilter;
 import com.ucmarket.security.N8nServiceTokenAuthFilter;
+import com.ucmarket.security.N8nResolutionEvidenceTokenAuthFilter;
 
 @Configuration
 @EnableWebSecurity
@@ -22,12 +23,15 @@ public class SecurityConfig {
 
     private final JwtAuthFilter jwtAuthFilter;
     private final N8nServiceTokenAuthFilter n8nServiceTokenAuthFilter;
+    private final N8nResolutionEvidenceTokenAuthFilter n8nResolutionEvidenceTokenAuthFilter;
 
     public SecurityConfig(
             JwtAuthFilter jwtAuthFilter,
-            N8nServiceTokenAuthFilter n8nServiceTokenAuthFilter) {
+            N8nServiceTokenAuthFilter n8nServiceTokenAuthFilter,
+            N8nResolutionEvidenceTokenAuthFilter n8nResolutionEvidenceTokenAuthFilter) {
         this.jwtAuthFilter = jwtAuthFilter;
         this.n8nServiceTokenAuthFilter = n8nServiceTokenAuthFilter;
+        this.n8nResolutionEvidenceTokenAuthFilter = n8nResolutionEvidenceTokenAuthFilter;
     }
 
     @Bean
@@ -51,11 +55,16 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/rankings/**").permitAll()
                 .requestMatchers(HttpMethod.GET, "/api/admin/notifications")
                     .hasAnyAuthority("ROLE_ADMIN", N8nServiceTokenAuthFilter.AUTHORITY)
+                .requestMatchers(
+                        HttpMethod.POST,
+                        "/api/internal/current-affairs/markets/*/resolution-evidence")
+                    .hasAuthority(N8nResolutionEvidenceTokenAuthFilter.AUTHORITY)
                 .requestMatchers("/api/admin/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
             )
             .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class)
-            .addFilterAfter(n8nServiceTokenAuthFilter, JwtAuthFilter.class);
+            .addFilterAfter(n8nServiceTokenAuthFilter, JwtAuthFilter.class)
+            .addFilterAfter(n8nResolutionEvidenceTokenAuthFilter, N8nServiceTokenAuthFilter.class);
 
         return http.build();
     }

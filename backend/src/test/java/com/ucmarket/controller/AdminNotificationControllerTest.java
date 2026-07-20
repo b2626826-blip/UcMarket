@@ -41,13 +41,19 @@ import com.ucmarket.repository.UserRepository;
 import com.ucmarket.security.JwtAuthFilter;
 import com.ucmarket.security.JwtTokenProvider;
 import com.ucmarket.security.N8nServiceTokenAuthFilter;
+import com.ucmarket.security.N8nResolutionEvidenceTokenAuthFilter;
 import com.ucmarket.service.AdminNotificationService;
 
 import jakarta.persistence.EntityNotFoundException;
 
 @WebMvcTest(AdminNotificationController.class)
 @AutoConfigureMockMvc
-@Import({ SecurityConfig.class, JwtAuthFilter.class, N8nServiceTokenAuthFilter.class })
+@Import({
+        SecurityConfig.class,
+        JwtAuthFilter.class,
+        N8nServiceTokenAuthFilter.class,
+        N8nResolutionEvidenceTokenAuthFilter.class
+})
 class AdminNotificationControllerTest {
 
     private static final String N8N_SERVICE_TOKEN = UUID.randomUUID().toString();

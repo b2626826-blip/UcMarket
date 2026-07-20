@@ -2,6 +2,7 @@ package com.ucmarket.config;
 
 import com.ucmarket.security.JwtAuthFilter;
 import com.ucmarket.security.N8nServiceTokenAuthFilter;
+import com.ucmarket.security.N8nResolutionEvidenceTokenAuthFilter;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -15,10 +16,12 @@ class SecurityConfigTest {
 
     @Mock private JwtAuthFilter jwtAuthFilter;
     @Mock private N8nServiceTokenAuthFilter n8nServiceTokenAuthFilter;
+    @Mock private N8nResolutionEvidenceTokenAuthFilter n8nResolutionEvidenceTokenAuthFilter;
 
     @Test
     void passwordEncoder_shouldCreateBCryptBean() {
-        SecurityConfig config = new SecurityConfig(jwtAuthFilter, n8nServiceTokenAuthFilter);
+        SecurityConfig config = new SecurityConfig(
+                jwtAuthFilter, n8nServiceTokenAuthFilter, n8nResolutionEvidenceTokenAuthFilter);
         PasswordEncoder encoder = config.passwordEncoder();
         assertNotNull(encoder);
 
