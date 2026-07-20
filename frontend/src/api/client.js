@@ -29,8 +29,16 @@ export function putApi(url, body, options = {}) {
   }).then(handleResponse);
 }
 
-export function deleteApi(url) {
-  return fetch(BASE_URL + url, { method: 'DELETE', credentials: 'include', headers: authHeaders() }).then(handleResponse);
+export function deleteApi(url, body, options = {}) {
+  const init = {
+    method: 'DELETE',
+    credentials: 'include',
+    headers: mergeHeaders(options.headers),
+  };
+  if (body !== undefined) {
+    init.body = JSON.stringify(body);
+  }
+  return fetch(BASE_URL + url, init).then(handleResponse);
 }
 
 async function handleResponse(res) {

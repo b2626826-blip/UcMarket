@@ -6,6 +6,7 @@ import {
   logout as apiLogout,
   updateProfile as apiUpdateProfile,
   changePassword as apiChangePassword,
+  deleteAccount as apiDeleteAccount,
 } from '../api/authApi';
 import { firebaseLogin as apiFirebaseLogin } from '../api/oauthApi';
 import { setToken, getToken } from '../api/client';
@@ -100,6 +101,18 @@ const useAuthStore = create((set) => ({
     try {
       await apiChangePassword(oldPassword, newPassword);
       set({ loading: false });
+    } catch (err) {
+      set({ error: err.message, loading: false });
+      throw err;
+    }
+  },
+
+  deleteAccount: async (password) => {
+    set({ loading: true, error: null });
+    try {
+      await apiDeleteAccount(password);
+      setToken(null);
+      set({ user: null, initialized: true, loading: false });
     } catch (err) {
       set({ error: err.message, loading: false });
       throw err;

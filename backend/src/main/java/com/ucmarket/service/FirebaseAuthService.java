@@ -15,6 +15,7 @@ import com.ucmarket.dto.auth.AuthResponse;
 import com.ucmarket.dto.auth.FirebaseLoginRequest;
 import com.ucmarket.entity.User;
 import com.ucmarket.entity.UserOAuthAccount;
+import com.ucmarket.entity.UserStatus;
 import com.ucmarket.repository.UserOAuthAccountRepository;
 import com.ucmarket.repository.UserRepository;
 
@@ -55,7 +56,8 @@ public class FirebaseAuthService {
         Optional<UserOAuthAccount> existing = oauthAccountRepository.findByProviderAndProviderUid(provider, uid);
         if (existing.isPresent()) {
             User user = userRepository.findById(existing.get().getUserId())
-                    .orElseThrow(() -> new IllegalArgumentException("User not found"));
+                    .orElseThrow(() -> new IllegalArgumentException("找不到使用者"));
+            requireActive(user);
             user.recordLogin(LocalDateTime.now());
             return authService.buildAuthResponse(user);
         }
@@ -63,6 +65,7 @@ public class FirebaseAuthService {
         Optional<User> byEmail = userRepository.findByEmail(email);
         if (byEmail.isPresent()) {
             User user = byEmail.get();
+            requireActive(user);
             oauthAccountRepository.save(new UserOAuthAccount(user.getId(), provider, uid, email));
             user.recordLogin(LocalDateTime.now());
             return authService.buildAuthResponse(user);
@@ -86,13 +89,19 @@ public class FirebaseAuthService {
         try {
             return FirebaseAuth.getInstance().verifyIdToken(idToken);
         } catch (FirebaseAuthException e) {
-            throw new IllegalArgumentException("Invalid Firebase ID token: " + e.getMessage(), e);
+            throw new IllegalArgumentException("第三方登入驗證失敗，請重試", e);
+        }
+    }
+
+    private void requireActive(User user) {
+        if (user.getStatus() != UserStatus.ACTIVE) {
+            throw new IllegalStateException("帳號未啟用或已停用");
         }
     }
 
     private void validateProvider(String provider) {
         if (!provider.equals("GOOGLE") && !provider.equals("GITHUB") && !provider.equals("FACEBOOK")) {
-            throw new IllegalArgumentException("Unsupported OAuth provider: " + provider);
+            throw new IllegalArgumentException("不支援的登入方式");
         }
     }
 

@@ -129,6 +129,14 @@ class AuthControllerTest {
     }
 
     @Test
+    void deleteAccount_shouldReturn401_whenNotAuthenticated() throws Exception {
+        mockMvc.perform(delete("/api/auth/me")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"password\":\"secret\"}"))
+                .andExpect(status().isUnauthorized());
+    }
+
+    @Test
     void forgotPassword_shouldReturn200() throws Exception {
         when(authService.forgotPassword("user@test.com"))
                 .thenReturn("若此 Email 已註冊，我們已寄出重設信件。");

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import useAuthStore from '../../../store/authStore';
 import useUiStore from '../../../store/uiStore';
 import Button from '../../../components/common/Button';
@@ -28,17 +29,21 @@ function defaultAvatarUrl(seed) {
   return `https://api.dicebear.com/8.x/initials/svg?seed=${s}&backgroundColor=d9aa43&textColor=402d00`;
 }
 
-const SECTIONS = [
+const BASE_SECTIONS = [
   { id: 'overview', label: '總覽', icon: 'fa-gauge-high' },
   { id: 'profile', label: '基本資料', icon: 'fa-user' },
   { id: 'security', label: '安全性', icon: 'fa-shield-halved' },
 ];
 
+const ACCOUNT_SECTION = { id: 'account', label: '註銷帳號', icon: 'fa-user-xmark', tone: 'danger' };
+
 export default function ProfilePage() {
+  const navigate = useNavigate();
   const user = useAuthStore((s) => s.user);
   const checkAuth = useAuthStore((s) => s.checkAuth);
   const updateProfile = useAuthStore((s) => s.updateProfile);
   const changePassword = useAuthStore((s) => s.changePassword);
+  const deleteAccount = useAuthStore((s) => s.deleteAccount);
   const loading = useAuthStore((s) => s.loading);
   const showToast = useUiStore((s) => s.showToast);
 
@@ -58,6 +63,12 @@ export default function ProfilePage() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [passwordSaving, setPasswordSaving] = useState(false);
   const [profileDirty, setProfileDirty] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deletePassword, setDeletePassword] = useState('');
+  const [deleteAck, setDeleteAck] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
+  const [deleteSaving, setDeleteSaving] = useState(false);
+  const [showDeletePwd, setShowDeletePwd] = useState(false);
 
   useEffect(() => {
     checkAuth();
@@ -80,10 +91,15 @@ export default function ProfilePage() {
   }, [profile.username, user?.email]);
 
   const displayAvatar = profile.avatarUrl && !avatarBroken ? profile.avatarUrl : null;
-  const roleLabel = user?.role === 'ADMIN' || user?.role === 'admin' ? '管理員' : '一般會員';
+  const isAdmin = user?.role === 'ADMIN' || user?.role === 'admin';
+  const roleLabel = isAdmin ? '管理員' : '一般會員';
   const status = user?.status || 'ACTIVE';
   const statusOk = status === 'ACTIVE';
   const hasPassword = user?.hasPassword !== false;
+  const sections = useMemo(
+    () => (isAdmin ? BASE_SECTIONS : [...BASE_SECTIONS, ACCOUNT_SECTION]),
+    [isAdmin],
+  );
 
   const metaCards = [
     { label: '角色', value: roleLabel, icon: 'fa-crown', tone: 'gold' },
@@ -177,6 +193,47 @@ export default function ProfilePage() {
     }
   }
 
+  function openDeleteModal() {
+    setDeleteError('');
+    setDeletePassword('');
+    setDeleteAck(false);
+    setShowDeletePwd(false);
+    setDeleteOpen(true);
+  }
+
+  function closeDeleteModal() {
+    if (deleteSaving) return;
+    setDeleteOpen(false);
+    setDeleteError('');
+    setDeletePassword('');
+    setDeleteAck(false);
+  }
+
+  async function handleDeleteAccount(e) {
+    e.preventDefault();
+    setDeleteError('');
+    if (hasPassword && !deletePassword) {
+      setDeleteError('請輸入目前密碼以確認註銷。');
+      return;
+    }
+    if (!hasPassword && !deleteAck) {
+      setDeleteError('請勾選確認後再繼續。');
+      return;
+    }
+    setDeleteSaving(true);
+    try {
+      await deleteAccount(hasPassword ? deletePassword : undefined);
+      showToast('success', '帳號已註銷', '感謝你使用過 UC Market。');
+      setDeleteOpen(false);
+      navigate('/auth/login', { replace: true });
+    } catch (err) {
+      setDeleteError(err?.message || '註銷失敗，請稍後再試。');
+      showToast('danger', '註銷失敗', err?.message || '請稍後再試');
+    } finally {
+      setDeleteSaving(false);
+    }
+  }
+
   function scrollTo(id) {
     setActiveSection(id);
     document.getElementById(`section-${id}`)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -234,11 +291,17 @@ export default function ProfilePage() {
           </div>
 
           <nav className="pf-nav__list">
-            {SECTIONS.map((s) => (
+            {sections.map((s) => (
               <button
                 key={s.id}
                 type="button"
-                className={`pf-nav__item${activeSection === s.id ? ' is-active' : ''}`}
+                className={[
+                  'pf-nav__item',
+                  activeSection === s.id ? 'is-active' : '',
+                  s.tone === 'danger' ? 'pf-nav__item--danger' : '',
+                ]
+                  .filter(Boolean)
+                  .join(' ')}
                 onClick={() => scrollTo(s.id)}
               >
                 <i className={`fa-solid ${s.icon}`} aria-hidden="true" />
@@ -247,10 +310,6 @@ export default function ProfilePage() {
             ))}
           </nav>
 
-          <div className="pf-nav__hint">
-            <i className="fa-solid fa-circle-info" aria-hidden="true" />
-            <p>Email 與角色由系統管理，無法在此修改。</p>
-          </div>
         </aside>
 
         {/* Main */}
@@ -562,8 +621,122 @@ export default function ProfilePage() {
               </div>
             )}
           </section>
+
+          {!isAdmin && (
+            <section id="section-account" className="pf-section pf-section--danger">
+              <div className="pf-section__head">
+                <div>
+                  <h2>註銷帳號</h2>
+                  <p>註銷後無法登入，交易與持倉紀錄會保留，原 Email 可再註冊。</p>
+                </div>
+              </div>
+
+              <div className="pf-danger-card">
+                <div className="pf-danger-card__glow" aria-hidden="true" />
+                <div className="pf-danger-card__body">
+                  <div className="pf-danger-card__copy">
+                    <p>此操作無法復原，請確認後再繼續。</p>
+                  </div>
+                  <div className="pf-danger-card__action">
+                    <Button
+                      type="button"
+                      variant="danger"
+                      onClick={openDeleteModal}
+                      disabled={loading || deleteSaving}
+                    >
+                      <i className="fa-solid fa-user-xmark" aria-hidden="true" />
+                      {' '}註銷帳號
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </section>
+          )}
         </div>
       </div>
+
+      {deleteOpen && (
+        <div className="pf-modal" role="dialog" aria-modal="true" aria-labelledby="pf-delete-title">
+          <button type="button" className="pf-modal__backdrop" aria-label="關閉" onClick={closeDeleteModal} />
+          <div className="pf-modal__panel">
+            <div className="pf-modal__head">
+              <div className="pf-modal__icon">
+                <i className="fa-solid fa-triangle-exclamation" aria-hidden="true" />
+              </div>
+              <div>
+                <h2 id="pf-delete-title">確認註銷帳號</h2>
+                <p>此操作無法復原。帳號將停用，登入權限立即失效。</p>
+              </div>
+            </div>
+
+            <ul className="pf-modal__list">
+              <li>無法再使用此帳號登入</li>
+              <li>個人資料會匿名化，Email / 使用者名稱可再註冊</li>
+              <li>歷史交易、持倉與錢包紀錄仍會保留</li>
+            </ul>
+
+            <form className="pf-form" onSubmit={handleDeleteAccount}>
+              {hasPassword ? (
+                <div className="pf-field">
+                  <label htmlFor="delete-password">目前密碼</label>
+                  <div className="pf-input">
+                    <i className="fa-solid fa-lock" aria-hidden="true" />
+                    <input
+                      id="delete-password"
+                      type={showDeletePwd ? 'text' : 'password'}
+                      autoComplete="current-password"
+                      value={deletePassword}
+                      onChange={(e) => {
+                        setDeleteError('');
+                        setDeletePassword(e.target.value);
+                      }}
+                      placeholder="輸入目前密碼以確認"
+                      disabled={deleteSaving}
+                    />
+                    <button
+                      type="button"
+                      className="pf-eye"
+                      onClick={() => setShowDeletePwd((v) => !v)}
+                      aria-label={showDeletePwd ? '隱藏密碼' : '顯示密碼'}
+                    >
+                      <i className={`fa-solid ${showDeletePwd ? 'fa-eye-slash' : 'fa-eye'}`} aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <label className="pf-check">
+                  <input
+                    type="checkbox"
+                    checked={deleteAck}
+                    onChange={(e) => {
+                      setDeleteError('');
+                      setDeleteAck(e.target.checked);
+                    }}
+                    disabled={deleteSaving}
+                  />
+                  <span>我了解註銷後無法復原，並同意繼續</span>
+                </label>
+              )}
+
+              {deleteError && (
+                <div className="pf-alert pf-alert--error" role="alert">
+                  <i className="fa-solid fa-circle-exclamation" aria-hidden="true" />
+                  {deleteError}
+                </div>
+              )}
+
+              <div className="pf-form__footer">
+                <Button type="button" variant="secondary" onClick={closeDeleteModal} disabled={deleteSaving}>
+                  取消
+                </Button>
+                <Button type="submit" variant="danger" disabled={deleteSaving || loading}>
+                  {deleteSaving ? '註銷中…' : '確認註銷'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

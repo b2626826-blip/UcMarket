@@ -61,7 +61,7 @@ class GlobalExceptionHandlerTest {
                 handler.handleAuth(new AuthenticationException("bad") {});
 
         assertEquals(HttpStatus.UNAUTHORIZED, resp.getStatusCode());
-        assertEquals("Unauthorized", resp.getBody().get("message"));
+        assertEquals("未授權，請重新登入", resp.getBody().get("message"));
     }
 
     @Test
@@ -70,7 +70,7 @@ class GlobalExceptionHandlerTest {
                 handler.handleForbidden(new AccessDeniedException("denied"));
 
         assertEquals(HttpStatus.FORBIDDEN, resp.getStatusCode());
-        assertEquals("Forbidden", resp.getBody().get("message"));
+        assertEquals("沒有權限執行此操作", resp.getBody().get("message"));
     }
 
     @Test
@@ -88,7 +88,7 @@ class GlobalExceptionHandlerTest {
                 handler.handleGeneral(new RuntimeException("unexpected"));
 
         assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, resp.getStatusCode());
-        assertEquals("Internal server error", resp.getBody().get("message"));
+        assertEquals("伺服器發生錯誤，請稍後再試", resp.getBody().get("message"));
     }
 
     @Test
@@ -104,8 +104,7 @@ class GlobalExceptionHandlerTest {
 
         assertEquals(HttpStatus.BAD_REQUEST, resp.getStatusCode());
         String message = (String) resp.getBody().get("message");
-        assertTrue(message.contains("field1"));
-        assertTrue(message.contains("must not be blank"));
+        assertEquals("must not be blank", message);
     }
 
     @Test

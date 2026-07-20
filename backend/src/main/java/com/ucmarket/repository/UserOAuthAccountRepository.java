@@ -9,4 +9,6 @@ import com.ucmarket.entity.UserOAuthAccount;
 
 public interface UserOAuthAccountRepository extends JpaRepository<UserOAuthAccount, UUID> {
     Optional<UserOAuthAccount> findByProviderAndProviderUid(String provider, String providerUid);
+
+    void deleteByUserId(UUID userId);
 }
