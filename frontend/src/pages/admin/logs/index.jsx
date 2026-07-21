@@ -8,10 +8,12 @@ const PAGE_SIZE = 20;
 const ACTION_LABEL = {
   MARKET_APPROVE: '核准事件', MARKET_REJECT: '拒絕事件', MARKET_RESOLVE: '結算事件',
   MARKET_REQUEST_CHANGES: '要求修改', USER_SUSPEND: '停權用戶', USER_UNSUSPEND: '解除停權',
+  WALLET_ADJUST: '錢包調整',
 };
 const ACTION_CLASS = {
   MARKET_APPROVE: 'status-approved', MARKET_REJECT: 'status-rejected', MARKET_RESOLVE: 'status-active',
   MARKET_REQUEST_CHANGES: 'status-pending', USER_SUSPEND: 'status-rejected', USER_UNSUSPEND: 'status-approved',
+  WALLET_ADJUST: 'status-pending',
 };
 
 function formatLogDetail(action, metadata) {
@@ -29,6 +31,8 @@ function formatLogDetail(action, metadata) {
       return m.comment ? `備註：${m.comment}` : ACTION_LABEL.MARKET_REQUEST_CHANGES;
     case 'MARKET_RESOLVE':
       return m.result ? `結果：${m.result}` : ACTION_LABEL.MARKET_RESOLVE;
+    case 'WALLET_ADJUST':
+      return `${m.direction === 'DEBIT' ? '扣除' : '加值'} ${m.amount} 點${m.reason ? `：${m.reason}` : ''}`;
     case 'USER_SUSPEND':
       return ACTION_LABEL.USER_SUSPEND;
     case 'USER_UNSUSPEND':
@@ -112,6 +116,7 @@ export default function LogsPage() {
             <option value="MARKET_REQUEST_CHANGES">要求修改</option>
             <option value="USER_SUSPEND">停權用戶</option>
             <option value="USER_UNSUSPEND">解除停權</option>
+            <option value="WALLET_ADJUST">錢包調整</option>
           </select>
         </div>
         <div className="d-flex gap-2">
