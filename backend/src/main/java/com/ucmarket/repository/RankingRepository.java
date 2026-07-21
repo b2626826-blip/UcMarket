@@ -114,6 +114,7 @@ public interface RankingRepository extends JpaRepository<User, UUID> {
 				LEFT JOIN wallets w ON w.user_id = u.id
 				LEFT JOIN open_position_values opv ON opv.user_id = u.id
 				LEFT JOIN primary_markets pm ON pm.user_id = u.id
+				WHERE u.code <> 'SYS-WEATHER'
 			),
 			ranked_data AS (
 				SELECT
@@ -185,6 +186,7 @@ public interface RankingRepository extends JpaRepository<User, UUID> {
 			FROM users u
 			LEFT JOIN payouts p ON p.user_id = u.id
 			LEFT JOIN settled_costs sc ON sc.user_id = u.id
+			WHERE u.code <> 'SYS-WEATHER'
 			ORDER BY "realizedProfit" DESC, u.username ASC
 			""", nativeQuery = true)
 	List<RankingProfitRow> findProfitRankings();
@@ -225,6 +227,7 @@ public interface RankingRepository extends JpaRepository<User, UUID> {
 				END AS "winRate"
 			FROM users u
 			LEFT JOIN settled_predictions sp ON sp.user_id = u.id
+			WHERE u.code <> 'SYS-WEATHER'
 			GROUP BY u.id, u.username, u.code, u.avatar_url
 			ORDER BY "winRate" DESC, "resolvedMarketCount" DESC, u.username ASC
 			""", nativeQuery = true)
@@ -282,6 +285,7 @@ public interface RankingRepository extends JpaRepository<User, UUID> {
 			FROM users u
 			LEFT JOIN wallets w ON w.user_id = u.id
 			LEFT JOIN open_position_values opv ON opv.user_id = u.id
+			WHERE u.code <> 'SYS-WEATHER'
 			ORDER BY "totalAssetValue" DESC, u.username ASC
 			""", nativeQuery = true)
 	List<RankingAssetsRow> findAssetRankings();

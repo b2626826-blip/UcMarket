@@ -37,6 +37,17 @@ function formatText(value) {
   return value;
 }
 
+export function filterRankings(data, search) {
+  const kw = search.trim().toLowerCase();
+  if (!kw) return data;
+
+  return data.filter(
+    (user) =>
+      user.name.toLowerCase().includes(kw) ||
+      (user.market ?? "").toLowerCase().includes(kw)
+  );
+}
+
 export function getRankingMetric(type, user) {
   if (type === "win-rate") {
     return {
@@ -137,7 +148,7 @@ function TopRankGrid({ data, type }) {
   );
 }
 
-function RankingTable({ data }) {
+export function RankingTable({ data }) {
   const restUsers = data.slice(3);
 
   return (
@@ -166,8 +177,6 @@ function RankingTable({ data }) {
               <span className="rank-number">#{user.rank}</span>
               <span>
                 <strong>{user.name}</strong>
-                <br />
-                <small>{formatText(user.account)}</small>
               </span>
               <span>{formatText(user.market)}</span>
               <span className="green">{formatProfit(user.profit)}</span>
@@ -213,15 +222,7 @@ export default function RankingsPage() {
   }, [activeTab]);
 
   const filtered = useMemo(() => {
-    const kw = search.trim().toLowerCase();
-    if (!kw) return allData;
-
-    return allData.filter(
-      (u) =>
-        u.name.toLowerCase().includes(kw) ||
-        (u.account ?? "").toLowerCase().includes(kw) ||
-        (u.market ?? "").toLowerCase().includes(kw)
-    );
+    return filterRankings(allData, search);
   }, [allData, search]);
 
   const authUser = useAuthStore((state) => state.user);
@@ -263,7 +264,7 @@ export default function RankingsPage() {
       <div className="ranking-toolbar">
         <input
           type="search"
-          placeholder="搜尋使用者、帳號或市場..."
+          placeholder="搜尋使用者或市場..."
           aria-label="搜尋排行榜"
           value={search}
           onChange={(e) => setSearch(e.target.value)}

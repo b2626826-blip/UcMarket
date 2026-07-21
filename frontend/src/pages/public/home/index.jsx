@@ -425,10 +425,6 @@ export default function HomePage() {
     market.title.toLowerCase().includes(search.toLowerCase())
   );
 
-  function handleTrade(market, side) {
-    alert('交易確認\n\n市場：' + market.title + '\n方向：' + side + '\n價格：$' + (side === 'YES' ? market.yesPrice.toFixed(2) : market.noPrice.toFixed(2)));
-  }
-
   return (
     <div className="markets-dashboard-page">
       <div className="dashboard home-dashboard">
@@ -503,7 +499,7 @@ export default function HomePage() {
 
           {category !== '天氣' && category !== CURRENT_EVENT_CATEGORY &&
             filtered.map((market) => (
-              <MarketCard key={market.id} market={market} onClickTrade={handleTrade} />
+              <MarketCard key={market.id} market={market} />
             ))}
 
           {category === CURRENT_EVENT_CATEGORY && !currentEventLoading && currentEventError && (

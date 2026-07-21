@@ -130,8 +130,8 @@
 .politics-detail-feature__image,
 .featured-image {
   position: absolute;
-  top: 56%;
-  left: 520px;
+  top: calc(56% + 45px);
+  left: 490px;
   width: min(380px, 48vw);
   transform: translateY(-50%);
   pointer-events: none;

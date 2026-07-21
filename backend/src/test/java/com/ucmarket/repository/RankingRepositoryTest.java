@@ -589,4 +589,32 @@ class RankingRepositoryTest {
 		assertThat(ranking.getWinRate()).isEqualByComparingTo("0.0000");
 		assertThat(ranking.getTotalAssetValue()).isEqualByComparingTo("0.00");
 	}
+
+	@Test
+	void rankingsExcludeWeatherSystemUser() {
+		UUID userId = UUID.randomUUID();
+
+		jdbcTemplate.update("""
+				INSERT INTO users (
+					id, code, username, email, password_hash, role, status, reputation, created_at, updated_at
+				)
+				VALUES (?, 'SYS-WEATHER', 'system_weather', ?, 'test-password-hash', 'ADMIN', 'ACTIVE', 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP)
+				""",
+				userId,
+				"system-weather-" + userId + "@example.com"
+		);
+
+		assertThat(rankingRepository.findRankingSnapshot("profit"))
+				.extracting(RankingSnapshotRow::getAccount)
+				.doesNotContain("SYS-WEATHER");
+		assertThat(rankingRepository.findProfitRankings())
+				.extracting(RankingProfitRow::getAccount)
+				.doesNotContain("SYS-WEATHER");
+		assertThat(rankingRepository.findWinRateRankings())
+				.extracting(RankingWinRateRow::getAccount)
+				.doesNotContain("SYS-WEATHER");
+		assertThat(rankingRepository.findAssetRankings())
+				.extracting(RankingAssetsRow::getAccount)
+				.doesNotContain("SYS-WEATHER");
+	}
 }

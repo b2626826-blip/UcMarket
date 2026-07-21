@@ -9,7 +9,7 @@ const categoryToSlug = {
   '金融': 'finance',
 };
 
-export default function MarketCard({ market, onClickTrade }) {
+export default function MarketCard({ market }) {
   const slug = categoryToSlug[market.category];
   const detailPath = `/markets/${slug}/${market.id}`;
 
@@ -25,12 +25,12 @@ export default function MarketCard({ market, onClickTrade }) {
         <div className="yes">
           <small>YES</small>
           <h3>${market.yesPrice.toFixed(2)}</h3>
-          <button className="trade-btn buy-btn" data-id={market.id} data-side="YES" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClickTrade?.(market, 'YES'); }}>Buy Yes</button>
+          <Link className="trade-btn buy-btn" data-id={market.id} data-side="YES" to={detailPath}>Buy Yes</Link>
         </div>
         <div className="no">
           <small>NO</small>
           <h3>${market.noPrice.toFixed(2)}</h3>
-          <button className="trade-btn sell-btn" data-id={market.id} data-side="NO" onClick={(e) => { e.preventDefault(); e.stopPropagation(); onClickTrade?.(market, 'NO'); }}>Buy No</button>
+          <Link className="trade-btn sell-btn" data-id={market.id} data-side="NO" to={detailPath}>Buy No</Link>
         </div>
       </div>
       <Link to={detailPath} style={{ display: 'block' }}>
