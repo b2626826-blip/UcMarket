@@ -76,9 +76,14 @@ public class MarketService {
 
     @Transactional(noRollbackFor = MarketPreReviewBlockedException.class)
     public Market submitMarket(UUID marketId, UUID userId) {
+        return submitMarket(marketId, userId, false);
+    }
+
+    @Transactional(noRollbackFor = MarketPreReviewBlockedException.class)
+    public Market submitMarket(UUID marketId, UUID userId, boolean isAdmin) {
         Market market = findMarket(marketId);
 
-        if (!market.getCreatorId().equals(userId)) {
+        if (!market.getCreatorId().equals(userId) && !isAdmin) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN);
         }
         if (market.getStatus() != MarketStatus.DRAFT) {

@@ -212,14 +212,14 @@ class MarketControllerTest {
         Market submitted = createMarket(MarketStatus.PENDING);
         ReflectionTestUtils.setField(submitted, "id", marketId);
         ReflectionTestUtils.setField(submitted, "submissionVersion", 1);
-        when(marketService.submitMarket(marketId, AUTH_USER_ID)).thenReturn(submitted);
+        when(marketService.submitMarket(marketId, AUTH_USER_ID, false)).thenReturn(submitted);
 
         mockMvc.perform(post("/api/markets/{id}/submit", marketId))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("PENDING"))
                 .andExpect(jsonPath("$.submissionVersion").value(1));
 
-        verify(marketService).submitMarket(marketId, AUTH_USER_ID);
+        verify(marketService).submitMarket(marketId, AUTH_USER_ID, false);
         verifyNoInteractions(marketRepository);
     }
 

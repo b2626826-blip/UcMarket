@@ -42,7 +42,7 @@ export function deleteApi(url, body, options = {}) {
 }
 
 async function handleResponse(res) {
-  if (res.status === 401 || res.status === 403) {
+  if (res.status === 401) {
     localStorage.removeItem('ucmarket_admin_token');
     window.location.href = '/auth/login';
     return null;

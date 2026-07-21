@@ -119,6 +119,24 @@ class MarketServiceTest {
     }
 
     @Test
+    void submitMarket_adminSubmittingAnotherCreatorsDraft_shouldChangeStatusToPending() {
+        UUID creatorId = UUID.randomUUID();
+        UUID submittingAdminId = UUID.randomUUID();
+        Market market = createMarket(MarketStatus.DRAFT, creatorId);
+        User creator = new User("creator", "creator@example.com", "hashed");
+        ReflectionTestUtils.setField(creator, "id", creatorId);
+        when(marketRepository.findById(marketId)).thenReturn(Optional.of(market));
+        when(marketRepository.save(market)).thenReturn(market);
+        when(userRepository.findById(creatorId)).thenReturn(Optional.of(creator));
+
+        Market result = marketService.submitMarket(marketId, submittingAdminId, true);
+
+        assertEquals(MarketStatus.PENDING, result.getStatus());
+        assertEquals(1, result.getSubmissionVersion());
+        verify(marketRepository).save(market);
+    }
+
+    @Test
     void submitMarket_shouldThrowBadRequest_whenMarketIsNotDraft() {
         UUID creatorId = UUID.randomUUID();
         Market market = createMarket(MarketStatus.PENDING, creatorId);

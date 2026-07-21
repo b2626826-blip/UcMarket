@@ -147,7 +147,7 @@ public class MarketController {
 
 	@PostMapping("/{id}/submit")
 	public Market submitMarket(@PathVariable UUID id, @AuthenticationPrincipal User user) {
-		return marketService.submitMarket(id, user.getId());
+		return marketService.submitMarket(id, user.getId(), user.getRole() == UserRole.ADMIN);
 	}
 
 	@PutMapping("/{id}")

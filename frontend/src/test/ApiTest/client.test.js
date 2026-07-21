@@ -11,7 +11,7 @@ describe('client.js', () => {
 
   beforeEach(() => {
     fetchMock = installFetchMock();
-    // 讓 handleResponse 的 401/403 導向不會真的 navigate（jsdom 不支援）
+    // 讓 handleResponse 的 401 導向不會真的 navigate（jsdom 不支援）
     Object.defineProperty(window, 'location', {
       value: { href: '' },
       writable: true,
@@ -86,15 +86,27 @@ describe('client.js', () => {
       await expect(getApi('/api/x')).resolves.toEqual({ value: 42 });
     });
 
-    it.each([401, 403])('%i：清除 token、導向 /auth/login、回傳 null', async (status) => {
+    it('401：清除 token、導向 /auth/login、回傳 null', async () => {
       localStorage.setItem(TOKEN_KEY, 'abc');
-      fetchMock.mockResolvedValueOnce(errorResponse(status));
+      fetchMock.mockResolvedValueOnce(errorResponse(401));
 
       const result = await getApi('/api/x');
 
       expect(result).toBeNull();
       expect(localStorage.getItem(TOKEN_KEY)).toBeNull();
       expect(window.location.href).toBe('/auth/login');
+    });
+
+    it('403：保留 token 並回報權限錯誤，不導向登入頁', async () => {
+      localStorage.setItem(TOKEN_KEY, 'abc');
+      fetchMock.mockResolvedValueOnce(errorResponse(403, { error: '權限不足' }));
+
+      await expect(getApi('/api/x')).rejects.toMatchObject({
+        message: '權限不足',
+        status: 403,
+      });
+      expect(localStorage.getItem(TOKEN_KEY)).toBe('abc');
+      expect(window.location.href).toBe('');
     });
 
     it('其他錯誤：throw Error，message 取 err.error，附 status', async () => {
