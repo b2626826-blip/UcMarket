@@ -1,5 +1,7 @@
 # PostgreSQL 測試錯誤整理
 
+> 本文保存早期以正式 datasource 啟動測試時的故障案例。現行 `backend/src/test/resources/application.properties` 使用 H2、關閉 Flyway，執行一般 `./mvnw test` 不需要本機 PostgreSQL；只有 migration／真實資料庫驗證才套用本文的 PostgreSQL 檢查方式。
+
 ## 問題現象
 
 在 `backend` 目錄執行完整測試：

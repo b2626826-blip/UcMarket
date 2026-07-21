@@ -24,7 +24,8 @@ docker compose down -v --rmi all
 UI 右上 Download → 覆蓋 workflows\*.json → commit
 
 ■ 開關
-04 每台可開；01/06 只在監控哨那一台開（多開＝DC 重複轟炸）
+04 每台可開；01/05/06 只在監控哨那一台開（多開＝DC 重複轟炸）
+07 只在指定的一個 instance 開；05 與 07 的 service token credential 須先個別綁定
 
 ■ 卡住
 setup 卡 [4/5]：等 45 秒自動救一次；仍掛 → 重啟 Docker Desktop

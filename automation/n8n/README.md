@@ -8,8 +8,8 @@ n8n 自動化的家：容器定義、一鍵安裝、workflow 版控。維護：H
 | 路徑 | 是什麼 |
 |---|---|
 | `docker-compose.yml` | 容器定義（n8n `2.29.11`＋mailpit `v1.30.4`；專案名由 `name: n8n` 釘死，跟資料夾無關）。**日常 up/stop/logs 都在本層打** |
-| `install/` | 一次性安裝與快照匯入：`setup.ps1`（Win）／`setup.sh`（mac/Linux）一鍵啟動（全新安裝自動匯入**版控內 3 筆憑證＋workflows**、完成自動開網頁）；`import-workflows` 與 `import-credentials`（`.ps1`／`.sh`）以 git 快照覆蓋本機（照 id 覆蓋不長重複）；`credentials.json`（3 筆開發憑證，含 Discord webhook——**公開 repo 前必須輪替並移除**，見文件真相規則 3）。`04` 與 `07` 使用的新秘密刻意不進此檔，須在各 n8n instance 的 credential store 建立；`安裝部署.md` 含完整步驟 |
-| `workflows/` | workflow JSON 匯出＝**版控真相源**（目前五條：`01` 健康告警、`04` 通知 webhook ⭐、`05` FAILED 工作告警、`06` 心跳、`07` 時事市場結算蒐證）；`07` 明確停用成功／失敗／手動 execution data 保存。n8n 預設 pruning 下，`none` 會先 soft-delete execution，使其不出現在 UI／一般查詢；實體列由後續 hard-prune 清除；每條的用途與驗法見該資料夾 README |
+| `install/` | 一次性安裝與快照匯入：`setup.ps1`（Win）／`setup.sh`（mac/Linux）一鍵啟動（全新安裝自動匯入**版控內 3 筆憑證＋workflows**、完成自動開網頁）；`import-workflows` 與 `import-credentials`（`.ps1`／`.sh`）以 git 快照覆蓋本機（照 id 覆蓋不長重複）；`credentials.json`（3 筆開發憑證，含 Discord webhook——**公開 repo 前必須輪替並移除**，見文件真相規則 3）。`04`、`05` 與 `07` 使用的 service／webhook token 刻意不進此檔，須在各 n8n instance 的 credential store 建立；`安裝部署.md` 含完整步驟 |
+| `workflows/` | workflow JSON 匯出＝**版控真相源**（目前五條：`01` 健康告警、`04` 通知 webhook ⭐、`05` FAILED 工作告警、`06` 心跳、`07` 時事市場結算蒐證）。`07` 不保存成功 execution、保留失敗 execution 供排錯，手動 execution 不保存；每條的用途與驗法見該資料夾 README |
 | `fixtures/` | `07` 的隔離 HTTP fixture；只從環境讀取兩組測試 auth value，不連真實 DB、不記錄 request header／body／URL；驗收只讀 `/fixture/stats` 的安全聚合，不保存 n8n CLI raw output |
 | [`runbook.md`](runbook.md) | 災難還原五步、credential 重建、告警位置與定期演練 |
 | `開發進度.md` | **已實作／未實作看板**——想知道做到哪先看這份（關卡狀態變動時同 commit 更新） |
@@ -26,6 +26,7 @@ n8n 自動化的家：容器定義、一鍵安裝、workflow 版控。維護：H
 
 1. 手動改了任何東西（compose、workflow、憑證名、port），**對應文件同一個 commit 內同步**——文件與現實不符時，以現實為準並視文件為壞掉待修。
 2. workflow 在 n8n UI 改完 → 重新匯出 JSON 覆蓋 `workflows/` 同名檔 → 跟文件一起 commit。
+   JSON 的 `active` 值只代表版控匯出狀態；CLI 匯入仍會停用 workflow，也不能用 JSON 推論任一部署的即時 runtime 狀態。
 3. 秘密**預設不進 git**；要把任何新秘密放進 repo，**必須先問使用者、取得核可**。目前唯一核可例外：`install/credentials.json`（開發用低敏感憑證：Discord webhook ×2＋mailpit SMTP，2026-07-16 使用者拍板「等公開再說」）。**repo 轉公開前必須先輪替 Discord webhook 並移除該檔**——Discord 在 GitHub 秘密掃描（secret scanning）合作名單內，URL 一進公開 repo 就會被自動作廢，監控線會無聲斷掉。
 
 ## 給 AI 助手（Claude 等）

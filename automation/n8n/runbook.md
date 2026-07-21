@@ -159,7 +159,7 @@ service token 輪替順序：
 2. `04` 完成 token／SMTP 綁定後才啟用；backend Worker 要使用它時，先啟用 `04` 再啟動 Worker。
 3. 只在指定監控哨啟用 `01`、`05`、`06`。
 4. `07` 必須先完成兩組 Header Auth 交叉 403 與隔離 fixture 驗收，再由指定 instance 啟用。
-5. `07` 匯入後核對 `saveDataErrorExecution=none`、`saveDataSuccessExecution=none`、`saveManualExecutions=false`、`saveExecutionProgress=false`。n8n `2.29.11` 在預設 `EXECUTIONS_DATA_PRUNE=true` 下會將不保存的 execution 先標記 `deletedAt`，使其不出現在 UI／一般查詢，再由 hard-prune 清除實體列；驗收以 `deletedAt IS NULL` 的可見 execution 為零為準，不以尚待 hard-prune 的實體列或其暫存 `status` 判定失敗。
+5. `07` 匯入後核對 `saveDataErrorExecution=all`、`saveDataSuccessExecution=none`、`saveManualExecutions=false`、`saveExecutionProgress=false`。成功 execution 不保存；失敗 execution 必須保留供排錯，並由 n8n pruning 依保留期清理。查詢可見 execution 時以 `deletedAt IS NULL` 為準；soft-deleted 實體列不代表仍可由 UI 查閱。
 6. `n8n execute` CLI 固定會把完整 runData 寫到 stdout；驗收時必須把 stdout／stderr 直接導向空裝置（macOS：`>/dev/null 2>&1`；PowerShell：`*>$null`；cmd：`>NUL 2>&1`），只以 process exit code 與 fixture `/fixture/stats` 的安全聚合判斷。禁止把 raw output 顯示於終端、導向檔案或交給 `tee`。
 7. 每條 workflow 啟用後，確認下一次正式排程 execution 正常。
 8. 檢查 Discord／Mailpit／`07` evidence 筆數，再記錄 execution ID、時間與結果。
@@ -202,12 +202,13 @@ service token 輪替順序：
 
 ## 停止條件與交接
 
-出現下列任一情況時，立即 Deactivate `05` 並停止演練：
+出現下列任一情況時，立即 Deactivate 對應的 `05` 或 `07` 並停止演練：
 
 - 同一快照重複告警。
 - Discord 發送失敗後仍提交 staticData。
 - backend 無法連線、5xx、401、403 或 400 時仍提交 staticData。
 - 訊息含 recipient、lastError、API body 或 secret。
 - fixture 無法精確還原。
+- `07` 的 candidate／evidence credential 可交叉使用、單輪超過 200 筆，或錯誤輸出含 URL、body、token。
 
 交接時只回報嚴重度、workflow／節點、execution ID、時間、Discord 則數、staticData 是否提交與最終 runtime 狀態；不要貼 secret、PII 或 API response body。

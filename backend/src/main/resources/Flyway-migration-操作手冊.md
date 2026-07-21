@@ -17,7 +17,15 @@ backend/
 │     ├─ V2__add_market_image_url.sql
 │     ├─ V3__add_market_metadata.sql
 │     ├─ V4__add_weather_system_user.sql
-│     └─ V5__add_market_price_history_option_price.sql
+│     ├─ V5__add_market_price_history_option_price.sql
+│     ├─ V6__add_notification_jobs.sql
+│     ├─ V7__add_trade_idempotency_key.sql
+│     ├─ V8__add_market_submission_version.sql
+│     ├─ V9__add_memo_to_wallet_transactions.sql
+│     ├─ V10__add_market_review_checks.sql
+│     ├─ V11__add_user_oauth_accounts.sql
+│     ├─ V12__add_market_resolution_evidence.sql
+│     └─ V13__password_reset_tokens.sql
 └─ pom.xml
 
 docs/資料庫設計/
@@ -29,7 +37,15 @@ docs/資料庫設計/
 - `V3`：補上市場 metadata，供天氣等系統市場保存結構化條件。
 - `V4`：建立天氣自動化使用的系統使用者。
 - `V5`：補上價格歷史的 `option_price` 欄位。
-- `ucmarket-ddl.sql`：目前 schema 的閱讀用參考文件；需與 migrations 的最終結果保持一致。
+- `V6`：建立通知 outbox／attempts，並確保 `markets.submission_version` 存在。
+- `V7`：新增交易冪等鍵。
+- `V8`：再次以 `IF NOT EXISTS` 確保 `submission_version`，供不同既有資料庫升級路徑收斂。
+- `V9`：新增錢包流水備註欄位。
+- `V10`：建立規則式市場預審結果。
+- `V11`：修復 OAuth schema 漂移並確保 OAuth 帳號表存在。
+- `V12`：建立時事市場結算證據表。
+- `V13`：建立密碼重設 token 表。
+- `ucmarket-ddl.sql`：舊版 V1～V5 的閱讀快照，目前未包含 V6～V13；正式 schema 一律以 Flyway migration 鏈為準。
 - `flyway_schema_history`：Flyway 在目標資料庫建立的版本紀錄表，不要手動修改。
 
 ## 日常新增 migration
@@ -65,7 +81,7 @@ ALTER TABLE markets
 2. 不要修改已經在任一環境套用過的 migration，包括 `V1`。
 3. 修正已部署的 schema 時，建立新的 migration，而不是回頭修改舊檔。
 4. Flyway 會確保同一 migration 只執行一次；一般不需要為避免重跑而加入 `IF NOT EXISTS`。
-5. 同步更新 `docs/資料庫設計/ucmarket-ddl.sql`，讓 schema 文件與實際結果一致。
+5. 同步更新 `docs/資料庫設計/ucmarket-er-diagram.md` 與相關 API／架構文件；若要維護 `ucmarket-ddl.sql`，必須完整重建為 V1～最新版本的結果，不能只補片段。
 6. SQL 以 PostgreSQL 為目標；可使用 PostgreSQL 的型別與語法，但必須先在 PostgreSQL 驗證。
 
 ## 執行 migration
@@ -105,11 +121,11 @@ Remove-Item Env:FLYWAY_BASELINE_ON_MIGRATE -ErrorAction SilentlyContinue
 ## 部署與驗證流程
 
 1. 新增 migration SQL。
-2. 更新 `ucmarket-ddl.sql`。
+2. 更新 ERD、API 與架構文件；若本次同時維護 canonical DDL，確認它已完整反映所有 migration。
 3. 在可丟棄的 PostgreSQL 資料庫啟動應用程式，確認 migration 能套用。
 4. 檢查應用程式啟動日誌中的 Flyway 成功訊息。
 5. 查詢 `flyway_schema_history`，確認新版本的 `success` 為 `true`。
-6. 將 migration 與 schema 文件一起提交。
+6. 將 migration 與受影響的 schema／API 文件一起提交。
 
 檢查 migration 歷程的 SQL：
 
@@ -165,5 +181,6 @@ Remove-Item Env:SPRING_DATASOURCE_PASSWORD -ErrorAction SilentlyContinue
 - [ ] 沒有修改舊 migration。
 - [ ] 已在 PostgreSQL 測試資料庫驗證。
 - [ ] `flyway_schema_history` 顯示成功。
-- [ ] `ucmarket-ddl.sql` 已同步。
+- [ ] ERD 與受影響 API／架構文件已同步。
+- [ ] 若提交 `ucmarket-ddl.sql`，內容已完整反映 V1～最新版本。
 - [ ] 正式環境沒有設定 `FLYWAY_BASELINE_ON_MIGRATE=true`。

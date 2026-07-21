@@ -76,7 +76,7 @@ Docker／Mailpit 環境、`01-health-alert`、`05-failed-alert`、`06-heartbeat`
 
 2026-07-19 驗收：暫停 n8n 後，測試通知進入 `RETRY` 並留下失敗 attempt；恢復後自動補寄、轉為 `SENT` 並留下成功 attempt；Mailpit 恰好收到一封正確信件。`N8nWebhookEmailSenderTest` 10 項與 backend 全測試 332 項均通過，0 failures、0 errors、15 skipped。
 
-### 階段三：外部資料整合
+### 階段三：外部資料整合（時事蒐證已完成）
 
 把天氣市場「自動建盤＋自動結算」的既有模式推廣到其他類型，n8n 當觸發者，錢的計算仍在後端交易內：
 
@@ -84,9 +84,9 @@ Docker／Mailpit 環境、`01-health-alert`、`05-failed-alert`、`06-heartbeat`
 |---|---|---|
 | 運動 | 抓賽事比分 API，賽後判定結果 | 新增 admin 結算端點（比照 weather/resolve） |
 | 金融 | 抓交易所公開報價，判定門檻類題目 | 同上 |
-| 時事 | 到期時抓來源 URL 與相關新聞，打包結算證據 | 附給管理員一鍵確認，不自動結算 |
+| 時事 | `07-resolution-evidence-collector` 每小時讀候選、登記 candidate 既有 `sourceUrl`；不抓取來源內容、不自動結算 | 候選 GET＋證據 POST 使用兩組隔離 token |
 
-驗收：n8n 誤判或重複呼叫時，後端結算入口以既有狀態檢查擋下；每次自動結算留有 audit log。
+`07` 已以 n8n 2.29.11 fixture 驗證分頁快照、200 筆上限、冪等、暫時性 retry、永久錯誤續跑與 credential 交叉 403。workflow 匯出檔保留 `active=false`；實際部署是否啟用必須另查 runtime。成功 execution 不保存、失敗 execution 保留，供維運排錯。
 
 ### 階段四：加值層
 
@@ -98,7 +98,7 @@ Docker／Mailpit 環境、`01-health-alert`、`05-failed-alert`、`06-heartbeat`
 ## 6. 前置需求
 
 1. n8n 呼叫後端 admin／internal API 前使用專用 service token；`05-failed-alert` 的唯讀 FAILED 查詢權限已完成，未來其他外部資料整合若需不同入口，仍須另行設計最小權限。
-2. 部署一台 n8n：Docker 單容器即可，與後端同網段，webhook 端點不對公網開放或以 token 保護。
+2. 本機 compose 提供 n8n＋Mailpit；GCP compose 提供 backend、web、Cloud SQL Proxy、n8n，Mailpit 只在 staging profile。`/webhook/notify` 必須用 Header Auth 保護，n8n editor 必須保留 owner login。
 3. n8n workflow JSON 匯出檔納入版控，放在 `automation/n8n/workflows/`。
 
 ## 7. 不該給 n8n 做的事
@@ -115,4 +115,4 @@ Docker／Mailpit 環境、`01-health-alert`、`05-failed-alert`、`06-heartbeat`
 | 1 | 《自動化系統規劃》第 9 節：「確認不再使用 n8n 後，可移除空目錄並更新原有技術架構文件中的 n8n 說明」；《自動化系統分工計畫》第 1 節收尾工作含「移除 `automation/n8n/`」 | 保留 `automation/n8n/workflows/` 目錄，改放 workflow JSON 匯出檔納入版控 | n8n 重新定位為周邊整合層，workflow 需要版控 |
 | 2 | 《自動化系統規劃》第 5 節：`EmailSender` 搭配「SMTP 或 Email Provider Adapter」 | 正式實作方向定為 `N8nWebhookEmailSender`，SMTP 由 n8n 端負責 | 渠道彈性集中在 n8n，後端零改動即可換渠道 |
 
-上述差異已同步回《自動化系統規劃》與《自動化系統分工計畫》。截至 2026-07-20，WP0–WP5、n8n 實際寄送橋接、規則式預審後端第一切片、n8n 監控線 service token、`05-failed-alert` 正式排程與 runtime 驗收，以及災難復原 runbook 均已完成。
+上述差異已同步回《自動化系統規劃》與《自動化系統分工計畫》。截至 2026-07-21，WP0–WP5、n8n 實際寄送橋接、規則式預審後端第一切片、三組最小權限 service token、`05-failed-alert`、`07-resolution-evidence-collector`、災難復原 runbook 與 GCP compose 均已有實作；workflow JSON 的 active 值不代表任一部署的即時 runtime 狀態。

@@ -1,6 +1,6 @@
 # UcMarket 後端 API 文件
 
-> 來源：`backend/src/main/java/com/ucmarket/controller/` 全部 15 個 Controller（2026-07-14 整理）。
+> 來源：`backend/src/main/java/com/ucmarket/controller/` 全部 18 個 Controller 與 `SecurityConfig`（2026-07-21 整理）。
 > 認證方式：JWT Bearer Token（`@AuthenticationPrincipal User`），Admin 端點由 SecurityConfig 限制 ADMIN 角色。
 
 ## 目錄
@@ -14,6 +14,7 @@
 - [錢包 Wallets](#錢包-wallets)
 - [排行榜 Rankings](#排行榜-rankings)
 - [管理後台 Admin](#管理後台-admin)
+- [n8n Internal API](#n8n-internal-api)
 - [開發用 Dev（僅 dev profile）](#開發用-dev僅-dev-profile)
 
 ---
@@ -35,11 +36,14 @@
 | POST | `/api/auth/register` | 無 | 註冊新使用者，回傳 201 + `AuthResponse`（含 token）；註冊流程同一交易內建立錢包 |
 | POST | `/api/auth/oauth/firebase` | 無 | Firebase OAuth 登入（body: `idToken`, `provider`），回傳 `AuthResponse` |
 | POST | `/api/auth/login` | 無 | Email + 密碼登入，回傳 `AuthResponse` |
+| POST | `/api/auth/forgot-password` | 無 | 建立密碼重設請求；回應不洩漏 Email 是否存在 |
+| POST | `/api/auth/reset-password` | 無 | 使用一次性 token 設定新密碼 |
 | GET | `/api/auth/me` | JWT | 取得目前登入者資訊（`UserInfo`），未登入回 401 |
 | POST | `/api/auth/logout` | JWT | 登出，body 需帶 `refreshToken` 使其失效，成功回 204 |
 | POST | `/api/auth/refresh` | 無 | 用 `refreshToken` 換發新 token，回傳 `AuthResponse` |
 | PUT | `/api/auth/profile` | JWT | 更新個人資料（`username`, `avatarUrl`, `bio`） |
 | POST | `/api/auth/change-password` | JWT | 修改密碼（`oldPassword`, `newPassword`），成功回 204 |
+| DELETE | `/api/auth/me` | JWT | 刪除目前帳號；密碼 body 可選，成功回 204 |
 
 ## 市場 Markets
 
@@ -48,6 +52,7 @@
 | 方法 | 路徑 | 認證 | 功用 |
 |---|---|---|---|
 | GET | `/api/markets` | 無 | 列出 **ACTIVE** 市場（僅回傳 ACTIVE，query: `page`、`size`、`category` 可選），依建立時間新→舊，含成交量 |
+| GET | `/api/markets/me` | JWT | 分頁列出目前登入者的 PENDING／ACTIVE／CLOSED／RESOLVED／REJECTED 市場 |
 | GET | `/api/markets/{id}` | 無 | 依 UUID 取得單一市場詳情（含成交量），找不到回 404 |
 | GET | `/api/markets/code/{code}` | 無 | 依市場代碼（code）取得市場詳情 |
 | POST | `/api/markets` | JWT | 建立市場（初始狀態 DRAFT），回 201；建立者為登入者 |
@@ -56,6 +61,7 @@
 | POST | `/api/markets/{id}/cancel` | JWT | 取消市場（建立者或 ADMIN 可執行），錯誤依情況回 404/403/400 |
 | POST | `/api/markets/{id}/trades/getquote` | 無 | 取得交易報價（body: `side`, `amount`），市場非 ACTIVE 回 400 |
 | POST | `/api/markets/{id}/trades/quote` | 無 | 同上的別名端點（呼叫相同邏輯） |
+| GET | `/api/markets/{id}/price-history` | 無 | 取得價格歷史；query `from`／`to` 可選 |
 | GET | `/api/markets/{id}/odds` | 無 | 取得市場賠率、YES/NO 資金池與總成交量 |
 
 ## 時事市場 Current Affairs
@@ -121,7 +127,7 @@
 
 | 方法 | 路徑 | 功用 |
 |---|---|---|
-| GET | `/api/admin/markets` | 取得市場摘要統計 ＋ 全部市場清單（`AdminMarketListResponse`） |
+| GET | `/api/admin/markets` | 取得市場摘要統計與分頁清單；query `status`、`category`、`keyword` 可選，`page` 預設 0、`size` 預設 20 |
 | POST | `/api/admin/markets/{id}/approve` | 核准市場上架 |
 | POST | `/api/admin/markets/{id}/reject` | 駁回市場（body: `comment`） |
 | POST | `/api/admin/markets/{id}/request-changes` | 要求修改後再送審（body: `comment`） |
@@ -135,6 +141,8 @@
 | GET | `/api/admin/users` | 列出使用者（query: `role`、`status` 可選過濾） |
 | POST | `/api/admin/users/{id}/suspend` | 停權使用者（狀態改為 BANNED） |
 | POST | `/api/admin/users/{id}/unsuspend` | 復權使用者（狀態改為 ACTIVE） |
+| POST | `/api/admin/users/{id}/wallet/adjust` | 調整使用者錢包（CREDIT／DEBIT）並留下稽核資料 |
+| GET | `/api/admin/users/{id}/wallet` | 取得使用者餘額與近期錢包流水 |
 
 ### 交易紀錄 — `AdminTransactionController.java`（`/api/admin/transactions`）
 
@@ -148,11 +156,34 @@
 |---|---|---|
 | GET | `/api/admin/logs` | 列出管理員操作日誌（新→舊），並補上管理員與目標對象的代碼 |
 
+### 通知工作 — `AdminNotificationController.java`（`/api/admin/notifications`）
+
+| 方法 | 路徑 | 功用 |
+|---|---|---|
+| GET | `/api/admin/notifications?status=...` | 依狀態分頁查詢 outbox 工作；`status` 必填 |
+| POST | `/api/admin/notifications/{id}/resend` | 將 FAILED 工作重設為 RETRY，保留既有 attempt 歷史 |
+
+### 結算證據 — `ResolutionEvidenceController.java`
+
+| 方法 | 路徑 | 功用 |
+|---|---|---|
+| GET | `/api/admin/markets/{id}/resolution-evidence` | 管理員查詢市場結算證據 |
+
 ### 天氣市場 — `AdminWeatherController.java`（`/api/admin/weather`）
 
 | 方法 | 路徑 | 功用 |
 |---|---|---|
 | POST | `/api/admin/weather/resolve` | 手動觸發所有符合條件的天氣市場自動結算 |
+
+## n8n Internal API
+
+下列端點不接受一般 JWT；必須使用各自隔離的 `X-N8N-Service-Token`。文件只描述 credential 名稱與權限，不記錄 token value。
+
+| 方法 | 路徑 | 權限 |
+|---|---|---|
+| GET | `/api/admin/notifications?status=FAILED` | `N8N_NOTIFICATION_READ`；只允許 FAILED 查詢，不等同 ADMIN |
+| GET | `/api/internal/current-affairs/resolution-evidence-candidates` | `N8N_RESOLUTION_EVIDENCE_CANDIDATE_READ`；query `page`、`size` |
+| POST | `/api/internal/current-affairs/markets/{id}/resolution-evidence` | `N8N_RESOLUTION_EVIDENCE_WRITE`；以 `(marketId, sourceUrl)` 冪等 |
 
 ## 開發用 Dev（僅 dev profile）
 

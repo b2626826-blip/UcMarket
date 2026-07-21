@@ -64,7 +64,9 @@ PostgreSQL
 - 逾期市場自動關閉
 - ACTIVE 市場價格 snapshot
 - 天氣市場啟動時／每日建立與自動結算
-- 第一階段通知工作規劃採 Java／Spring Boot；n8n 不納入目前實作
+- Java transactional outbox、通知 Worker、冪等、重試與管理員重送
+- n8n `2.29.11` 負責通知 webhook、健康／FAILED 告警、心跳與時事市場結算蒐證
+- 核心市場、交易、錢包與結算邏輯只留在 Spring Boot；n8n 不直連 PostgreSQL
 
 ### Dev / Portfolio 工程化與作品集
 
@@ -101,7 +103,7 @@ MVP 階段先支援二元市場，也就是每個市場只有 Yes / No 兩個交
 - 交易系統：BUY 下單、交易紀錄、價格／賠率計算；SELL 尚未實作
 - 錢包系統：餘額查詢、扣款、退款、錢包異動紀錄
 - 後台系統：會員管理、市場審核、市場結算、報表查看
-- 自動化系統：Spring 排程、天氣市場建立／結算、價格 snapshot；通知工作尚未實作
+- 自動化系統：Spring 排程、通知 outbox／Worker、n8n 寄送與監控、時事市場結算蒐證
 
 ## 開發階段
 
@@ -125,15 +127,15 @@ MVP 階段先支援二元市場，也就是每個市場只有 Yes / No 兩個交
 
 ### 第三階段：加入作品集亮點
 
-- 依 `docs/系統設計/自動化系統規劃.md` 建立可靠通知工作、寄信與重試
-- 建立每日報表與市場截止提醒排程
-- 加入 Docker
+- 維護既有可靠通知工作、n8n 寄送、FAILED 告警與結算蒐證
+- 完成規則式預審的後台查詢／顯示
+- 維護 GCP Docker Compose 與正式環境設定
 - 撰寫 README 與架構圖
 - 準備 Demo 帳號與展示流程
 
 ## 後端資料庫設定
 
-正式 schema 由 Flyway 管理，目前 migration 到 `V5`。空白資料庫啟動時會自動套用 `backend/src/main/resources/db/migration/`；既有資料庫首次納管請先閱讀 [Flyway migration 操作手冊](backend/src/main/resources/Flyway-migration-操作手冊.md)，不要自行修改已套用的 migration。
+正式 schema 由 Flyway 管理，目前 migration 到 `V13`。空白資料庫啟動時會自動套用 `backend/src/main/resources/db/migration/`；既有資料庫首次納管請先閱讀 [Flyway migration 操作手冊](backend/src/main/resources/Flyway-migration-操作手冊.md)，不要自行修改已套用的 migration。
 
 後端 datasource 預設值集中在 `backend/src/main/resources/application.properties`。團隊與部署環境建議用下列環境變數覆蓋，不在 README 複製或固定密碼：
 
@@ -174,6 +176,23 @@ cd backend
 
 如果在專案根目錄直接執行 `./mvnw test`，會因為根目錄沒有 `mvnw` 而失敗。
 
+## 前端開發與測試
+
+前端指令請在 `frontend/` 執行：
+
+```bash
+cd frontend
+npm ci
+npm run test -- --run
+npm run build
+```
+
+開發伺服器透過 Vite proxy 將 `/api` 轉送到 `http://localhost:8080`；正式同源部署則由 Caddy 將 `/api/*` 轉送到 backend。
+
+## 部署結構
+
+`deploy/gcp/` 提供 GCP Docker Compose、backend／web image、Caddy、Cloud SQL Proxy、n8n 與秘密渲染腳本。正式 Compose 包含 `cloud-sql-proxy`、`backend`、`web`、`n8n`；`mailpit` 只在 `staging` profile 啟用。部署前應從 `deploy.env.example` 建立 repo 外或受保護的 runtime 設定，禁止把秘密值寫入文件或 Git。
+
 ## 文件
 
 - 文件總覽：[docs/docsREADME.md](docs/docsREADME.md)
@@ -182,10 +201,13 @@ cd backend
 - 技術架構：[docs/系統設計/技術架構.md](docs/系統設計/技術架構.md)
 - 網站架構：[docs/系統設計/網站架構.md](docs/系統設計/網站架構.md)
 - 自動化系統規劃：[docs/系統設計/自動化系統規劃.md](docs/系統設計/自動化系統規劃.md)
+- n8n 整合規劃：[docs/系統設計/n8n整合規劃.md](docs/系統設計/n8n整合規劃.md)
+- 前端 API：[docs/api/前端API文件.md](docs/api/前端API文件.md)
+- 後端 API：[docs/api/後端API文件.md](docs/api/後端API文件.md)
+- n8n 操作入口：[automation/n8n/README.md](automation/n8n/README.md)
 - 資料庫設計：
   - ER 圖：[docs/資料庫設計/ucmarket-er-diagram.md](docs/資料庫設計/ucmarket-er-diagram.md)
-  - DDL：[docs/資料庫設計/ucmarket-ddl.sql](docs/資料庫設計/ucmarket-ddl.sql)
-  - DB 備份：[docs/資料庫設計/db-backups/](docs/資料庫設計/db-backups/)
+  - 舊版 DDL 快照（V1～V5）：[docs/資料庫設計/ucmarket-ddl.sql](docs/資料庫設計/ucmarket-ddl.sql)
 
 ## 前端規劃
 
