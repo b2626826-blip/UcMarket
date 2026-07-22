@@ -1,12 +1,19 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { getAdminUsers, adjustWallet, getUserWallet } from '../../../api/adminApi';
 import useUiStore from '../../../store/uiStore';
 import { formatBalance } from '../../../utils/format';
+import Pagination from '../../../components/admin/Pagination';
 import UserLedger from './UserLedger';
 
+const PAGE_SIZE = 20;
+
 export default function AdjustmentsPage() {
-  const [allUsers, setAllUsers] = useState([]);
-  const [keyword, setKeyword] = useState('');
+  const [users, setUsers] = useState([]);
+  const [keyword, setKeyword] = useState('');   // 草稿（輸入框即時值）
+  const [applied, setApplied] = useState('');   // 已送出（真正打到後端的關鍵字）
+  const [page, setPage] = useState(0);
+  const [totalPages, setTotalPages] = useState(0);
+  const [totalElements, setTotalElements] = useState(0);
   const [loading, setLoading] = useState(true);
   const [selectedId, setSelectedId] = useState(null);
   const [wallet, setWallet] = useState(null);          // { balance, transactions }
@@ -17,19 +24,30 @@ export default function AdjustmentsPage() {
   const [submitting, setSubmitting] = useState(false);
   const showToast = useUiStore((s) => s.showToast);
 
-  useEffect(() => { loadUsers(); }, []);
-
-  async function loadUsers() {
+  // 關鍵字丟後端搜（LIKE code/username/email，跟原本前端過濾同三欄）；role=USER 讓後端直接不回管理員
+  const loadUsers = useCallback(async () => {
     setLoading(true);
     try {
-      const data = await getAdminUsers();
-      const list = Array.isArray(data) ? data : (data?.users || []);
-      setAllUsers(list);
-    } catch { setAllUsers([]); }
+      const data = await getAdminUsers({ keyword: applied, role: 'USER', page, size: PAGE_SIZE });
+      const list = data?.content || [];
+      setUsers(list);
+      setTotalPages(data?.totalPages || 0);
+      setTotalElements(data?.totalElements || 0);
+      // TODO(Harry) 選取策略二選一，目前先走方案1：
+      //   方案1「選取跟著可見清單走」＝下面這行：翻頁/重搜後選定用戶不在畫面上就自動取消選取，
+      //         面板收起、不留殭屍狀態(zombie state)。
+      //   方案2「面板釘住」＝選取時改存整個 user 物件而不是 id（setSelected(u)），翻頁搜尋都不掉面板；
+      //         要改的話：刪這行、selectedId 換成 selected 物件、selectedUser 直接用 selected，約 8 行。
+      setSelectedId((prev) => (prev && !list.some((u) => u.id === prev) ? null : prev));
+    } catch {
+      setUsers([]); setTotalPages(0); setTotalElements(0);
+    }
     setLoading(false);
-  }
+  }, [applied, page]);
 
-  // 選定用戶 → 抓他的餘額 + 流水(用戶清單端點不含餘額,得單獨查)
+  useEffect(() => { loadUsers(); }, [loadUsers]);
+
+  // 選定用戶 → 抓他的餘額 + 流水（用戶清單端點不含餘額，得單獨查）
   useEffect(() => {
     if (!selectedId) { setWallet(null); return; }
     let active = true;
@@ -46,13 +64,22 @@ export default function AdjustmentsPage() {
     try { setWallet(await getUserWallet(selectedId)); } catch { /* 忽略 */ }
   }
 
-  const filtered = allUsers.filter((u) => {
-    if (u.role === 'ADMIN') return false;   // 只能調一般用戶;管理員帳號不列出(後端也會擋)
-    const kw = keyword.toLowerCase();
-    return !kw || ((u.code || '') + ' ' + (u.username || '') + ' ' + (u.email || '')).toLowerCase().includes(kw);
-  });
+  function search(e) {
+    e?.preventDefault();
+    setPage(0);
+    setApplied(keyword.trim());
+  }
 
-  const selectedUser = allUsers.find((u) => u.id === selectedId) || null;
+  function clearFilters() {
+    setKeyword('');
+    setApplied('');
+    setPage(0);
+  }
+
+  // 後端 role=USER 已擋管理員，這行是第二道防呆（調整端點本身也會拒絕 ADMIN 目標）
+  const visible = users.filter((u) => u.role !== 'ADMIN');
+
+  const selectedUser = users.find((u) => u.id === selectedId) || null;
   const balance = wallet ? Number(wallet.balance) : null;
   const amt = Number(amount) || 0;
   const preview = balance != null ? balance + (direction === 'CREDIT' ? amt : -amt) : null;
@@ -85,18 +112,19 @@ export default function AdjustmentsPage() {
         <p className="text-secondary mb-0">查詢用戶並調整錢包點數（加值 / 扣除），需填寫原因；用戶的交易明細會看到這筆調整。僅列出一般用戶，管理員帳號不可調整。</p>
       </div>
 
-      <form className="admin-filter-bar mb-3" onSubmit={(e) => e.preventDefault()}>
+      <form className="admin-filter-bar mb-3" onSubmit={search}>
         <div>
           <label className="form-label">關鍵字</label>
           <input className="form-control" type="search" placeholder="搜尋編號、名稱、Email" value={keyword} onChange={(e) => setKeyword(e.target.value)} />
         </div>
         <div className="d-flex gap-2 align-items-end">
-          <button type="button" className="btn btn-outline-secondary" onClick={() => setKeyword('')}>清除</button>
+          <button type="submit" className="btn btn-primary">搜尋</button>
+          <button type="button" className="btn btn-outline-secondary" onClick={clearFilters}>清除</button>
         </div>
       </form>
 
       <section className="block-card mb-3">
-        <div className="block-card-header">用戶資料 ({filtered.length})</div>
+        <div className="block-card-header">用戶資料 ({loading ? '…' : totalElements})</div>
         <div className="block-card-body p-0">
           <div className="table-responsive">
             <table className="table align-middle mb-0 admin-data-table">
@@ -106,9 +134,9 @@ export default function AdjustmentsPage() {
               <tbody>
                 {loading ? (
                   <tr><td colSpan="4" className="text-center text-secondary py-4">載入中...</td></tr>
-                ) : !filtered.length ? (
+                ) : !visible.length ? (
                   <tr><td colSpan="4" className="text-center text-secondary py-4">找不到符合條件的用戶。</td></tr>
-                ) : filtered.map((u) => (
+                ) : visible.map((u) => (
                   <tr key={u.id} className={u.id === selectedId ? 'table-active' : ''}>
                     <td className="fw-semibold small">{u.code || (u.id || '').substring(0, 8)}</td>
                     <td>{u.username || ''}</td>
@@ -125,6 +153,7 @@ export default function AdjustmentsPage() {
               </tbody>
             </table>
           </div>
+          <Pagination page={page} totalPages={totalPages} totalElements={totalElements} onChange={setPage} disabled={loading} />
         </div>
       </section>
 
@@ -143,7 +172,7 @@ export default function AdjustmentsPage() {
               </div>
             </div>
 
-            {/* 該用戶流水(格式抄錢包頁、顏色用 admin) */}
+            {/* 該用戶流水（格式抄錢包頁、顏色用 admin） */}
             <div className="mb-3">
               <div className="text-secondary small mb-2">用戶流水</div>
               {walletLoading

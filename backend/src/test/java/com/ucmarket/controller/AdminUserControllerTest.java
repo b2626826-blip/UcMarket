@@ -93,6 +93,31 @@ class AdminUserControllerTest {
     }
 
     @Test
+    void adjustWallet_happyPath_writesAdminLogWithTxId() throws Exception {
+        UUID targetId = UUID.randomUUID();
+        WalletTransaction tx = adjustmentTx();
+        when(userRepository.findById(targetId)).thenReturn(Optional.of(user(targetId, UserRole.USER)));
+        when(walletService.adjust(eq(targetId), eq("CREDIT"), any(BigDecimal.class), eq("活動補發"), anyString()))
+                .thenReturn(tx);
+        when(adminLogRepository.save(any(AdminLog.class))).thenAnswer(inv -> inv.getArgument(0));
+
+        var body = new AdminWalletAdjustRequest("CREDIT", new BigDecimal("500"), "活動補發");
+        mockMvc.perform(post("/api/admin/users/{id}/wallet/adjust", targetId)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(body)))
+                .andExpect(status().isOk());
+
+        verify(adminLogRepository).save(argThat(log ->
+                "WALLET_ADJUST".equals(log.getAction())
+                        && "USER".equals(log.getTargetType())
+                        && targetId.equals(log.getTargetId())
+                        && adminId.equals(log.getAdminUserId())
+                        && log.getMetadata() != null
+                        && log.getMetadata().contains(tx.getId().toString())
+                        && log.getMetadata().contains("活動補發")));
+    }
+
+    @Test
     void adjustWallet_blocksAdminTarget_returns400() throws Exception {
         UUID targetId = UUID.randomUUID();
         when(userRepository.findById(targetId)).thenReturn(Optional.of(user(targetId, UserRole.ADMIN)));
