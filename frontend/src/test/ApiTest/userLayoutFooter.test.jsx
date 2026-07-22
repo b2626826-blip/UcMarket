@@ -19,7 +19,7 @@ vi.mock('../../store/authStore', () => ({
 vi.mock('../../components/common/AuthModal', () => ({ default: () => null }));
 vi.mock('../../components/common/Toast', () => ({ default: () => null }));
 
-describe('UserLayout 手機版頁尾選單', () => {
+describe('UserLayout 導覽與手機版頁尾選單', () => {
   let container;
   let root;
 
@@ -36,6 +36,7 @@ describe('UserLayout 手機版頁尾選單', () => {
           <Routes>
             <Route element={<UserLayout />}>
               <Route path="/home" element={<div>首頁</div>} />
+              <Route path="/rankings" element={<div>排行榜頁</div>} />
             </Route>
           </Routes>
         </MemoryRouter>,
@@ -47,6 +48,24 @@ describe('UserLayout 手機版頁尾選單', () => {
     await act(async () => root.unmount());
     container.remove();
     vi.clearAllMocks();
+  });
+
+  it('在市場頁再次點擊市場時回到頁首', async () => {
+    window.scrollTo.mockClear();
+    const marketLink = Array.from(container.querySelectorAll('.nav-menu a'))
+      .find((link) => link.textContent === '市場');
+
+    await act(async () => marketLink.click());
+
+    expect(window.scrollTo).toHaveBeenCalledWith({ top: 0, left: 0, behavior: 'auto' });
+  });
+
+  it('在其他頁點擊市場時維持跳轉到市場頁', async () => {
+    await act(async () => container.querySelector('.nav-menu a[href="/rankings"]').click());
+    expect(container.textContent).toContain('排行榜頁');
+
+    await act(async () => container.querySelector('.nav-menu a[href="/home"]').click());
+    expect(container.textContent).toContain('首頁');
   });
 
   it('點擊標題時只展開該組連結', async () => {

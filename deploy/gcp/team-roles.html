@@ -1,0 +1,115 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head><meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:1600px; height:1200px; overflow:hidden; }
+  body {
+    background:#262626; color:#e6e6e6;
+    font-family:"PingFang TC","Heiti TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    padding:26px 36px 32px; display:flex; flex-direction:column;
+  }
+  h1 { color:#e8b93f; font-size:32px; font-weight:700; text-align:center; margin-bottom:18px; }
+
+  .common {
+    background:#2f2b22; border:1.6px solid #c99a3c; border-radius:10px;
+    padding:14px 22px; margin-bottom:20px; display:flex; align-items:center; justify-content:center; gap:22px; position:relative;
+  }
+  .clabel { color:#e8b93f; font-size:24px; font-weight:700; position:absolute; left:24px; top:50%; transform:translateY(-50%); }
+  .clabel span { display:block; font-size:15px; font-weight:400; color:#b99a4e; margin-top:2px; }
+  .chips { display:flex; gap:16px; flex-wrap:wrap; }
+  .chips span {
+    background:#3a3527; border:1px solid #8a6f2e; border-radius:24px;
+    padding:9px 22px; font-size:20px; color:#f0d79a;
+  }
+
+  .mid { flex:1; display:flex; flex-direction:column; }
+  .members { display:flex; gap:14px; flex:1; }
+  .mcard {
+    flex:1; background:#303030; border:1.4px solid #c99a3c; border-radius:10px;
+    padding:22px 20px; display:flex; flex-direction:column;
+  }
+  .mhead { border-bottom:1px solid #4a4230; padding-bottom:12px; margin-bottom:8px; text-align:center; }
+  .mname { color:#e8b93f; font-size:31px; font-weight:700; }
+  .mrole { color:#b99a4e; font-size:18px; margin-top:6px; }
+  ul { list-style:none; flex:1; display:flex; flex-direction:column; justify-content:space-around; padding:8px 0; }
+  li { font-size:21px; line-height:1.5; color:#dcdcdc; padding-left:20px; position:relative; }
+  li::before { content:"•"; color:#e0ad4d; position:absolute; left:0; top:0; }
+  .lead { color:#f0d79a; }
+</style></head>
+<body>
+  <h1>小組成員與分工介紹</h1>
+
+  <div class="mid">
+  <div class="common">
+    <div class="clabel">共同開發<span>全員參與</span></div>
+    <div class="chips">
+      <span>React 前端開發 / RWD</span>
+      <span>資料庫設計</span>
+      <span>API 串接與測試</span>
+    </div>
+  </div>
+
+  <div class="members">
+    <div class="mcard">
+      <div class="mhead"><div class="mname">盧尚瑋</div><div class="mrole">會員系統 · 後台 · 自動化</div></div>
+      <ul>
+        <li>會員註冊登入、身分驗證與權限控管</li>
+        <li>第三方登入串接與登入後安全通行憑證核發</li>
+        <li>帳號註銷與使用者資料保護</li>
+        <li>Spring Boot 市場模組（建立、送審、審核、狀態管理）</li>
+        <li>管理員後台系統完整開發</li>
+        <li>天氣市場自動化：自動建盤、結果判斷與結算串接</li>
+        <li>客服小幫手與相關系統串接</li>
+      </ul>
+    </div>
+
+    <div class="mcard">
+      <div class="mhead"><div class="mname">徐恩詳</div><div class="mrole">系統架構 · API 整合 · 雲端部署</div></div>
+      <ul>
+        <li>系統架構、網站架構與技術方案設計</li>
+        <li>前後端 API、Firebase 與第三方服務整合</li>
+        <li>Spring Boot 結算、排行榜與市場送審流程整合</li>
+        <li>n8n 自動化通知與時事市場結算流程</li>
+        <li>GCP 雲端部署、正式環境建置與系統維運</li>
+      </ul>
+    </div>
+
+    <div class="mcard">
+      <div class="mhead"><div class="mname">黃雋廷</div><div class="mrole">交易模組</div></div>
+      <ul>
+        <li>Spring Boot 交易模組</li>
+        <li>Trade Quote 即時報價</li>
+        <li>Trade 下單功能</li>
+        <li>AMM 市場價格計算</li>
+        <li>TradingView 圖表整合</li>
+      </ul>
+    </div>
+
+    <div class="mcard">
+      <div class="mhead"><div class="mname">李宜浩</div><div class="mrole">設計 · 持倉</div></div>
+      <ul>
+        <li>CIS 識別設計</li>
+        <li>UI / UX 設計</li>
+        <li>LOGO 設計</li>
+        <li>前端政治、持倉頁面開發</li>
+        <li>Spring Boot 持倉模組（成本、股數、潛在收益計算）</li>
+        <li>市場即時機率（YES / NO）顯示</li>
+      </ul>
+    </div>
+
+    <div class="mcard">
+      <div class="mhead"><div class="mname">彭浩毓</div><div class="mrole">錢包 · 資金安全</div></div>
+      <ul>
+        <li><span class="lead">錢包模組：三個資金安全保證</span></li>
+        <li>不錯帳：「餘額 = 流水總和」不變量，單一入口</li>
+        <li>不重複：冪等防重，重送零重複入帳</li>
+        <li>不透支：悲觀鎖並發控制，鎖內驗餘額</li>
+        <li>分層測試：Mock → H2 → 真 PostgreSQL，5 萬次隨機驗證</li>
+        <li>n8n 自動化：通知工作流部署</li>
+      </ul>
+    </div>
+  </div>
+  </div>
+</body>
+</html>

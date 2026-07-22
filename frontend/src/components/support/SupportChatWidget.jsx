@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import ucLogoIcon from '../../assets/logos/uclogoicon.png';
 import {
   SUPPORT_FALLBACK,
   SUPPORT_QUICK_QUESTIONS,
@@ -109,7 +110,7 @@ export default function SupportChatWidget() {
           <header className="support-chat__header">
             <div className="support-chat__brand">
               <span className="support-chat__avatar" aria-hidden="true">
-                <i className="fa-solid fa-sparkles" />
+                <img className="support-chat__avatar-image" src={ucLogoIcon} alt="" />
               </span>
               <div className="support-chat__header-text">
                 <h2 className="support-chat__title">UcMarket 小幫手</h2>

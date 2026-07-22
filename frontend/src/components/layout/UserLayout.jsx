@@ -53,7 +53,17 @@ export default function UserLayout() {
         {!isLanding && (
           <>
             <div className="nav-menu" onClick={closeNavActions}>
-              <Link to="/home" data-page="views/dashboard.html">市場</Link>
+              <Link
+                to="/home"
+                data-page="views/dashboard.html"
+                onClick={() => {
+                  if (location.pathname === '/home') {
+                    window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+                  }
+                }}
+              >
+                市場
+              </Link>
               <Link to="/rankings">排行榜</Link>
               <Link to={user ? '/wallet' : '/auth/login'}>錢包</Link>
             </div>
@@ -168,7 +178,7 @@ export default function UserLayout() {
       )}
       <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} initialTab={authTab} />
       <Toast />
-      <SupportChatWidget />
+      {!isLanding && <SupportChatWidget />}
     </>
   );
 }

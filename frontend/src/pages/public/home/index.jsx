@@ -402,19 +402,6 @@ export default function HomePage() {
 
   useGlowEffect('.chart-card, .stats-card, .market-card');
 
-  useEffect(() => {
-    const timer = setInterval(() => {
-      setMarkets((prev) => prev.map((m) => {
-        const move = Math.random() * 0.04 - 0.02;
-        let yp = m.yesPrice + move;
-        yp = Math.max(0.05, Math.min(0.95, yp));
-        return { ...m, yesPrice: yp, noPrice: +(1 - yp).toFixed(2) };
-      }));
-    }, 6000);
-    return () => clearInterval(timer);
-  }, []);
-
-
   const filtered = markets.filter((m) => {
     const matchCat = category === '全部' || m.category === category;
     const matchSearch = m.title.toLowerCase().includes(search.toLowerCase()) || m.category.toLowerCase().includes(search.toLowerCase());

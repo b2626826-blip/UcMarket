@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head><meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { width:1280px; height:250px; overflow:hidden; }
+  body {
+    background:#262626;
+    font-family:"PingFang TC","Heiti TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    padding:30px 40px; display:flex; align-items:center;
+  }
+  .cards { display:flex; gap:20px; width:100%; }
+  .card {
+    flex:1; background:#303030; border:1.8px solid #c99a3c; border-radius:10px;
+    padding:24px 24px;
+  }
+  .head { display:flex; align-items:center; gap:13px; margin-bottom:14px; }
+  .num {
+    width:44px; height:44px; border-radius:50%; background:#e0ad4d; color:#262626;
+    font-size:20px; font-weight:700; display:flex; align-items:center; justify-content:center; flex:0 0 auto;
+  }
+  .title { color:#e8b93f; font-size:25px; font-weight:700; }
+  .desc { font-size:18px; line-height:1.55; color:#d6d6d6; }
+</style></head>
+<body>
+  <div class="cards">
+    <div class="card"><div class="head"><div class="num">01</div><div class="title">吸睛主題</div></div><div class="desc">創新題材，提升作品辨識度與展示效果</div></div>
+    <div class="card"><div class="head"><div class="num">02</div><div class="title">整合所學</div></div><div class="desc">驗證前後端、資料庫設計與系統整合</div></div>
+    <div class="card"><div class="head"><div class="num">03</div><div class="title">貼近趨勢</div></div><div class="desc">新興應用，展現技術與市場觀察力</div></div>
+    <div class="card"><div class="head"><div class="num">04</div><div class="title">結訓成果</div></div><div class="desc">交付功能完整、可實際操作的系統，展現完整落地實力</div></div>
+  </div>
+</body>
+</html>

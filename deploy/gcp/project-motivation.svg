@@ -1,0 +1,41 @@
+<svg width="680" height="430" viewBox="0 0 680 430" xmlns="http://www.w3.org/2000/svg" font-family="'PingFang TC','Heiti TC','Noto Sans TC','Microsoft JhengHei',sans-serif">
+<title>專題動機</title>
+<rect x="0" y="0" width="680" height="430" fill="#262626"/>
+<text x="340" y="52" text-anchor="middle" font-size="30" font-weight="500" fill="#e8b93f">專題動機</text>
+
+<g>
+<rect x="40" y="100" width="290" height="142" rx="8" fill="#303030" stroke="#c99a3c" stroke-width="1.4"/>
+<circle cx="78" cy="140" r="19" fill="#e0ad4d"/>
+<text x="78" y="146" text-anchor="middle" font-size="16" font-weight="500" fill="#262626">01</text>
+<text x="108" y="147" font-size="17" font-weight="500" fill="#e8b93f">吸睛主題</text>
+<text x="70" y="184" font-size="15" fill="#dcdcdc">創新且吸引目光的題材，</text>
+<text x="70" y="212" font-size="15" fill="#dcdcdc">提升作品辨識度與展示效果</text>
+</g>
+
+<g>
+<rect x="350" y="100" width="290" height="142" rx="8" fill="#303030" stroke="#c99a3c" stroke-width="1.4"/>
+<circle cx="388" cy="140" r="19" fill="#e0ad4d"/>
+<text x="388" y="146" text-anchor="middle" font-size="16" font-weight="500" fill="#262626">02</text>
+<text x="418" y="147" font-size="17" font-weight="500" fill="#e8b93f">整合所學</text>
+<text x="380" y="184" font-size="15" fill="#dcdcdc">實作預測市場平台，驗證</text>
+<text x="380" y="212" font-size="15" fill="#dcdcdc">前後端、資料庫與系統整合</text>
+</g>
+
+<g>
+<rect x="40" y="264" width="290" height="142" rx="8" fill="#303030" stroke="#c99a3c" stroke-width="1.4"/>
+<circle cx="78" cy="304" r="19" fill="#e0ad4d"/>
+<text x="78" y="310" text-anchor="middle" font-size="16" font-weight="500" fill="#262626">03</text>
+<text x="108" y="311" font-size="17" font-weight="500" fill="#e8b93f">貼近趨勢</text>
+<text x="70" y="348" font-size="15" fill="#dcdcdc">以新興應用為題，展現對</text>
+<text x="70" y="376" font-size="15" fill="#dcdcdc">技術與市場需求的觀察力</text>
+</g>
+
+<g>
+<rect x="350" y="264" width="290" height="142" rx="8" fill="#303030" stroke="#c99a3c" stroke-width="1.4"/>
+<circle cx="388" cy="304" r="19" fill="#e0ad4d"/>
+<text x="388" y="310" text-anchor="middle" font-size="16" font-weight="500" fill="#262626">04</text>
+<text x="418" y="311" font-size="17" font-weight="500" fill="#e8b93f">結訓成果</text>
+<text x="380" y="348" font-size="15" fill="#dcdcdc">完整功能與操作流程的系統，</text>
+<text x="380" y="376" font-size="15" fill="#dcdcdc">吸引企業與面試官關注</text>
+</g>
+</svg>
