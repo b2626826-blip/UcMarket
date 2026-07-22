@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { getMarkets } from "../../../api/marketApi";
 import { getOddsFromPools } from "../../../utils/odds";
+import politicsBanner from "./politics-banner.jpg";
 import "./MarketPolitics.css";
 
 
@@ -200,6 +201,7 @@ export default function MarketPolitics() {
 
       <main className="market-page">
         <section className="politics-banner">
+          <img src={politicsBanner} alt="政治市場" />
 
           <div className="politics-banner-content">
             <span>POLITICS MARKET</span>
