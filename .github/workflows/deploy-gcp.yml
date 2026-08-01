@@ -1,0 +1,105 @@
+name: Deploy GCP
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: GitHub Environment to deploy to
+        required: true
+        type: choice
+        options:
+          - staging
+          - production
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    env:
+      GCP_PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      GCP_REGION: ${{ vars.GCP_REGION }}
+      ARTIFACT_REPOSITORY: ${{ vars.ARTIFACT_REPOSITORY }}
+      GCE_ZONE: ${{ vars.GCE_ZONE }}
+      GCE_INSTANCE: ${{ vars.GCE_INSTANCE }}
+      FIREBASE_WEB_API: ${{ secrets.FIREBASE_WEB_API }}
+      FIREBASE_WEB_DOMAIN: ${{ secrets.FIREBASE_WEB_DOMAIN }}
+      FIREBASE_WEB_PROJECT: ${{ secrets.FIREBASE_WEB_PROJECT }}
+      FIREBASE_WEB_APP: ${{ secrets.FIREBASE_WEB_APP }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Verify release candidate
+        run: |
+          unset SPRING_DATASOURCE_URL SPRING_DATASOURCE_USERNAME SPRING_DATASOURCE_PASSWORD
+          (cd backend && ./mvnw --batch-mode clean test package)
+          (cd frontend && npm ci && npm run test -- --run)
+      - id: auth
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ secrets.GCP_SERVICE_ACCOUNT }}
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Build and publish immutable images
+        id: images
+        run: |
+          set -euo pipefail
+          test -n "${GCP_PROJECT_ID}" && test -n "${GCP_REGION}" && test -n "${ARTIFACT_REPOSITORY}"
+          image_prefix="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${ARTIFACT_REPOSITORY}"
+          release_tag="${GITHUB_SHA}"
+          gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
+          docker build -f deploy/gcp/backend.Dockerfile -t "${image_prefix}/backend:${release_tag}" .
+          docker push "${image_prefix}/backend:${release_tag}"
+          docker build \
+            --build-arg FIREBASE_WEB_API \
+            --build-arg FIREBASE_WEB_DOMAIN \
+            --build-arg FIREBASE_WEB_PROJECT \
+            --build-arg FIREBASE_WEB_APP \
+            -f deploy/gcp/web.Dockerfile -t "${image_prefix}/web:${release_tag}" .
+          docker push "${image_prefix}/web:${release_tag}"
+          backend_digest="$(gcloud artifacts docker images describe "${image_prefix}/backend:${release_tag}" --format='value(image_summary.digest)')"
+          web_digest="$(gcloud artifacts docker images describe "${image_prefix}/web:${release_tag}" --format='value(image_summary.digest)')"
+          echo "backend=${image_prefix}/backend@${backend_digest}" >> "$GITHUB_OUTPUT"
+          echo "web=${image_prefix}/web@${web_digest}" >> "$GITHUB_OUTPUT"
+      - name: Deploy to Compute Engine through IAP
+        env:
+          BACKEND_IMAGE: ${{ steps.images.outputs.backend }}
+          WEB_IMAGE: ${{ steps.images.outputs.web }}
+        run: |
+          set -euo pipefail
+          test -n "${GCE_ZONE}" && test -n "${GCE_INSTANCE}"
+          gcloud compute ssh "${GCE_INSTANCE}" --zone "${GCE_ZONE}" --tunnel-through-iap --command "
+            set -euo pipefail
+            cd /opt/ucmarket
+            sudo cp deploy.env deploy.env.pre-${GITHUB_SHA}
+            sudo sed -i 's#^BACKEND_IMAGE=.*#BACKEND_IMAGE=${BACKEND_IMAGE}#; s#^WEB_IMAGE=.*#WEB_IMAGE=${WEB_IMAGE}#' deploy.env
+            sudo docker compose --env-file deploy.env pull backend web
+            sudo env PROJECT_ID='${GCP_PROJECT_ID}' DEPLOY_MODE='${{ inputs.environment }}' RUNTIME_DIR=/run/ucmarket bash ./render-runtime-secrets.sh
+            sudo docker compose --env-file deploy.env up -d backend web
+            curl -fsS http://127.0.0.1:8081/api/health
+            sudo docker inspect --format '{{.Name}} {{.Config.Image}}' ucmarket-backend-1 ucmarket-web-1
+          "
+      - name: Release summary
+        run: |
+          {
+            echo "## ${{ inputs.environment }} deployment"
+            echo
+            echo "- Commit: `${GITHUB_SHA}`"
+            echo "- Backend: `${{ steps.images.outputs.backend }}`"
+            echo "- Web: `${{ steps.images.outputs.web }}`"
+            echo "- Post-deploy check: VM internal `/api/health`"
+            echo "- External smoke tests and production notification activation remain manual approval steps."
+          } >> "$GITHUB_STEP_SUMMARY"
