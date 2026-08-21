@@ -80,7 +80,7 @@ class WeatherMarketResolutionServiceTest {
 
     @Test
     void resolveMonthlyRainMarketAsYesWhenTotalExceedsThreshold() {
-        LocalDate monthStart = LocalDate.now().minusMonths(1).withDayOfMonth(1);
+        LocalDate monthStart = LocalDate.now().minusMonths(2).withDayOfMonth(1);
         Market market = createWeatherMarket("monthlyRain", "高雄", monthStart, 200);
         when(marketRepository.findByCategory("WEATHER")).thenReturn(List.of(market));
         when(observationClient.fetchMonthlyTotalPrecipitation("高雄", YearMonth.from(monthStart)))
@@ -93,7 +93,7 @@ class WeatherMarketResolutionServiceTest {
 
     @Test
     void resolveMonthlyRainMarketAsNoWhenTotalBelowThreshold() {
-        LocalDate monthStart = LocalDate.now().minusMonths(1).withDayOfMonth(1);
+        LocalDate monthStart = LocalDate.now().minusMonths(2).withDayOfMonth(1);
         Market market = createWeatherMarket("monthlyRain", "高雄", monthStart, 200);
         when(marketRepository.findByCategory("WEATHER")).thenReturn(List.of(market));
         when(observationClient.fetchMonthlyTotalPrecipitation("高雄", YearMonth.from(monthStart)))
@@ -178,7 +178,7 @@ class WeatherMarketResolutionServiceTest {
     @Test
     void mockObservationModeResolvesMonthlyRainAsNoWithoutCallingCwa() {
         ReflectionTestUtils.setField(resolutionService, "mockObservationEnabled", true);
-        LocalDate monthStart = LocalDate.now().minusMonths(1).withDayOfMonth(1);
+        LocalDate monthStart = LocalDate.now().minusMonths(2).withDayOfMonth(1);
         Market market = createWeatherMarket("monthlyRain", "高雄", monthStart, 200);
         when(marketRepository.findByCategory("WEATHER")).thenReturn(List.of(market));
 
