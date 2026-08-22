@@ -2,6 +2,7 @@ package com.ucmarket.service;
 
 import java.time.LocalDate;
 import java.time.YearMonth;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -25,6 +26,7 @@ public class WeatherMarketResolutionService {
     private static final Logger log = LoggerFactory.getLogger(WeatherMarketResolutionService.class);
     private static final UUID SYSTEM_CREATOR_ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
     private static final String CATEGORY = "WEATHER";
+    private static final ZoneId TAIPEI = ZoneId.of("Asia/Taipei");
 
     private final MarketRepository marketRepository;
     private final CwaObservationClient observationClient;
@@ -47,8 +49,12 @@ public class WeatherMarketResolutionService {
         this.objectMapper = objectMapper;
     }
 
-    @Scheduled(cron = "${weather.resolution.cron:0 0 * * * ?}")
+    @Scheduled(cron = "${weather.resolution.cron:0 0 * * * ?}", zone = "Asia/Taipei")
     public void resolveWeatherMarkets() {
+        resolveWeatherMarkets(LocalDate.now(TAIPEI));
+    }
+
+    public void resolveWeatherMarkets(LocalDate today) {
         if (!enabled) {
             log.debug("Weather market resolution is disabled.");
             return;
@@ -56,7 +62,6 @@ public class WeatherMarketResolutionService {
 
         log.info("Starting automatic weather market resolution.");
         List<Market> weatherMarkets = marketRepository.findByCategory(CATEGORY);
-        LocalDate today = LocalDate.now();
         int resolvedCount = 0;
         int skippedCount = 0;
 

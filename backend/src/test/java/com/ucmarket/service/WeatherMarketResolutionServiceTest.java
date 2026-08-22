@@ -33,6 +33,12 @@ class WeatherMarketResolutionServiceTest {
 
     private static final UUID SYSTEM_CREATOR_ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
 
+    /** 固定的「今天」，讓所有斷言與真實日曆位置無關。2026-09-15 落在月降雨的可解析視窗內。 */
+    private static final LocalDate TODAY = LocalDate.of(2026, 9, 15);
+    /** TODAY 的前一個月起始日，月降雨市場最早可解析日為 2026-09-02。 */
+    private static final LocalDate LAST_MONTH_START = LocalDate.of(2026, 8, 1);
+    private static final LocalDate YESTERDAY = TODAY.minusDays(1);
+
     @Mock
     private MarketRepository marketRepository;
 
@@ -56,61 +62,84 @@ class WeatherMarketResolutionServiceTest {
 
     @Test
     void resolveMaxTempMarketAsYesWhenObservationExceedsThreshold() {
-        Market market = createWeatherMarket("maxTemp", "台北", LocalDate.now().minusDays(1), 30);
+        Market market = createWeatherMarket("maxTemp", "台北", YESTERDAY, 30);
         when(marketRepository.findByCategory("WEATHER")).thenReturn(List.of(market));
-        when(observationClient.fetchDailyMaxTemperature("台北", LocalDate.now().minusDays(1)))
+        when(observationClient.fetchDailyMaxTemperature("台北", YESTERDAY))
                 .thenReturn(Optional.of(32.0));
 
-        resolutionService.resolveWeatherMarkets();
+        resolutionService.resolveWeatherMarkets(TODAY);
 
         verify(marketService).resolveMarket(market.getId(), SYSTEM_CREATOR_ID, MarketResult.YES);
     }
 
     @Test
     void resolveMaxTempMarketAsNoWhenObservationBelowThreshold() {
-        Market market = createWeatherMarket("maxTemp", "台北", LocalDate.now().minusDays(1), 30);
+        Market market = createWeatherMarket("maxTemp", "台北", YESTERDAY, 30);
         when(marketRepository.findByCategory("WEATHER")).thenReturn(List.of(market));
-        when(observationClient.fetchDailyMaxTemperature("台北", LocalDate.now().minusDays(1)))
+        when(observationClient.fetchDailyMaxTemperature("台北", YESTERDAY))
                 .thenReturn(Optional.of(28.0));
 
-        resolutionService.resolveWeatherMarkets();
+        resolutionService.resolveWeatherMarkets(TODAY);
 
         verify(marketService).resolveMarket(market.getId(), SYSTEM_CREATOR_ID, MarketResult.NO);
     }
 
     @Test
     void resolveMonthlyRainMarketAsYesWhenTotalExceedsThreshold() {
-        LocalDate monthStart = LocalDate.now().minusMonths(2).withDayOfMonth(1);
+        LocalDate monthStart = LAST_MONTH_START;
         Market market = createWeatherMarket("monthlyRain", "高雄", monthStart, 200);
         when(marketRepository.findByCategory("WEATHER")).thenReturn(List.of(market));
         when(observationClient.fetchMonthlyTotalPrecipitation("高雄", YearMonth.from(monthStart)))
                 .thenReturn(Optional.of(250.0));
 
-        resolutionService.resolveWeatherMarkets();
+        resolutionService.resolveWeatherMarkets(TODAY);
 
         verify(marketService).resolveMarket(market.getId(), SYSTEM_CREATOR_ID, MarketResult.YES);
     }
 
     @Test
     void resolveMonthlyRainMarketAsNoWhenTotalBelowThreshold() {
-        LocalDate monthStart = LocalDate.now().minusMonths(2).withDayOfMonth(1);
+        LocalDate monthStart = LAST_MONTH_START;
         Market market = createWeatherMarket("monthlyRain", "高雄", monthStart, 200);
         when(marketRepository.findByCategory("WEATHER")).thenReturn(List.of(market));
         when(observationClient.fetchMonthlyTotalPrecipitation("高雄", YearMonth.from(monthStart)))
                 .thenReturn(Optional.of(150.0));
 
-        resolutionService.resolveWeatherMarkets();
+        resolutionService.resolveWeatherMarkets(TODAY);
 
         verify(marketService).resolveMarket(market.getId(), SYSTEM_CREATOR_ID, MarketResult.NO);
     }
 
     @Test
+    void skipMonthlyRainMarketOnTheDayBeforeEarliestResolutionDate() {
+        Market market = createWeatherMarket("monthlyRain", "高雄", LAST_MONTH_START, 200);
+        when(marketRepository.findByCategory("WEATHER")).thenReturn(List.of(market));
+
+        resolutionService.resolveWeatherMarkets(LocalDate.of(2026, 9, 1));
+
+        verifyNoInteractions(observationClient);
+        verify(marketService, never()).resolveMarket(any(), any(), any());
+    }
+
+    @Test
+    void resolveMonthlyRainMarketOnEarliestResolutionDate() {
+        Market market = createWeatherMarket("monthlyRain", "高雄", LAST_MONTH_START, 200);
+        when(marketRepository.findByCategory("WEATHER")).thenReturn(List.of(market));
+        when(observationClient.fetchMonthlyTotalPrecipitation("高雄", YearMonth.from(LAST_MONTH_START)))
+                .thenReturn(Optional.of(250.0));
+
+        resolutionService.resolveWeatherMarkets(LocalDate.of(2026, 9, 2));
+
+        verify(marketService).resolveMarket(market.getId(), SYSTEM_CREATOR_ID, MarketResult.YES);
+    }
+
+    @Test
     void skipNonClosedMarkets() {
-        Market market = createWeatherMarket("maxTemp", "台北", LocalDate.now().minusDays(1), 30);
+        Market market = createWeatherMarket("maxTemp", "台北", YESTERDAY, 30);
         market.changeStatus(MarketStatus.ACTIVE);
         when(marketRepository.findByCategory("WEATHER")).thenReturn(List.of(market));
 
-        resolutionService.resolveWeatherMarkets();
+        resolutionService.resolveWeatherMarkets(TODAY);
 
         verifyNoInteractions(observationClient);
         verify(marketService, never()).resolveMarket(any(), any(), any());
@@ -118,11 +147,11 @@ class WeatherMarketResolutionServiceTest {
 
     @Test
     void skipAlreadyResolvedMarkets() {
-        Market market = createWeatherMarket("maxTemp", "台北", LocalDate.now().minusDays(1), 30);
+        Market market = createWeatherMarket("maxTemp", "台北", YESTERDAY, 30);
         ReflectionTestUtils.setField(market, "result", MarketResult.YES);
         when(marketRepository.findByCategory("WEATHER")).thenReturn(List.of(market));
 
-        resolutionService.resolveWeatherMarkets();
+        resolutionService.resolveWeatherMarkets(TODAY);
 
         verifyNoInteractions(observationClient);
         verify(marketService, never()).resolveMarket(any(), any(), any());
@@ -130,22 +159,22 @@ class WeatherMarketResolutionServiceTest {
 
     @Test
     void skipWhenObservationDataUnavailable() {
-        Market market = createWeatherMarket("maxTemp", "台北", LocalDate.now().minusDays(1), 30);
+        Market market = createWeatherMarket("maxTemp", "台北", YESTERDAY, 30);
         when(marketRepository.findByCategory("WEATHER")).thenReturn(List.of(market));
-        when(observationClient.fetchDailyMaxTemperature("台北", LocalDate.now().minusDays(1)))
+        when(observationClient.fetchDailyMaxTemperature("台北", YESTERDAY))
                 .thenReturn(Optional.empty());
 
-        resolutionService.resolveWeatherMarkets();
+        resolutionService.resolveWeatherMarkets(TODAY);
 
         verify(marketService, never()).resolveMarket(any(), any(), any());
     }
 
     @Test
     void skipFutureTemperatureMarkets() {
-        Market market = createWeatherMarket("maxTemp", "台北", LocalDate.now().plusDays(1), 30);
+        Market market = createWeatherMarket("maxTemp", "台北", TODAY.plusDays(1), 30);
         when(marketRepository.findByCategory("WEATHER")).thenReturn(List.of(market));
 
-        resolutionService.resolveWeatherMarkets();
+        resolutionService.resolveWeatherMarkets(TODAY);
 
         verifyNoInteractions(observationClient);
         verify(marketService, never()).resolveMarket(any(), any(), any());
@@ -153,11 +182,11 @@ class WeatherMarketResolutionServiceTest {
 
     @Test
     void skipMonthlyRainMarketsBeforeEarliestResolutionDate() {
-        LocalDate monthStart = LocalDate.now().withDayOfMonth(1);
+        LocalDate monthStart = TODAY.withDayOfMonth(1);
         Market market = createWeatherMarket("monthlyRain", "高雄", monthStart, 200);
         when(marketRepository.findByCategory("WEATHER")).thenReturn(List.of(market));
 
-        resolutionService.resolveWeatherMarkets();
+        resolutionService.resolveWeatherMarkets(TODAY);
 
         verifyNoInteractions(observationClient);
         verify(marketService, never()).resolveMarket(any(), any(), any());
@@ -166,10 +195,10 @@ class WeatherMarketResolutionServiceTest {
     @Test
     void mockObservationModeResolvesMaxTempAsYesWithoutCallingCwa() {
         ReflectionTestUtils.setField(resolutionService, "mockObservationEnabled", true);
-        Market market = createWeatherMarket("maxTemp", "台北", LocalDate.now().minusDays(1), 30);
+        Market market = createWeatherMarket("maxTemp", "台北", YESTERDAY, 30);
         when(marketRepository.findByCategory("WEATHER")).thenReturn(List.of(market));
 
-        resolutionService.resolveWeatherMarkets();
+        resolutionService.resolveWeatherMarkets(TODAY);
 
         verifyNoInteractions(observationClient);
         verify(marketService).resolveMarket(market.getId(), SYSTEM_CREATOR_ID, MarketResult.YES);
@@ -178,11 +207,11 @@ class WeatherMarketResolutionServiceTest {
     @Test
     void mockObservationModeResolvesMonthlyRainAsNoWithoutCallingCwa() {
         ReflectionTestUtils.setField(resolutionService, "mockObservationEnabled", true);
-        LocalDate monthStart = LocalDate.now().minusMonths(2).withDayOfMonth(1);
+        LocalDate monthStart = LAST_MONTH_START;
         Market market = createWeatherMarket("monthlyRain", "高雄", monthStart, 200);
         when(marketRepository.findByCategory("WEATHER")).thenReturn(List.of(market));
 
-        resolutionService.resolveWeatherMarkets();
+        resolutionService.resolveWeatherMarkets(TODAY);
 
         verifyNoInteractions(observationClient);
         verify(marketService).resolveMarket(market.getId(), SYSTEM_CREATOR_ID, MarketResult.NO);
@@ -192,7 +221,7 @@ class WeatherMarketResolutionServiceTest {
     void doNothingWhenResolutionDisabled() {
         ReflectionTestUtils.setField(resolutionService, "enabled", false);
 
-        resolutionService.resolveWeatherMarkets();
+        resolutionService.resolveWeatherMarkets(TODAY);
 
         verifyNoInteractions(marketRepository);
         verifyNoInteractions(observationClient);
