@@ -106,6 +106,37 @@ jobs:
           gcloud compute ssh "${GCE_INSTANCE}" --zone "${GCE_ZONE}" --tunnel-through-iap --command "
             set -euo pipefail
             cd /opt/ucmarket
+            registry_host='${GCP_REGION}-docker.pkg.dev'
+            registry_login() {
+              local registry_token
+              if ! registry_token=\$(curl -fsS \
+                -H 'Metadata-Flavor: Google' \
+                'http://metadata.google.internal/computeMetadata/v1/instance/service-accounts/default/token' | \
+                jq -er '.access_token'); then
+                return 1
+              fi
+              if ! printf '%s' \"\$registry_token\" | sudo docker login \
+                -u oauth2accesstoken \
+                --password-stdin \
+                \"https://\$registry_host\" >/dev/null; then
+                unset registry_token
+                return 1
+              fi
+              unset registry_token
+            }
+            registry_logout() {
+              sudo docker logout \"https://\$registry_host\" >/dev/null 2>&1 || true
+            }
+            pull_images() {
+              if ! registry_login; then
+                return 1
+              fi
+              if ! sudo docker compose --env-file deploy.env pull backend web; then
+                registry_logout
+                return 1
+              fi
+              registry_logout
+            }
             rollback_env=\"deploy.env.pre-${GITHUB_SHA}\"
             rollback() {
               original_status=\$?
@@ -122,7 +153,7 @@ jobs:
                 echo 'rollback could not restore deploy.env' >&2
                 exit \$original_status
               fi
-              if ! sudo docker compose --env-file deploy.env pull backend web; then
+              if ! pull_images; then
                 echo 'rollback could not pull previous images' >&2
                 exit \$original_status
               fi
@@ -151,7 +182,10 @@ jobs:
               sudo cp deploy.env \"\$rollback_env\"
             fi
             sudo sed -i 's#^BACKEND_IMAGE=.*#BACKEND_IMAGE=${BACKEND_IMAGE}#; s#^WEB_IMAGE=.*#WEB_IMAGE=${WEB_IMAGE}#' deploy.env
-            sudo docker compose --env-file deploy.env pull backend web
+            if ! pull_images; then
+              echo 'image pull failed' >&2
+              exit 1
+            fi
             sudo env PROJECT_ID='${GCP_PROJECT_ID}' DEPLOY_MODE='${{ inputs.environment }}' RUNTIME_DIR=/run/ucmarket bash ./render-runtime-secrets.sh
             sudo docker compose --env-file deploy.env up -d backend web
             attempt=0
