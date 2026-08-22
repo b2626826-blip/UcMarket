@@ -29,6 +29,11 @@ assert_contains "echo 'rollback health check failed after 30 attempts' >&2"
 assert_contains 'exit \$original_status'
 assert_contains 'attempt=\$((attempt + 1))'
 assert_contains 'if [ \$attempt -ge 30 ]; then'
+assert_contains "Metadata-Flavor: Google"
+assert_contains 'docker login'
+assert_contains 'docker logout'
+assert_contains 'registry_login()'
+assert_contains 'pull_images()'
 
 backup_line="$(grep -nF 'sudo cp deploy.env \"\$rollback_env\"' "${workflow}" | cut -d: -f1 | head -n1 || true)"
 trap_line="$(grep -nF 'trap rollback EXIT' "${workflow}" | head -n1 | cut -d: -f1 || true)"
@@ -88,7 +93,7 @@ PYPROBE
         shift
       done
     }
-    GCE_ZONE=probe-zone GCE_INSTANCE=probe-instance GITHUB_SHA=probe-sha \
+    GCE_ZONE=probe-zone GCE_INSTANCE=probe-instance GCP_REGION=probe-region GITHUB_SHA=probe-sha \
       BACKEND_IMAGE=probe/backend@sha256:aa WEB_IMAGE=probe/web@sha256:bb \
       GCP_PROJECT_ID=probe-project source "${probe_dir}/step.sh"
   ) >/dev/null 2>&1
@@ -102,7 +107,8 @@ PYPROBE
     printf 'embedded remote script is not valid shell\n' >&2
     exit 1
   fi
-  for expected in 'trap rollback EXIT' 'rollback completed'; do
+  for expected in 'trap rollback EXIT' 'rollback completed' 'registry_login()' 'pull_images()' \
+                  'Metadata-Flavor: Google' 'docker login' 'docker logout'; do
     if ! grep -Fq -- "${expected}" "${probe_dir}/remote.sh"; then
       printf 'remote script lost its rollback contract: %s\n' "${expected}" >&2
       exit 1
@@ -195,6 +201,36 @@ PYPUBLISH
     || probe_fail 'image publish lost the published backend digest while publishing web'
   grep -q 'web=.*@sha256:builtweb' "${probe_dir}/output" \
     || probe_fail 'image publish did not record the freshly built web digest'
+fi
+
+
+# 遠端腳本整段包在 gcloud --command "..." 的雙引號裡，所以裡面每一個 " 都必須跳脫。
+# 沒跳脫時 runner 會把外層引號狀態翻掉：引號內有空白就會切碎參數（argc 探針抓得到），
+# 沒空白則只是靜默把引號吃掉——secret 因此變成未加引號、會被 word splitting 影響，
+# 而 argc 仍然正常。所以這裡直接檢查不變量本身。
+unescaped="$("${python_bin:-python}" - "${workflow}" <<'PYQUOTES'
+import io, sys
+BS, Q = chr(92), chr(34)
+lines = io.open(sys.argv[1], encoding="utf-8").read().split("\n")
+inside, bad = False, []
+for n, line in enumerate(lines, 1):
+    if "gcloud compute ssh" in line:
+        inside = True
+        continue
+    if inside and line.strip() == Q:
+        inside = False
+        continue
+    if inside:
+        for i, ch in enumerate(line):
+            if ch == Q and (i == 0 or line[i - 1] != BS):
+                bad.append("%d: %s" % (n, line.strip()))
+                break
+print("\n".join(bad))
+PYQUOTES
+)"
+if [[ -n "${unescaped}" ]]; then
+  printf 'every double quote inside the gcloud --command block must be escaped:\n%s\n' "${unescaped}" >&2
+  exit 1
 fi
 
 
