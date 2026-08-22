@@ -22,6 +22,7 @@ assert_contains 'rollback_env=\"deploy.env.pre-${GITHUB_SHA}\"'
 assert_contains 'trap rollback EXIT'
 assert_contains 'trap - EXIT'
 assert_contains 'if [ \$original_status -eq 0 ]; then'
+assert_contains 'if [ ! -f \"\$rollback_env\" ]; then'
 assert_contains 'if ! sudo cp \"\$rollback_env\" deploy.env; then'
 assert_contains "echo 'rollback completed' >&2"
 assert_contains "echo 'rollback health check failed after 30 attempts' >&2"
@@ -29,10 +30,27 @@ assert_contains 'exit \$original_status'
 assert_contains 'attempt=\$((attempt + 1))'
 assert_contains 'if [ \$attempt -ge 30 ]; then'
 
-backup_line="$(grep -nF 'sudo cp deploy.env \"\$rollback_env\"' "${workflow}" | cut -d: -f1 | head -n1)"
-trap_line="$(grep -nF 'trap rollback EXIT' "${workflow}" | head -n1 | cut -d: -f1)"
-if [[ -z "${backup_line}" || -z "${trap_line}" || "${trap_line}" -ge "${backup_line}" ]]; then
+backup_line="$(grep -nF 'sudo cp deploy.env \"\$rollback_env\"' "${workflow}" | cut -d: -f1 | head -n1 || true)"
+trap_line="$(grep -nF 'trap rollback EXIT' "${workflow}" | head -n1 | cut -d: -f1 || true)"
+
+if [[ -z "${backup_line}" ]]; then
+  printf 'workflow never backs up deploy.env for rollback\n' >&2
+  exit 1
+fi
+if [[ -z "${trap_line}" ]]; then
+  printf 'workflow never installs the rollback trap\n' >&2
+  exit 1
+fi
+if [[ "${trap_line}" -ge "${backup_line}" ]]; then
   printf 'rollback trap must be installed before the deployment backup\n' >&2
+  exit 1
+fi
+
+# guard 必須是緊鄰 backup 的那一行。這個字串在 workflow 出現不只一次（rollback
+# 函式內也有一個），所以直接讀 backup 的前一行，不依賴出現順序。
+guard_line_text="$(sed -n "$((backup_line - 1))p" "${workflow}")"
+if [[ "${guard_line_text}" != *'if [ ! -f \"\$rollback_env\" ]; then'* ]]; then
+  printf 'the deploy.env backup must be guarded by an existence check on the line directly above it, found: %s\n' "${guard_line_text}" >&2
   exit 1
 fi
 
