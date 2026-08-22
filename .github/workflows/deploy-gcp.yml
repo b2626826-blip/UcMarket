@@ -125,7 +125,9 @@ jobs:
               exit \$original_status
             }
             trap rollback EXIT
-            sudo cp deploy.env \"\$rollback_env\"
+            if [ ! -f \"\$rollback_env\" ]; then
+              sudo cp deploy.env \"\$rollback_env\"
+            fi
             sudo sed -i 's#^BACKEND_IMAGE=.*#BACKEND_IMAGE=${BACKEND_IMAGE}#; s#^WEB_IMAGE=.*#WEB_IMAGE=${WEB_IMAGE}#' deploy.env
             sudo docker compose --env-file deploy.env pull backend web
             sudo env PROJECT_ID='${GCP_PROJECT_ID}' DEPLOY_MODE='${{ inputs.environment }}' RUNTIME_DIR=/run/ucmarket bash ./render-runtime-secrets.sh
