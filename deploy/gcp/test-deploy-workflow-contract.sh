@@ -110,4 +110,92 @@ PYPROBE
   done
 fi
 
+# image publish 必須對同一個 commit 具備 idempotency：tag 已發布時要重用既有 digest，
+# 不能重 build 再 push（registry 的 tag immutability 會拒絕不同的 manifest）。
+# 一樣用實際執行來驗，而不是比對文字。
+if [[ -n "${python_bin}" ]]; then
+  "${python_bin}" - "${workflow}" "${probe_dir}/publish.sh" <<'PYPUBLISH'
+import re, sys, yaml
+workflow, out = sys.argv[1], sys.argv[2]
+doc = yaml.safe_load(open(workflow, encoding="utf-8"))
+step = [s for s in doc["jobs"]["deploy"]["steps"]
+        if s.get("name", "").startswith("Build and publish")][0]
+run = re.sub(r"\$\{\{[^}]*\}\}", "probe", step["run"])
+open(out, "w", encoding="utf-8", newline="\n").write(run)
+PYPUBLISH
+
+  # $1/$2: backend / web 的 tag 是否「已經發布過」。registry 以檔案模擬，push 之後
+  # 該 tag 就查得到 digest——這樣才能驗到 push 後仍會正確取回 digest。
+  publish_probe() {
+    rm -f "${probe_dir}/reg-backend" "${probe_dir}/reg-web"
+    : > "${probe_dir}/docker.log"
+    : > "${probe_dir}/output"
+    [[ "$1" == "yes" ]] && printf 'sha256:existingbackend' > "${probe_dir}/reg-backend"
+    [[ "$2" == "yes" ]] && printf 'sha256:existingweb' > "${probe_dir}/reg-web"
+    (
+      gcloud() {
+        if [[ "$1" == "artifacts" ]]; then
+          case "$*" in
+            */backend:*) [[ -f "${probe_dir}/reg-backend" ]] && cat "${probe_dir}/reg-backend" ;;
+            */web:*)     [[ -f "${probe_dir}/reg-web" ]] && cat "${probe_dir}/reg-web" ;;
+          esac
+          return 0
+        fi
+        return 0
+      }
+      docker() {
+        case "$1" in
+          build) printf 'build %s\n' "${*: -2:1}" >> "${probe_dir}/docker.log" ;;
+          push)
+            printf 'push %s\n' "$2" >> "${probe_dir}/docker.log"
+            case "$2" in
+              */backend:*) printf 'sha256:builtbackend' > "${probe_dir}/reg-backend" ;;
+              */web:*)     printf 'sha256:builtweb'     > "${probe_dir}/reg-web" ;;
+            esac
+            ;;
+        esac
+        return 0
+      }
+      GCP_PROJECT_ID=probe-project GCP_REGION=probe-region ARTIFACT_REPOSITORY=probe-repo \
+        GITHUB_SHA=probe-sha GITHUB_OUTPUT="${probe_dir}/output" \
+        source "${probe_dir}/publish.sh"
+    ) >/dev/null 2>&1
+  }
+
+  probe_fail() {
+    printf '%s\n  docker calls: %s\n  outputs: %s\n' "$1" \
+      "$(tr '\n' ' ' < "${probe_dir}/docker.log")" "$(tr '\n' ' ' < "${probe_dir}/output")" >&2
+    exit 1
+  }
+
+  # 兩個 tag 都已發布：不得有任何 build 或 push，且必須沿用既有 digest
+  publish_probe yes yes || probe_fail 'image publish failed when both tags were already published'
+  [[ -s "${probe_dir}/docker.log" ]] && probe_fail 'image publish rebuilt tags that were already published'
+  grep -q 'backend=.*@sha256:existingbackend' "${probe_dir}/output" \
+    || probe_fail 'image publish did not reuse the published backend digest'
+  grep -q 'web=.*@sha256:existingweb' "${probe_dir}/output" \
+    || probe_fail 'image publish did not reuse the published web digest'
+
+  # 兩個都未發布：兩個都要 build 並 push
+  publish_probe no no || probe_fail 'image publish failed when neither tag was published'
+  grep -Fq -- 'push probe-region-docker.pkg.dev/probe-project/probe-repo/backend:probe-sha' "${probe_dir}/docker.log" \
+    || probe_fail 'image publish did not publish the backend tag'
+  grep -Fq -- 'push probe-region-docker.pkg.dev/probe-project/probe-repo/web:probe-sha' "${probe_dir}/docker.log" \
+    || probe_fail 'image publish did not publish the web tag'
+  grep -q 'backend=.*@sha256:builtbackend' "${probe_dir}/output" \
+    || probe_fail 'image publish did not record the freshly built backend digest'
+
+  # 部分完成：backend 已發布、web 尚未——只能動 web，backend 沿用既有 digest
+  publish_probe yes no || probe_fail 'image publish failed on a partially published tag pair'
+  grep -Fq -- '/backend:probe-sha' "${probe_dir}/docker.log" \
+    && probe_fail 'image publish rebuilt the backend even though its tag was already published'
+  grep -Fq -- 'push probe-region-docker.pkg.dev/probe-project/probe-repo/web:probe-sha' "${probe_dir}/docker.log" \
+    || probe_fail 'image publish did not publish the missing web tag'
+  grep -q 'backend=.*@sha256:existingbackend' "${probe_dir}/output" \
+    || probe_fail 'image publish lost the published backend digest while publishing web'
+  grep -q 'web=.*@sha256:builtweb' "${probe_dir}/output" \
+    || probe_fail 'image publish did not record the freshly built web digest'
+fi
+
+
 printf 'deployment rollback contract: ok\n'
