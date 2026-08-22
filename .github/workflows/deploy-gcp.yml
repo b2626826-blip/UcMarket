@@ -31,13 +31,13 @@ jobs:
       FIREBASE_WEB_PROJECT: ${{ secrets.FIREBASE_WEB_PROJECT }}
       FIREBASE_WEB_APP: ${{ secrets.FIREBASE_WEB_APP }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: "21"
           cache: maven
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version: "24"
           cache: npm
@@ -89,7 +89,12 @@ jobs:
             sudo docker compose --env-file deploy.env pull backend web
             sudo env PROJECT_ID='${GCP_PROJECT_ID}' DEPLOY_MODE='${{ inputs.environment }}' RUNTIME_DIR=/run/ucmarket bash ./render-runtime-secrets.sh
             sudo docker compose --env-file deploy.env up -d backend web
-            curl -fsS http://127.0.0.1:8081/api/health
+            attempt=0
+            until curl -fsS http://127.0.0.1:8081/api/health; do
+              attempt=\$((attempt + 1))
+              if [ \$attempt -ge 30 ]; then echo 'health check failed after 30 attempts' >&2; exit 1; fi
+              sleep 2
+            done
             sudo docker inspect --format '{{.Name}} {{.Config.Image}}' ucmarket-backend-1 ucmarket-web-1
           "
       - name: Release summary
@@ -97,9 +102,9 @@ jobs:
           {
             echo "## ${{ inputs.environment }} deployment"
             echo
-            echo "- Commit: `${GITHUB_SHA}`"
-            echo "- Backend: `${{ steps.images.outputs.backend }}`"
-            echo "- Web: `${{ steps.images.outputs.web }}`"
-            echo "- Post-deploy check: VM internal `/api/health`"
+            echo "- Commit: \`${GITHUB_SHA}\`"
+            echo "- Backend: \`${{ steps.images.outputs.backend }}\`"
+            echo "- Web: \`${{ steps.images.outputs.web }}\`"
+            echo "- Post-deploy check: VM internal \`/api/health\`"
             echo "- External smoke tests and production notification activation remain manual approval steps."
           } >> "$GITHUB_STEP_SUMMARY"
