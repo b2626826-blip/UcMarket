@@ -3,7 +3,9 @@ package com.ucmarket.service;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.TemporalAdjusters;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -38,6 +40,7 @@ public class WeatherMarketService {
     private static final UUID SYSTEM_CREATOR_ID = UUID.fromString("00000000-0000-4000-8000-000000000001");
     private static final String CATEGORY = "WEATHER";
     private static final String SOURCE_URL = "https://www.cwa.gov.tw/";
+    private static final ZoneId TAIPEI = ZoneId.of("Asia/Taipei");
 
     private static final List<String> CITIES = List.of(
             "台北", "新北", "基隆", "桃園", "新竹", "苗栗", "台中", "彰化", "南投", "雲林",
@@ -96,8 +99,12 @@ public class WeatherMarketService {
         createDailyWeatherMarkets();
     }
 
-    @Scheduled(cron = "0 0 12 * * ?")
+    @Scheduled(cron = "0 0 12 * * ?", zone = "Asia/Taipei")
     public void createDailyWeatherMarkets() {
+        createDailyWeatherMarkets(LocalDate.now(TAIPEI));
+    }
+
+    public void createDailyWeatherMarkets(LocalDate today) {
         log.info("Starting daily weather market creation. mockEnabled={}, apiKeyPresent={}",
                 mockEnabled, cwaApiKey != null && !cwaApiKey.isBlank());
 
@@ -106,7 +113,6 @@ public class WeatherMarketService {
             return;
         }
 
-        LocalDate today = LocalDate.now();
         int createdCount = 0;
         for (String city : CITIES) {
             Forecast forecast;
@@ -157,7 +163,7 @@ public class WeatherMarketService {
 
     private void createMonthlyRainMarkets(String city, LocalDate baseDate) {
         LocalDate monthStart = baseDate.withDayOfMonth(1);
-        LocalDateTime closeAt = monthStart.plusDays(27).atTime(23, 59, 59);
+        LocalDateTime closeAt = monthStart.with(TemporalAdjusters.lastDayOfMonth()).atTime(23, 59, 59);
         String monthLabel = monthStart.format(DateTimeFormatter.ofPattern("M月"));
         String monthLabelFull = monthStart.format(DateTimeFormatter.ofPattern("yyyy年M月"));
 
