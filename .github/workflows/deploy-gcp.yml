@@ -164,7 +164,10 @@ jobs:
                 exit \$original_status
               fi
               echo 'rollback restored deploy.env image refs:' >&2
-              grep -E '^(BACKEND_IMAGE|WEB_IMAGE)=' deploy.env >&2
+              if ! sudo grep -E '^(BACKEND_IMAGE|WEB_IMAGE)=' deploy.env >&2; then
+                echo 'rollback could not read restored deploy.env' >&2
+                exit \$original_status
+              fi
               if ! pull_images; then
                 echo 'rollback could not pull previous images' >&2
                 exit \$original_status

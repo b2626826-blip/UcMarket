@@ -39,6 +39,8 @@ assert_contains 'docker logout'
 assert_contains 'registry_login()'
 assert_contains 'pull_images()'
 assert_contains "echo 'rollback restored deploy.env image refs:' >&2"
+assert_contains "if ! sudo grep -E '^(BACKEND_IMAGE|WEB_IMAGE)=' deploy.env >&2; then"
+assert_contains "echo 'rollback could not read restored deploy.env' >&2"
 assert_contains "echo 'rollback container images:' >&2"
 assert_contains "sudo docker inspect --format '{{.Name}} {{.Config.Image}}' ucmarket-backend-1 ucmarket-web-1 >&2"
 assert_contains "echo 'failure injection: after_up_before_health' >&2"
