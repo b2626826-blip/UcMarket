@@ -61,17 +61,39 @@ jobs:
           image_prefix="${GCP_REGION}-docker.pkg.dev/${GCP_PROJECT_ID}/${ARTIFACT_REPOSITORY}"
           release_tag="${GITHUB_SHA}"
           gcloud auth configure-docker "${GCP_REGION}-docker.pkg.dev" --quiet
-          docker build -f deploy/gcp/backend.Dockerfile -t "${image_prefix}/backend:${release_tag}" .
-          docker push "${image_prefix}/backend:${release_tag}"
-          docker build \
-            --build-arg FIREBASE_WEB_API \
-            --build-arg FIREBASE_WEB_DOMAIN \
-            --build-arg FIREBASE_WEB_PROJECT \
-            --build-arg FIREBASE_WEB_APP \
-            -f deploy/gcp/web.Dockerfile -t "${image_prefix}/web:${release_tag}" .
-          docker push "${image_prefix}/web:${release_tag}"
-          backend_digest="$(gcloud artifacts docker images describe "${image_prefix}/backend:${release_tag}" --format='value(image_summary.digest)')"
-          web_digest="$(gcloud artifacts docker images describe "${image_prefix}/web:${release_tag}" --format='value(image_summary.digest)')"
+
+          # The tag is immutable: one commit means one specific image. The build is not
+          # reproducible (the jar is recompiled every time), so re-running a deployment for
+          # the same commit must reuse the digest already published under that tag. Building
+          # and pushing again produces a different manifest, which the registry rejects.
+          published_digest() {
+            gcloud artifacts docker images describe "$1" --format='value(image_summary.digest)' 2>/dev/null || true
+          }
+
+          backend_digest="$(published_digest "${image_prefix}/backend:${release_tag}")"
+          if [ -n "${backend_digest}" ]; then
+            echo "reusing the backend image already published for ${release_tag}"
+          else
+            docker build -f deploy/gcp/backend.Dockerfile -t "${image_prefix}/backend:${release_tag}" .
+            docker push "${image_prefix}/backend:${release_tag}"
+            backend_digest="$(published_digest "${image_prefix}/backend:${release_tag}")"
+          fi
+
+          web_digest="$(published_digest "${image_prefix}/web:${release_tag}")"
+          if [ -n "${web_digest}" ]; then
+            echo "reusing the web image already published for ${release_tag}"
+          else
+            docker build \
+              --build-arg FIREBASE_WEB_API \
+              --build-arg FIREBASE_WEB_DOMAIN \
+              --build-arg FIREBASE_WEB_PROJECT \
+              --build-arg FIREBASE_WEB_APP \
+              -f deploy/gcp/web.Dockerfile -t "${image_prefix}/web:${release_tag}" .
+            docker push "${image_prefix}/web:${release_tag}"
+            web_digest="$(published_digest "${image_prefix}/web:${release_tag}")"
+          fi
+
+          test -n "${backend_digest}" && test -n "${web_digest}"
           echo "backend=${image_prefix}/backend@${backend_digest}" >> "$GITHUB_OUTPUT"
           echo "web=${image_prefix}/web@${web_digest}" >> "$GITHUB_OUTPUT"
       - name: Deploy to Compute Engine through IAP
