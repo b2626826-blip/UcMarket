@@ -18,6 +18,8 @@ assert_contains() {
 }
 
 assert_contains 'workflow_dispatch:'
+assert_contains 'google-github-actions/auth@v3'
+assert_contains 'google-github-actions/setup-gcloud@v3'
 assert_contains 'failure_injection:'
 assert_contains 'default: none'
 assert_contains 'after_up_before_health'
