@@ -10,6 +10,14 @@ on:
         options:
           - staging
           - production
+      failure_injection:
+        description: Staging-only failure injection for rollback drills
+        required: true
+        default: none
+        type: choice
+        options:
+          - none
+          - after_up_before_health
 
 permissions:
   contents: read
@@ -18,6 +26,7 @@ permissions:
 jobs:
   deploy:
     name: Deploy to ${{ inputs.environment }}
+    if: ${{ inputs.failure_injection == 'none' || inputs.environment == 'staging' }}
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
     env:
@@ -106,6 +115,7 @@ jobs:
           gcloud compute ssh "${GCE_INSTANCE}" --zone "${GCE_ZONE}" --tunnel-through-iap --command "
             set -euo pipefail
             cd /opt/ucmarket
+            failure_injection='${{ inputs.failure_injection }}'
             registry_host='${GCP_REGION}-docker.pkg.dev'
             registry_login() {
               local registry_token
@@ -153,6 +163,8 @@ jobs:
                 echo 'rollback could not restore deploy.env' >&2
                 exit \$original_status
               fi
+              echo 'rollback restored deploy.env image refs:' >&2
+              grep -E '^(BACKEND_IMAGE|WEB_IMAGE)=' deploy.env >&2
               if ! pull_images; then
                 echo 'rollback could not pull previous images' >&2
                 exit \$original_status
@@ -174,6 +186,8 @@ jobs:
                 fi
                 sleep 2
               done
+              echo 'rollback container images:' >&2
+              sudo docker inspect --format '{{.Name}} {{.Config.Image}}' ucmarket-backend-1 ucmarket-web-1 >&2
               echo 'rollback completed' >&2
               exit \$original_status
             }
@@ -188,6 +202,10 @@ jobs:
             fi
             sudo env PROJECT_ID='${GCP_PROJECT_ID}' DEPLOY_MODE='${{ inputs.environment }}' RUNTIME_DIR=/run/ucmarket bash ./render-runtime-secrets.sh
             sudo docker compose --env-file deploy.env up -d backend web
+            if [ \"\$failure_injection\" = 'after_up_before_health' ]; then
+              echo 'failure injection: after_up_before_health' >&2
+              exit 42
+            fi
             attempt=0
             until curl -fsS http://127.0.0.1:8081/api/health; do
               attempt=\$((attempt + 1))

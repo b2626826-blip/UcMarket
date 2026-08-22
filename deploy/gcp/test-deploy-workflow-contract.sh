@@ -18,6 +18,10 @@ assert_contains() {
 }
 
 assert_contains 'workflow_dispatch:'
+assert_contains 'failure_injection:'
+assert_contains 'default: none'
+assert_contains 'after_up_before_health'
+assert_contains "if: \${{ inputs.failure_injection == 'none' || inputs.environment == 'staging' }}"
 assert_contains 'rollback_env=\"deploy.env.pre-${GITHUB_SHA}\"'
 assert_contains 'trap rollback EXIT'
 assert_contains 'trap - EXIT'
@@ -34,6 +38,10 @@ assert_contains 'docker login'
 assert_contains 'docker logout'
 assert_contains 'registry_login()'
 assert_contains 'pull_images()'
+assert_contains "echo 'rollback restored deploy.env image refs:' >&2"
+assert_contains "echo 'rollback container images:' >&2"
+assert_contains "sudo docker inspect --format '{{.Name}} {{.Config.Image}}' ucmarket-backend-1 ucmarket-web-1 >&2"
+assert_contains "echo 'failure injection: after_up_before_health' >&2"
 
 backup_line="$(grep -nF 'sudo cp deploy.env \"\$rollback_env\"' "${workflow}" | cut -d: -f1 | head -n1 || true)"
 trap_line="$(grep -nF 'trap rollback EXIT' "${workflow}" | head -n1 | cut -d: -f1 || true)"
@@ -62,6 +70,18 @@ fi
 up_count="$(grep -Fc -- 'sudo docker compose --env-file deploy.env up -d backend web' "${workflow}")"
 if [[ "${up_count}" -lt 2 ]]; then
   printf 'expected deployment and rollback compose up commands\n' >&2
+  exit 1
+fi
+
+injection_line="$(grep -nF "echo 'failure injection: after_up_before_health' >&2" "${workflow}" | cut -d: -f1 | head -n1 || true)"
+deploy_up_line="$(grep -nF 'sudo docker compose --env-file deploy.env up -d backend web' "${workflow}" | tail -n1 | cut -d: -f1 || true)"
+deploy_health_line="$(grep -nF 'until curl -fsS http://127.0.0.1:8081/api/health' "${workflow}" | tail -n1 | cut -d: -f1 || true)"
+if [[ -z "${injection_line}" || -z "${deploy_up_line}" || -z "${deploy_health_line}" ]]; then
+  printf 'failure injection ordering markers are missing\n' >&2
+  exit 1
+fi
+if [[ "${injection_line}" -le "${deploy_up_line}" || "${injection_line}" -ge "${deploy_health_line}" ]]; then
+  printf 'failure injection must run after deploy up and before deploy health check\n' >&2
   exit 1
 fi
 
