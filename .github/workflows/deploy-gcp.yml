@@ -84,7 +84,48 @@ jobs:
           gcloud compute ssh "${GCE_INSTANCE}" --zone "${GCE_ZONE}" --tunnel-through-iap --command "
             set -euo pipefail
             cd /opt/ucmarket
-            sudo cp deploy.env deploy.env.pre-${GITHUB_SHA}
+            rollback_env=\"deploy.env.pre-${GITHUB_SHA}\"
+            rollback() {
+              original_status=\$?
+              trap - EXIT
+              if [ \$original_status -eq 0 ]; then
+                exit 0
+              fi
+              set +e
+              if [ ! -f \"\$rollback_env\" ]; then
+                echo \"rollback backup missing: \$rollback_env\" >&2
+                exit \$original_status
+              fi
+              if ! sudo cp \"\$rollback_env\" deploy.env; then
+                echo 'rollback could not restore deploy.env' >&2
+                exit \$original_status
+              fi
+              if ! sudo docker compose --env-file deploy.env pull backend web; then
+                echo 'rollback could not pull previous images' >&2
+                exit \$original_status
+              fi
+              if ! sudo env PROJECT_ID='${GCP_PROJECT_ID}' DEPLOY_MODE='${{ inputs.environment }}' RUNTIME_DIR=/run/ucmarket bash ./render-runtime-secrets.sh; then
+                echo 'rollback could not render runtime secrets' >&2
+                exit \$original_status
+              fi
+              if ! sudo docker compose --env-file deploy.env up -d backend web; then
+                echo 'rollback could not start previous images' >&2
+                exit \$original_status
+              fi
+              attempt=0
+              until curl -fsS http://127.0.0.1:8081/api/health; do
+                attempt=\$((attempt + 1))
+                if [ \$attempt -ge 30 ]; then
+                  echo 'rollback health check failed after 30 attempts' >&2
+                  exit \$original_status
+                fi
+                sleep 2
+              done
+              echo 'rollback completed' >&2
+              exit \$original_status
+            }
+            trap rollback EXIT
+            sudo cp deploy.env \"\$rollback_env\"
             sudo sed -i 's#^BACKEND_IMAGE=.*#BACKEND_IMAGE=${BACKEND_IMAGE}#; s#^WEB_IMAGE=.*#WEB_IMAGE=${WEB_IMAGE}#' deploy.env
             sudo docker compose --env-file deploy.env pull backend web
             sudo env PROJECT_ID='${GCP_PROJECT_ID}' DEPLOY_MODE='${{ inputs.environment }}' RUNTIME_DIR=/run/ucmarket bash ./render-runtime-secrets.sh
