@@ -57,6 +57,8 @@ jobs:
           bash -n deploy/gcp/provision-n8n-credentials.sh
           bash -n deploy/gcp/smoke-core.sh
           bash -n deploy/gcp/smoke-07.sh
+          bash -n deploy/gcp/test-deploy-workflow-contract.sh
+          bash deploy/gcp/test-deploy-workflow-contract.sh
 
           runtime_dir="$(mktemp -d)"
           trap 'rm -rf "${runtime_dir}"' EXIT
