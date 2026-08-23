@@ -147,6 +147,23 @@ PYPROBE
       exit 1
     fi
   done
+
+  # 第二道 staging guard 只有在任何副作用之前執行才有意義：晚於 trap／備份／sed 的話，
+  # 遠端已經動過 deploy.env 才發現不該部署。文字比對看不出位置，所以比行號。
+  guard_line="$(grep -nF 'failure injection is only allowed in staging' "${probe_dir}/remote.sh" | head -n1 | cut -d: -f1 || true)"
+  effect_line="$(grep -nE 'trap rollback EXIT|sudo cp deploy\.env|sudo sed -i' "${probe_dir}/remote.sh" | head -n1 | cut -d: -f1 || true)"
+  if [[ -z "${guard_line}" ]]; then
+    printf 'remote script lost the staging-only failure injection guard\n' >&2
+    exit 1
+  fi
+  if [[ -z "${effect_line}" ]]; then
+    printf 'remote script lost the rollback trap and the deploy.env mutation\n' >&2
+    exit 1
+  fi
+  if [[ "${guard_line}" -ge "${effect_line}" ]]; then
+    printf 'the staging-only guard must run before the rollback trap and any deploy.env mutation\n' >&2
+    exit 1
+  fi
 fi
 
 # image publish 必須對同一個 commit 具備 idempotency：tag 已發布時要重用既有 digest，
@@ -263,6 +280,57 @@ PYQUOTES
 )"
 if [[ -n "${unescaped}" ]]; then
   printf 'every double quote inside the gcloud --command block must be escaped:\n%s\n' "${unescaped}" >&2
+  exit 1
+fi
+
+
+# permissions 與 fail-fast 是 YAML 結構層的不變量：grep 看不出 permissions 掛在哪個 job
+# （'permissions: {}' 在任何 job 上都能比中），也看不出 reject step 究竟真的 exit 1，
+# 還是只印了一行 ::error:: 就讓整個 run 通過。
+permission_problems="$("${python_bin:-python}" - "${workflow}" <<'PYPERMS'
+import sys, yaml
+doc = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
+workflow_permissions = doc.get("permissions")
+jobs = doc["jobs"]
+problems = []
+
+
+def effective(job):
+    # job 沒宣告 permissions 就繼承 workflow 層的那一份
+    return jobs[job].get("permissions", workflow_permissions)
+
+
+deploy = effective("deploy")
+if (not isinstance(deploy, dict)
+        or deploy.get("id-token") != "write"
+        or deploy.get("contents") != "read"):
+    problems.append(
+        "deploy must end up with contents: read and id-token: write for WIF, found: %r" % (deploy,))
+
+expected_deploy_if = "${{ inputs.failure_injection == 'none' || inputs.environment == 'staging' }}"
+if jobs["deploy"].get("if") != expected_deploy_if:
+    problems.append(
+        "deploy must skip non-staging failure injection, found if: %r" % (jobs["deploy"].get("if"),))
+
+validator = effective("validate-inputs")
+if validator != {}:
+    problems.append("validate-inputs must declare empty permissions, found: %r" % (validator,))
+
+reject = [s for s in jobs["validate-inputs"]["steps"]
+          if "failure_injection is only allowed" in s.get("run", "")]
+if not reject:
+    problems.append("validate-inputs never rejects a non-staging failure injection")
+elif "exit 1" not in reject[0]["run"]:
+    problems.append("the reject step must fail the run, not only log: %r" % (reject[0]["run"],))
+elif reject[0].get("if") != "${{ inputs.failure_injection != 'none' && inputs.environment != 'staging' }}":
+    problems.append(
+        "the reject step must target non-staging failure injection, found if: %r" % (reject[0].get("if"),))
+
+print("\n".join(problems))
+PYPERMS
+)"
+if [[ -n "${permission_problems}" ]]; then
+  printf '%s\n' "${permission_problems}" >&2
   exit 1
 fi
 
