@@ -23,7 +23,16 @@ assert_contains 'google-github-actions/setup-gcloud@v3'
 assert_contains 'failure_injection:'
 assert_contains 'default: none'
 assert_contains 'after_up_before_health'
+assert_contains 'validate-inputs:'
+assert_contains 'name: Validate deployment inputs'
+assert_contains 'permissions: {}'
+assert_contains 'needs: validate-inputs'
+assert_contains "if: \${{ inputs.failure_injection != 'none' && inputs.environment != 'staging' }}"
+assert_contains 'failure_injection is only allowed for environment=staging'
 assert_contains "if: \${{ inputs.failure_injection == 'none' || inputs.environment == 'staging' }}"
+assert_contains 'deployment_environment='
+assert_contains 'if [ \"\$failure_injection\" != none ] && [ \"\$deployment_environment\" != staging ]; then'
+assert_contains "echo 'failure injection is only allowed in staging' >&2"
 assert_contains 'rollback_env=\"deploy.env.pre-${GITHUB_SHA}\"'
 assert_contains 'trap rollback EXIT'
 assert_contains 'trap - EXIT'

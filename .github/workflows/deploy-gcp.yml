@@ -24,8 +24,23 @@ permissions:
   id-token: write
 
 jobs:
+  validate-inputs:
+    name: Validate deployment inputs
+    runs-on: ubuntu-latest
+    permissions: {}
+    steps:
+      - name: Reject non-staging failure injection
+        if: ${{ inputs.failure_injection != 'none' && inputs.environment != 'staging' }}
+        run: |
+          echo "::error::failure_injection is only allowed for environment=staging"
+          exit 1
+      - name: Report deployment input contract
+        run: |
+          echo "environment=${{ inputs.environment }}"
+          echo "failure_injection=${{ inputs.failure_injection }}"
   deploy:
     name: Deploy to ${{ inputs.environment }}
+    needs: validate-inputs
     if: ${{ inputs.failure_injection == 'none' || inputs.environment == 'staging' }}
     runs-on: ubuntu-latest
     environment: ${{ inputs.environment }}
@@ -116,6 +131,11 @@ jobs:
             set -euo pipefail
             cd /opt/ucmarket
             failure_injection='${{ inputs.failure_injection }}'
+            deployment_environment='${{ inputs.environment }}'
+            if [ \"\$failure_injection\" != none ] && [ \"\$deployment_environment\" != staging ]; then
+              echo 'failure injection is only allowed in staging' >&2
+              exit 1
+            fi
             registry_host='${GCP_REGION}-docker.pkg.dev'
             registry_login() {
               local registry_token
