@@ -964,8 +964,24 @@ sudo install -m 0644 "${REMOTE_RELEASE_DIR}/Caddyfile.staging"       /opt/ucmark
 sudo install -m 0644 "${REMOTE_RELEASE_DIR}/Caddyfile.production"    /opt/ucmarket-staging/
 sudo install -m 0755 "${REMOTE_RELEASE_DIR}/render-runtime-secrets.sh" /opt/ucmarket-staging/
 
-# 新版腳本的識別特徵；沒有這三行就是上錯版本，停下來
+# 本機若是 Windows，checkout 會把文字檔轉成 CRLF（core.autocrlf=true 且無 .gitattributes），
+# 而 scp 傳的是 working copy。Linux 的 bash 不吃 CRLF——每行尾的 CR 會變成指令的一部分。
+# docker-compose.yml 目前剛好是 LF，其餘三個是 CRLF；sed 對已是 LF 的檔案無害，全部跑一遍。
+file /opt/ucmarket-staging/*.sh /opt/ucmarket-staging/Caddyfile.*
+sudo sed -i 's/\r$//' /opt/ucmarket-staging/render-runtime-secrets.sh \
+  /opt/ucmarket-staging/Caddyfile.staging \
+  /opt/ucmarket-staging/Caddyfile.production \
+  /opt/ucmarket-staging/docker-compose.yml
+
+# 新版腳本的識別特徵，應為 6（三個變數各出現在定義行與使用行）。不是 6 就是上錯版本，停下來
 sudo grep -c 'SQL_DATABASE\|SQL_USER\|DB_PASSWORD_SECRET' /opt/ucmarket-staging/render-runtime-secrets.sh
+
+# 與本機比對。基準值取 repo 內容（本來就是 LF），不是 working copy：
+#   git show HEAD:deploy/gcp/<file> | sha256sum
+sudo sha256sum /opt/ucmarket-staging/docker-compose.yml \
+  /opt/ucmarket-staging/Caddyfile.staging \
+  /opt/ucmarket-staging/Caddyfile.production \
+  /opt/ucmarket-staging/render-runtime-secrets.sh
 ```
 
 步驟四（VM 上執行，建立 `deploy.env`）。先讀 production 現用的 image：
