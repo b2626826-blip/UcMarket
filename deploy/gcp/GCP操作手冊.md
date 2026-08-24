@@ -905,6 +905,11 @@ instance 沒有設定 authorized network，直連 public IP 也不通。要跑�
 `pip install "cloud-sql-python-connector[pg8000]"` 走 Cloud SQL Admin API——不必開放任何
 網路，也不必動 instance 設定。
 
+**每一條 `gcloud` 都要帶 `--project`。** 這台機器的 gcloud 預設 project 是 `ucmarket`
+（另一個 project），漏掉 `--project` 會打到錯的地方，而且 `gcloud` 會問你要不要在那個
+project 啟用 `compute.googleapis.com`——按 `y` 就是在錯誤的 project 上開 API。
+用 `gcloud config get-value project` 可以確認目前的預設值。
+
 步驟二（本機執行，把**新版**部署檔送上 VM）。`/opt/ucmarket` 上的 `render-runtime-secrets.sh`
 是舊版，**沒有 `SQL_DATABASE` 那三個變數**；staging 若沿用它，workflow 傳進去的值會被忽略，
 backend 就會連上正式庫。所以這裡一定要從 repo 重新上傳，不可以從 `/opt/ucmarket` 複製：
@@ -914,6 +919,7 @@ export RELEASE_TAG="staging-init-20260824"
 export REMOTE_RELEASE_DIR="/tmp/ucmarket-release-${RELEASE_TAG}"
 
 gcloud compute ssh "${VM_NAME}" --zone="${ZONE}" --tunnel-through-iap \
+  --project="${PROJECT_ID}" \
   --command="install -d '${REMOTE_RELEASE_DIR}'"
 
 gcloud compute scp \
@@ -922,7 +928,7 @@ gcloud compute scp \
   deploy/gcp/Caddyfile.production \
   deploy/gcp/render-runtime-secrets.sh \
   "${VM_NAME}:${REMOTE_RELEASE_DIR}/" \
-  --zone="${ZONE}" --tunnel-through-iap
+  --zone="${ZONE}" --tunnel-through-iap --project="${PROJECT_ID}"
 ```
 
 本機是 Windows PowerShell 時，上面那段的 `export` 與 `\` 續行都不成立（`export` 不是 Cmdlet，
@@ -938,6 +944,7 @@ $RELEASE_TAG = "staging-init-20260824"
 $REMOTE_RELEASE_DIR = "/tmp/ucmarket-release-$RELEASE_TAG"
 
 gcloud compute ssh $VM_NAME --zone=$ZONE --tunnel-through-iap `
+  --project=$PROJECT_ID `
   --command="install -d '$REMOTE_RELEASE_DIR'"
 
 gcloud compute scp `
@@ -946,7 +953,7 @@ gcloud compute scp `
   deploy/gcp/Caddyfile.production `
   deploy/gcp/render-runtime-secrets.sh `
   "${VM_NAME}:${REMOTE_RELEASE_DIR}/" `
-  --zone=$ZONE --tunnel-through-iap
+  --zone=$ZONE --tunnel-through-iap --project=$PROJECT_ID
 ```
 
 步驟三之後都在 VM 上執行，那是 Linux，維持 bash 寫法。
