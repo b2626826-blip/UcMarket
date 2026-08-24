@@ -877,38 +877,33 @@ gcloud secrets add-iam-policy-binding ucmarket-db-password-staging \
   --project="${PROJECT_ID}"
 ```
 
-**PostgreSQL 16 起，`public` schema 預設不再給 `PUBLIC` 建立權限**，而 backend 用 Flyway
-（`spring.flyway.enabled=true`、`ddl-auto=none`）在啟動時建表，所以新使用者必須先拿到
-`CREATE`，否則第一次啟動會在 migration 失敗。新 database 的 owner 是 `cloudsqlsuperuser`，
-授權要用 `postgres` 帳號執行：
+**不需要手動 GRANT。** PG15 起 `public` schema 不再給 `PUBLIC` 建立權限，而 backend 是
+`ddl-auto=none` ＋ `spring.flyway.enabled=true`，靠 Flyway 在啟動時建表，看起來會缺權限；
+但 Cloud SQL 透過 `gcloud sql users create` 建立的 PostgreSQL 使用者會自動成為
+`cloudsqlsuperuser` 的成員，因此對新 database 的 `public` schema 直接就有 `CREATE`。
+
+2026-08-24 實測（`ucmarket_staging_app` 連上 `ucmarket_staging`）：
+
+```text
+connect / usage / create : True, True, True
+member of                : cloudsqlsuperuser
+```
+
+`postgres`、`ucmarket_app`、`ucmarket_staging_app` 三個帳號都是 `cloudsqlsuperuser` 成員。
+**production 從來沒有執行過 GRANT 也一直正常運作**，這本身就是佐證。
+
+要重驗時的唯讀查詢（三欄都應為 `t`）：
 
 ```sql
-GRANT CONNECT ON DATABASE ucmarket_staging TO ucmarket_staging_app;
-GRANT USAGE, CREATE ON SCHEMA public TO ucmarket_staging_app;
+SELECT has_database_privilege(current_user, 'ucmarket_staging', 'CONNECT') AS can_connect,
+       has_schema_privilege(current_user, 'public', 'USAGE')               AS can_use,
+       has_schema_privilege(current_user, 'public', 'CREATE')              AS can_create;
 ```
 
-`gcloud sql connect` 需要本機有 `psql`。沒有的話用 **Cloud Shell**（瀏覽器，內建 psql，
-`gcloud sql connect` 會自行把來源 IP 暫時加進 authorized networks）：
-
-```bash
-# postgres 帳號的密碼若不明，先重設；prompt 輸入，不進指令歷史
-gcloud sql users set-password postgres \
-  --instance="${SQL_INSTANCE}" \
-  --prompt-for-password \
-  --project="${PROJECT_ID}"
-
-gcloud sql connect "${SQL_INSTANCE}" \
-  --user=postgres \
-  --database=ucmarket_staging \
-  --project="${PROJECT_ID}"
-```
-
-授權後的 read-back（`ucmarket_staging_app` 兩欄都要是 `t`）：
-
-```sql
-SELECT has_database_privilege('ucmarket_staging_app', 'ucmarket_staging', 'CONNECT') AS can_connect,
-       has_schema_privilege('ucmarket_staging_app', 'public', 'CREATE') AS can_create;
-```
+本機沒有 `psql` 時 `gcloud sql connect` 不可用（它還需要 `cloud-sql-proxy` component）。
+instance 沒有設定 authorized network，直連 public IP 也不通。要跑上面的查詢，最省事的是
+`pip install "cloud-sql-python-connector[pg8000]"` 走 Cloud SQL Admin API——不必開放任何
+網路，也不必動 instance 設定。
 
 步驟二（VM 上執行）：
 
