@@ -868,14 +868,46 @@ printf '%s' "${STAGING_SQL_PASSWORD}" | \
 unset STAGING_SQL_PASSWORD
 ```
 
-新使用者預設對 `ucmarket_staging` 沒有 schema 權限，backend 第一次啟動前要先授權。VM 服務
-帳號同時要能讀新的 secret：
+VM 服務帳號要能讀新的 secret：
 
 ```bash
 gcloud secrets add-iam-policy-binding ucmarket-db-password-staging \
   --member="serviceAccount:${VM_SERVICE_ACCOUNT}" \
   --role=roles/secretmanager.secretAccessor \
   --project="${PROJECT_ID}"
+```
+
+**PostgreSQL 16 起，`public` schema 預設不再給 `PUBLIC` 建立權限**，而 backend 用 Flyway
+（`spring.flyway.enabled=true`、`ddl-auto=none`）在啟動時建表，所以新使用者必須先拿到
+`CREATE`，否則第一次啟動會在 migration 失敗。新 database 的 owner 是 `cloudsqlsuperuser`，
+授權要用 `postgres` 帳號執行：
+
+```sql
+GRANT CONNECT ON DATABASE ucmarket_staging TO ucmarket_staging_app;
+GRANT USAGE, CREATE ON SCHEMA public TO ucmarket_staging_app;
+```
+
+`gcloud sql connect` 需要本機有 `psql`。沒有的話用 **Cloud Shell**（瀏覽器，內建 psql，
+`gcloud sql connect` 會自行把來源 IP 暫時加進 authorized networks）：
+
+```bash
+# postgres 帳號的密碼若不明，先重設；prompt 輸入，不進指令歷史
+gcloud sql users set-password postgres \
+  --instance="${SQL_INSTANCE}" \
+  --prompt-for-password \
+  --project="${PROJECT_ID}"
+
+gcloud sql connect "${SQL_INSTANCE}" \
+  --user=postgres \
+  --database=ucmarket_staging \
+  --project="${PROJECT_ID}"
+```
+
+授權後的 read-back（`ucmarket_staging_app` 兩欄都要是 `t`）：
+
+```sql
+SELECT has_database_privilege('ucmarket_staging_app', 'ucmarket_staging', 'CONNECT') AS can_connect,
+       has_schema_privilege('ucmarket_staging_app', 'public', 'CREATE') AS can_create;
 ```
 
 步驟二（VM 上執行）：
