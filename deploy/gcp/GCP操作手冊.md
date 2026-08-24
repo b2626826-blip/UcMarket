@@ -824,6 +824,70 @@ credential 隔離與災難復原細節見：
 
 到此停在 Gate A，列出將修改的 DNS records、firewall rule 與 Caddy bind，等待明確 `go`。
 
+### 8.10 隔離的 staging stack（同一台 VM，第二套 compose stack）
+
+`deploy-gcp.yml` 的 stack 身分已改為依 `inputs.environment` 推導，不再寫死 production：
+
+| job env | production | staging |
+|---|---|---|
+| `DEPLOY_DIR` | `/opt/ucmarket` | `/opt/ucmarket-staging` |
+| `COMPOSE_PROJECT` | `ucmarket` | `ucmarket-staging` |
+| `HEALTH_PORT` | `8081` | `8181` |
+| `RUNTIME_DIR` | `/run/ucmarket` | `/run/ucmarket-staging` |
+
+**在 `/opt/ucmarket-staging` 建立起來之前，`environment=staging` 的 dispatch 會在 `cd` 這一步
+失敗。這是刻意的 fail-safe**：staging 部署寧可失敗，也不可以再作用到 production 的那套容器。
+
+前置：需要一個獨立的資料目標——新的 Cloud SQL instance，或同一 instance 內的新 database ＋
+獨立 DB 使用者。**資源屬 §2.2「必須另案核可」，未建立前本節無法完成。**
+
+步驟（VM 上執行）：
+
+```bash
+sudo install -d -m 0755 /opt/ucmarket-staging
+sudo install -d -m 0700 /run/ucmarket-staging
+```
+
+依 §8.2 把同一組部署檔同步到 `/opt/ucmarket-staging`（compose、Caddyfile、腳本都與
+production 相同，只有 `deploy.env` 不同），再建立 `/opt/ucmarket-staging/deploy.env`。與
+production 的 `deploy.env` 必須逐項不同的欄位：
+
+```dotenv
+CLOUD_SQL_CONNECTION_NAME=PROJECT_ID:REGION:STAGING_SQL_INSTANCE
+RUNTIME_DIR=/run/ucmarket-staging
+BACKEND_BIND_PORT=8181
+N8N_BIND_PORT=15678
+WEB_BIND_ADDRESS=127.0.0.1:8180
+WEB_TLS_BIND_ADDRESS=127.0.0.1:8543
+```
+
+`BACKEND_BIND_PORT` 與 `N8N_BIND_PORT` 在 compose 有預設值（`8081`／`5678`），省略就會與
+production 搶同一個 host port。渲染 runtime secrets 時 `RUNTIME_DIR` 要指到 staging 那份：
+
+```bash
+cd /opt/ucmarket-staging
+sudo chmod 0600 deploy.env
+sudo env PROJECT_ID=PROJECT_ID DEPLOY_MODE=staging RUNTIME_DIR=/run/ucmarket-staging \
+  bash ./render-runtime-secrets.sh
+```
+
+**手動執行 compose 一律要帶 `-p ucmarket-staging`。** compose 檔的 `name: ucmarket` 是預設
+專案名，CLI 的 `-p` 優先；忘記帶就會直接操作 production 的容器：
+
+```bash
+sudo docker compose -p ucmarket-staging --env-file deploy.env up -d backend web
+```
+
+驗收條件：
+
+- `curl -fsS http://127.0.0.1:8181/api/health` 回 200。
+- `sudo docker ps` 同時看得到 `ucmarket-*` 與 `ucmarket-staging-*` 兩組容器。
+- production 容器的 ID 在 staging 啟動前後**沒有變**（`docker ps -q --filter name=^ucmarket-`）。
+- staging 的 backend 連到的是 staging 的資料目標，不是正式庫。
+
+已知限制：mailpit 的 host port（1025／8025）未參數化，兩套 stack 不能同時啟用 `staging`
+profile。workflow 只 `up -d backend web`，不受影響；手動啟 mailpit 時要自己避開。
+
 ## 9. 階段 5：公開上線（Gate A 核可後）
 
 ### 9.1 上線前唯讀重驗

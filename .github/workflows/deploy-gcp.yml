@@ -50,6 +50,10 @@ jobs:
       ARTIFACT_REPOSITORY: ${{ vars.ARTIFACT_REPOSITORY }}
       GCE_ZONE: ${{ vars.GCE_ZONE }}
       GCE_INSTANCE: ${{ vars.GCE_INSTANCE }}
+      DEPLOY_DIR: ${{ inputs.environment == 'production' && '/opt/ucmarket' || '/opt/ucmarket-staging' }}
+      COMPOSE_PROJECT: ${{ inputs.environment == 'production' && 'ucmarket' || 'ucmarket-staging' }}
+      HEALTH_PORT: ${{ inputs.environment == 'production' && '8081' || '8181' }}
+      RUNTIME_DIR: ${{ inputs.environment == 'production' && '/run/ucmarket' || '/run/ucmarket-staging' }}
       FIREBASE_WEB_API: ${{ secrets.FIREBASE_WEB_API }}
       FIREBASE_WEB_DOMAIN: ${{ secrets.FIREBASE_WEB_DOMAIN }}
       FIREBASE_WEB_PROJECT: ${{ secrets.FIREBASE_WEB_PROJECT }}
@@ -129,7 +133,7 @@ jobs:
           test -n "${GCE_ZONE}" && test -n "${GCE_INSTANCE}"
           gcloud compute ssh "${GCE_INSTANCE}" --zone "${GCE_ZONE}" --tunnel-through-iap --command "
             set -euo pipefail
-            cd /opt/ucmarket
+            cd ${DEPLOY_DIR}
             failure_injection='${{ inputs.failure_injection }}'
             deployment_environment='${{ inputs.environment }}'
             if [ \"\$failure_injection\" != none ] && [ \"\$deployment_environment\" != staging ]; then
@@ -161,7 +165,7 @@ jobs:
               if ! registry_login; then
                 return 1
               fi
-              if ! sudo docker compose --env-file deploy.env pull backend web; then
+              if ! sudo docker compose -p ${COMPOSE_PROJECT} --env-file deploy.env pull backend web; then
                 registry_logout
                 return 1
               fi
@@ -192,16 +196,16 @@ jobs:
                 echo 'rollback could not pull previous images' >&2
                 exit \$original_status
               fi
-              if ! sudo env PROJECT_ID='${GCP_PROJECT_ID}' DEPLOY_MODE='${{ inputs.environment }}' RUNTIME_DIR=/run/ucmarket bash ./render-runtime-secrets.sh; then
+              if ! sudo env PROJECT_ID='${GCP_PROJECT_ID}' DEPLOY_MODE='${{ inputs.environment }}' RUNTIME_DIR=${RUNTIME_DIR} bash ./render-runtime-secrets.sh; then
                 echo 'rollback could not render runtime secrets' >&2
                 exit \$original_status
               fi
-              if ! sudo docker compose --env-file deploy.env up -d backend web; then
+              if ! sudo docker compose -p ${COMPOSE_PROJECT} --env-file deploy.env up -d backend web; then
                 echo 'rollback could not start previous images' >&2
                 exit \$original_status
               fi
               attempt=0
-              until curl -fsS http://127.0.0.1:8081/api/health; do
+              until curl -fsS http://127.0.0.1:${HEALTH_PORT}/api/health; do
                 attempt=\$((attempt + 1))
                 if [ \$attempt -ge 30 ]; then
                   echo 'rollback health check failed after 30 attempts' >&2
@@ -210,7 +214,7 @@ jobs:
                 sleep 2
               done
               echo 'rollback container images:' >&2
-              sudo docker inspect --format '{{.Name}} {{.Config.Image}}' ucmarket-backend-1 ucmarket-web-1 >&2
+              sudo docker inspect --format '{{.Name}} {{.Config.Image}}' ${COMPOSE_PROJECT}-backend-1 ${COMPOSE_PROJECT}-web-1 >&2
               echo 'rollback completed' >&2
               exit \$original_status
             }
@@ -223,19 +227,19 @@ jobs:
               echo 'image pull failed' >&2
               exit 1
             fi
-            sudo env PROJECT_ID='${GCP_PROJECT_ID}' DEPLOY_MODE='${{ inputs.environment }}' RUNTIME_DIR=/run/ucmarket bash ./render-runtime-secrets.sh
-            sudo docker compose --env-file deploy.env up -d backend web
+            sudo env PROJECT_ID='${GCP_PROJECT_ID}' DEPLOY_MODE='${{ inputs.environment }}' RUNTIME_DIR=${RUNTIME_DIR} bash ./render-runtime-secrets.sh
+            sudo docker compose -p ${COMPOSE_PROJECT} --env-file deploy.env up -d backend web
             if [ \"\$failure_injection\" = 'after_up_before_health' ]; then
               echo 'failure injection: after_up_before_health' >&2
               exit 42
             fi
             attempt=0
-            until curl -fsS http://127.0.0.1:8081/api/health; do
+            until curl -fsS http://127.0.0.1:${HEALTH_PORT}/api/health; do
               attempt=\$((attempt + 1))
               if [ \$attempt -ge 30 ]; then echo 'health check failed after 30 attempts' >&2; exit 1; fi
               sleep 2
             done
-            sudo docker inspect --format '{{.Name}} {{.Config.Image}}' ucmarket-backend-1 ucmarket-web-1
+            sudo docker inspect --format '{{.Name}} {{.Config.Image}}' ${COMPOSE_PROJECT}-backend-1 ${COMPOSE_PROJECT}-web-1
           "
       - name: Release summary
         run: |

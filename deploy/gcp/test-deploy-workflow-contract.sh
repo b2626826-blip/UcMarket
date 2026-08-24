@@ -53,7 +53,7 @@ assert_contains "echo 'rollback restored deploy.env image refs:' >&2"
 assert_contains "if ! sudo grep -E '^(BACKEND_IMAGE|WEB_IMAGE)=' deploy.env >&2; then"
 assert_contains "echo 'rollback could not read restored deploy.env' >&2"
 assert_contains "echo 'rollback container images:' >&2"
-assert_contains "sudo docker inspect --format '{{.Name}} {{.Config.Image}}' ucmarket-backend-1 ucmarket-web-1 >&2"
+assert_contains "sudo docker inspect --format '{{.Name}} {{.Config.Image}}' \${COMPOSE_PROJECT}-backend-1 \${COMPOSE_PROJECT}-web-1 >&2"
 assert_contains "echo 'failure injection: after_up_before_health' >&2"
 
 backup_line="$(grep -nF 'sudo cp deploy.env \"\$rollback_env\"' "${workflow}" | cut -d: -f1 | head -n1 || true)"
@@ -80,15 +80,15 @@ if [[ "${guard_line_text}" != *'if [ ! -f \"\$rollback_env\" ]; then'* ]]; then
   exit 1
 fi
 
-up_count="$(grep -Fc -- 'sudo docker compose --env-file deploy.env up -d backend web' "${workflow}")"
+up_count="$(grep -Fc -- 'sudo docker compose -p ${COMPOSE_PROJECT} --env-file deploy.env up -d backend web' "${workflow}")"
 if [[ "${up_count}" -lt 2 ]]; then
   printf 'expected deployment and rollback compose up commands\n' >&2
   exit 1
 fi
 
 injection_line="$(grep -nF "echo 'failure injection: after_up_before_health' >&2" "${workflow}" | cut -d: -f1 | head -n1 || true)"
-deploy_up_line="$(grep -nF 'sudo docker compose --env-file deploy.env up -d backend web' "${workflow}" | tail -n1 | cut -d: -f1 || true)"
-deploy_health_line="$(grep -nF 'until curl -fsS http://127.0.0.1:8081/api/health' "${workflow}" | tail -n1 | cut -d: -f1 || true)"
+deploy_up_line="$(grep -nF 'sudo docker compose -p ${COMPOSE_PROJECT} --env-file deploy.env up -d backend web' "${workflow}" | tail -n1 | cut -d: -f1 || true)"
+deploy_health_line="$(grep -nE 'until curl -fsS http://127\.0\.0\.1:' "${workflow}" | tail -n1 | cut -d: -f1 || true)"
 if [[ -z "${injection_line}" || -z "${deploy_up_line}" || -z "${deploy_health_line}" ]]; then
   printf 'failure injection ordering markers are missing\n' >&2
   exit 1
@@ -128,6 +128,7 @@ PYPROBE
     }
     GCE_ZONE=probe-zone GCE_INSTANCE=probe-instance GCP_REGION=probe-region GITHUB_SHA=probe-sha \
       BACKEND_IMAGE=probe/backend@sha256:aa WEB_IMAGE=probe/web@sha256:bb \
+      DEPLOY_DIR=/probe/dir COMPOSE_PROJECT=probe-stack HEALTH_PORT=19999 RUNTIME_DIR=/probe/run \
       GCP_PROJECT_ID=probe-project source "${probe_dir}/step.sh"
   ) >/dev/null 2>&1
 
@@ -144,6 +145,23 @@ PYPROBE
                   'Metadata-Flavor: Google' 'docker login' 'docker logout'; do
     if ! grep -Fq -- "${expected}" "${probe_dir}/remote.sh"; then
       printf 'remote script lost its rollback contract: %s\n' "${expected}" >&2
+      exit 1
+    fi
+  done
+
+  # 隔離的核心不變量：遠端腳本的 stack 身分——部署目錄、compose project、health port、
+  # runtime dir——必須全部由 environment 推導的變數帶進來。任何一項寫死，staging 部署
+  # 就會作用在 production 的那一套容器上。
+  for expected in 'cd /probe/dir' 'docker compose -p probe-stack' '127.0.0.1:19999/api/health' \
+                  'probe-stack-backend-1' 'RUNTIME_DIR=/probe/run'; do
+    if ! grep -Fq -- "${expected}" "${probe_dir}/remote.sh"; then
+      printf 'remote script does not take its stack identity from the environment: %s\n' "${expected}" >&2
+      exit 1
+    fi
+  done
+  for forbidden in '/opt/ucmarket' '127.0.0.1:8081' 'ucmarket-backend-1' '/run/ucmarket'; do
+    if grep -Fq -- "${forbidden}" "${probe_dir}/remote.sh"; then
+      printf 'remote script hardcodes the production stack: %s\n' "${forbidden}" >&2
       exit 1
     fi
   done
@@ -331,6 +349,34 @@ PYPERMS
 )"
 if [[ -n "${permission_problems}" ]]; then
   printf '%s\n' "${permission_problems}" >&2
+  exit 1
+fi
+
+
+# stack 身分的四個值必須在 job env 由 inputs.environment 推導，而且兩個環境必須拿到
+# 不同的值。probe 只證明遠端腳本會用這些變數，證不了兩個環境真的分歧——那是這裡的事。
+stack_problems="$("${python_bin:-python}" - "${workflow}" <<'PYSTACK'
+import re, sys, yaml
+doc = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
+env = doc["jobs"]["deploy"].get("env") or {}
+problems = []
+for key in ("DEPLOY_DIR", "COMPOSE_PROJECT", "HEALTH_PORT", "RUNTIME_DIR"):
+    value = env.get(key)
+    if not isinstance(value, str) or "inputs.environment" not in value:
+        problems.append(
+            "deploy env %s must be derived from inputs.environment, found: %r" % (key, value))
+        continue
+    # 表達式裡的 'production'/'staging' 是判斷用的，其餘引號字串才是兩個環境的值
+    values = [v for v in re.findall(r"'([^']*)'", value) if v not in ("production", "staging")]
+    if len(set(values)) != 2:
+        problems.append(
+            "deploy env %s must resolve to two distinct per-environment values, found: %r"
+            % (key, values))
+print("\n".join(problems))
+PYSTACK
+)"
+if [[ -n "${stack_problems}" ]]; then
+  printf '%s\n' "${stack_problems}" >&2
   exit 1
 fi
 
