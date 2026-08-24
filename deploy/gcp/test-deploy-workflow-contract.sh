@@ -381,4 +381,34 @@ if [[ -n "${stack_problems}" ]]; then
 fi
 
 
+# 兩套 stack 跑在同一台 VM 上，任何寫死的 host port 都會讓第二套 stack 搶到第一套的 port。
+# 所以 compose 裡每一個對外 publish 的 port 都必須由環境變數推導（容器側 port 不受影響）。
+compose_file="${script_dir}/docker-compose.yml"
+port_problems="$("${python_bin:-python}" - "${compose_file}" <<'PYPORTS'
+import re, sys, yaml
+MASK = "\x00"
+doc = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
+problems = []
+for name, service in (doc.get("services") or {}).items():
+    for spec in service.get("ports") or []:
+        if isinstance(spec, dict):
+            published = spec.get("published")
+            if published is not None and not str(published).startswith("${"):
+                problems.append("service %s publishes a hard-coded host port: %r" % (name, spec))
+            continue
+        # 先把 ${VAR:-default} 遮成單一字元，否則它裡面的 : 會把欄位切錯
+        parts = re.sub(r"\$\{[^}]*\}", MASK, str(spec)).split(":")
+        if len(parts) < 2:
+            continue  # 只給容器 port，host port 由 docker 隨機分配，不會相撞
+        if parts[-2] != MASK:
+            problems.append("service %s publishes a hard-coded host port: %r" % (name, spec))
+print("\n".join(problems))
+PYPORTS
+)"
+if [[ -n "${port_problems}" ]]; then
+  printf '%s\n' "${port_problems}" >&2
+  exit 1
+fi
+
+
 printf 'deployment rollback contract: ok\n'

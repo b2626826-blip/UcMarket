@@ -859,10 +859,13 @@ BACKEND_BIND_PORT=8181
 N8N_BIND_PORT=15678
 WEB_BIND_ADDRESS=127.0.0.1:8180
 WEB_TLS_BIND_ADDRESS=127.0.0.1:8543
+MAILPIT_SMTP_PORT=11025
+MAILPIT_UI_PORT=18025
 ```
 
-`BACKEND_BIND_PORT` 與 `N8N_BIND_PORT` 在 compose 有預設值（`8081`／`5678`），省略就會與
-production 搶同一個 host port。渲染 runtime secrets 時 `RUNTIME_DIR` 要指到 staging 那份：
+compose 裡每一個 host port 都有等於 production 現值的預設值（`8081`／`5678`／`1025`／
+`8025`），省略就會與 production 搶同一個 host port。渲染 runtime secrets 時 `RUNTIME_DIR`
+要指到 staging 那份：
 
 ```bash
 cd /opt/ucmarket-staging
@@ -885,8 +888,8 @@ sudo docker compose -p ucmarket-staging --env-file deploy.env up -d backend web
 - production 容器的 ID 在 staging 啟動前後**沒有變**（`docker ps -q --filter name=^ucmarket-`）。
 - staging 的 backend 連到的是 staging 的資料目標，不是正式庫。
 
-已知限制：mailpit 的 host port（1025／8025）未參數化，兩套 stack 不能同時啟用 `staging`
-profile。workflow 只 `up -d backend web`，不受影響；手動啟 mailpit 時要自己避開。
+`test-deploy-workflow-contract.sh` 會拒絕任何寫死的 host port，所以新增 service 時忘了
+參數化會在 CI 擋下來，不會等到兩套 stack 撞 port 才發現。
 
 ## 9. 階段 5：公開上線（Gate A 核可後）
 
