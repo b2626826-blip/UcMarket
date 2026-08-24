@@ -925,6 +925,32 @@ gcloud compute scp \
   --zone="${ZONE}" --tunnel-through-iap
 ```
 
+本機是 Windows PowerShell 時，上面那段的 `export` 與 `\` 續行都不成立（`export` 不是 Cmdlet，
+續行字元是反引號）。等價寫法：
+
+```powershell
+Set-Location "C:\Users\b2626\desktop\UcMarket"
+
+$PROJECT_ID = "project-db645bf4-fc60-49be-a75"
+$ZONE = "asia-east1-c"
+$VM_NAME = "ucmarketvm"
+$RELEASE_TAG = "staging-init-20260824"
+$REMOTE_RELEASE_DIR = "/tmp/ucmarket-release-$RELEASE_TAG"
+
+gcloud compute ssh $VM_NAME --zone=$ZONE --tunnel-through-iap `
+  --command="install -d '$REMOTE_RELEASE_DIR'"
+
+gcloud compute scp `
+  deploy/gcp/docker-compose.yml `
+  deploy/gcp/Caddyfile.staging `
+  deploy/gcp/Caddyfile.production `
+  deploy/gcp/render-runtime-secrets.sh `
+  "${VM_NAME}:${REMOTE_RELEASE_DIR}/" `
+  --zone=$ZONE --tunnel-through-iap
+```
+
+步驟三之後都在 VM 上執行，那是 Linux，維持 bash 寫法。
+
 步驟三（VM 上執行，建立第二套 stack 的目錄與檔案）：
 
 ```bash
