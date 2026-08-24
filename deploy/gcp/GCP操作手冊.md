@@ -905,37 +905,83 @@ instance 沒有設定 authorized network，直連 public IP 也不通。要跑�
 `pip install "cloud-sql-python-connector[pg8000]"` 走 Cloud SQL Admin API——不必開放任何
 網路，也不必動 instance 設定。
 
-步驟二（VM 上執行）：
+步驟二（本機執行，把**新版**部署檔送上 VM）。`/opt/ucmarket` 上的 `render-runtime-secrets.sh`
+是舊版，**沒有 `SQL_DATABASE` 那三個變數**；staging 若沿用它，workflow 傳進去的值會被忽略，
+backend 就會連上正式庫。所以這裡一定要從 repo 重新上傳，不可以從 `/opt/ucmarket` 複製：
 
 ```bash
+export RELEASE_TAG="staging-init-20260824"
+export REMOTE_RELEASE_DIR="/tmp/ucmarket-release-${RELEASE_TAG}"
+
+gcloud compute ssh "${VM_NAME}" --zone="${ZONE}" --tunnel-through-iap \
+  --command="install -d '${REMOTE_RELEASE_DIR}'"
+
+gcloud compute scp \
+  deploy/gcp/docker-compose.yml \
+  deploy/gcp/Caddyfile.staging \
+  deploy/gcp/Caddyfile.production \
+  deploy/gcp/render-runtime-secrets.sh \
+  "${VM_NAME}:${REMOTE_RELEASE_DIR}/" \
+  --zone="${ZONE}" --tunnel-through-iap
+```
+
+步驟三（VM 上執行，建立第二套 stack 的目錄與檔案）：
+
+```bash
+export REMOTE_RELEASE_DIR="/tmp/ucmarket-release-staging-init-20260824"
+
 sudo install -d -m 0755 /opt/ucmarket-staging
 sudo install -d -m 0700 /run/ucmarket-staging
+
+sudo install -m 0644 "${REMOTE_RELEASE_DIR}/docker-compose.yml"      /opt/ucmarket-staging/
+sudo install -m 0644 "${REMOTE_RELEASE_DIR}/Caddyfile.staging"       /opt/ucmarket-staging/
+sudo install -m 0644 "${REMOTE_RELEASE_DIR}/Caddyfile.production"    /opt/ucmarket-staging/
+sudo install -m 0755 "${REMOTE_RELEASE_DIR}/render-runtime-secrets.sh" /opt/ucmarket-staging/
+
+# 新版腳本的識別特徵；沒有這三行就是上錯版本，停下來
+sudo grep -c 'SQL_DATABASE\|SQL_USER\|DB_PASSWORD_SECRET' /opt/ucmarket-staging/render-runtime-secrets.sh
 ```
 
-依 §8.2 把同一組部署檔同步到 `/opt/ucmarket-staging`（compose、Caddyfile、腳本都與
-production 相同，只有 `deploy.env` 不同），再建立 `/opt/ucmarket-staging/deploy.env`。與
-production 的 `deploy.env` 必須逐項不同的欄位：
+步驟四（VM 上執行，建立 `deploy.env`）。先讀 production 現用的 image：
 
-```dotenv
-# 同一個 instance，所以 connection name 與 production 相同；分歧在 database 與帳號
-CLOUD_SQL_CONNECTION_NAME=PROJECT_ID:REGION:ucmarket-pg
+```bash
+sudo grep -E '^(BACKEND_IMAGE|WEB_IMAGE)=' /opt/ucmarket/deploy.env
+```
+
+把讀到的兩行原樣填進下面。**`BACKEND_IMAGE=` 與 `WEB_IMAGE=` 這兩行必須存在**——
+`deploy-gcp.yml:228` 是用 `sed -i 's#^BACKEND_IMAGE=.*#...#'` 改寫它們，**sed 只替換既有行，
+不會新增**；缺行的話部署會靜默沿用舊值：
+
+```bash
+sudo tee /opt/ucmarket-staging/deploy.env >/dev/null <<'ENVEOF'
+CLOUD_SQL_CONNECTION_NAME=project-db645bf4-fc60-49be-a75:asia-east1:ucmarket-pg
+BACKEND_IMAGE=<貼上 production 那一行的值>
+WEB_IMAGE=<貼上 production 那一行的值>
 RUNTIME_DIR=/run/ucmarket-staging
-BACKEND_BIND_PORT=8181
-N8N_BIND_PORT=15678
+CADDYFILE_PATH=./Caddyfile.staging
 WEB_BIND_ADDRESS=127.0.0.1:8180
 WEB_TLS_BIND_ADDRESS=127.0.0.1:8543
+BACKEND_BIND_PORT=8181
+N8N_BIND_PORT=15678
 MAILPIT_SMTP_PORT=11025
 MAILPIT_UI_PORT=18025
+ENVEOF
+
+sudo chmod 0600 /opt/ucmarket-staging/deploy.env
 ```
 
+`CLOUD_SQL_CONNECTION_NAME` 與 production 相同是刻意的——同一個 instance，隔離發生在
+database 與帳號，由 `render-runtime-secrets.sh` 的三個變數決定。
+
 compose 裡每一個 host port 都有等於 production 現值的預設值（`8081`／`5678`／`1025`／
-`8025`），省略就會與 production 搶同一個 host port。渲染 runtime secrets 時 `RUNTIME_DIR`
-要指到 staging 那份：
+`8025`），省略就會與 production 搶同一個 host port。
+
+步驟五（VM 上執行，渲染 runtime secrets）。`RUNTIME_DIR` 要指到 staging 那份：
 
 ```bash
 cd /opt/ucmarket-staging
 sudo chmod 0600 deploy.env
-sudo env PROJECT_ID=PROJECT_ID DEPLOY_MODE=staging RUNTIME_DIR=/run/ucmarket-staging \
+sudo env PROJECT_ID=project-db645bf4-fc60-49be-a75 DEPLOY_MODE=staging RUNTIME_DIR=/run/ucmarket-staging \
   SQL_DATABASE=ucmarket_staging SQL_USER=ucmarket_staging_app \
   DB_PASSWORD_SECRET=ucmarket-db-password-staging \
   bash ./render-runtime-secrets.sh
@@ -943,6 +989,21 @@ sudo env PROJECT_ID=PROJECT_ID DEPLOY_MODE=staging RUNTIME_DIR=/run/ucmarket-sta
 
 這三個變數的預設值等於 production 的現值，**手動渲染時漏掉任何一個，staging 的 backend
 就會連上正式庫**。`deploy-gcp.yml` 由 `inputs.environment` 推導後自動傳入，不必手動指定。
+
+步驟六（VM 上執行，渲染後先驗資料目標，再啟動）。**這一步要在 compose 之前做**——連錯
+資料目標的 stack 不該被啟動：
+
+```bash
+# staging 這份必須是 ucmarket_staging / ucmarket_staging_app
+sudo grep -E '^SPRING_DATASOURCE_(URL|USERNAME)=' /run/ucmarket-staging/backend.env
+# production 這份必須原封不動：ucmarket / ucmarket_app
+sudo grep -E '^SPRING_DATASOURCE_(URL|USERNAME)=' /run/ucmarket/backend.env
+
+# 啟動前先記下 production 的容器 ID，供事後比對。
+# 用 compose project label，不要用 name filter——`name=^ucmarket-` 是 regex，
+# `ucmarket-staging-backend-1` 也以 `ucmarket-` 開頭，會一起被比中。
+sudo docker ps -q --filter label=com.docker.compose.project=ucmarket | sort > /tmp/prod-ids-before
+```
 
 **手動執行 compose 一律要帶 `-p ucmarket-staging`。** compose 檔的 `name: ucmarket` 是預設
 專案名，CLI 的 `-p` 優先；忘記帶就會直接操作 production 的容器：
@@ -953,10 +1014,16 @@ sudo docker compose -p ucmarket-staging --env-file deploy.env up -d backend web
 
 驗收條件：
 
+- 上面兩個 `grep` 各自指向自己的資料目標。
 - `curl -fsS http://127.0.0.1:8181/api/health` 回 200。
 - `sudo docker ps` 同時看得到 `ucmarket-*` 與 `ucmarket-staging-*` 兩組容器。
-- production 容器的 ID 在 staging 啟動前後**沒有變**（`docker ps -q --filter name=^ucmarket-`）。
-- staging 的 backend 連到的是 staging 的資料目標，不是正式庫。
+- production 容器 ID 不變——下面這條**必須無輸出**：
+  ```bash
+  sudo docker ps -q --filter label=com.docker.compose.project=ucmarket | sort |
+    diff - /tmp/prod-ids-before
+  ```
+- backend 首次啟動會由 Flyway 對空 database 建表；`sudo docker logs ucmarket-staging-backend-1`
+  應看到 migration 成功，而不是權限或連線錯誤。
 
 `test-deploy-workflow-contract.sh` 會拒絕任何寫死的 host port，所以新增 service 時忘了
 參數化會在 CI 擋下來，不會等到兩套 stack 撞 port 才發現。
