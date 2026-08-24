@@ -4,6 +4,9 @@ set -euo pipefail
 PROJECT_ID="${PROJECT_ID:?PROJECT_ID is required}"
 DEPLOY_MODE="${DEPLOY_MODE:-staging}"
 RUNTIME_DIR="${RUNTIME_DIR:-/run/ucmarket}"
+SQL_DATABASE="${SQL_DATABASE:-ucmarket}"
+SQL_USER="${SQL_USER:-ucmarket_app}"
+DB_PASSWORD_SECRET="${DB_PASSWORD_SECRET:-ucmarket-db-password}"
 SECRET_API="https://secretmanager.googleapis.com/v1/projects/${PROJECT_ID}/secrets"
 FIREBASE_RUNTIME_UID="${FIREBASE_RUNTIME_UID:-999}"
 FIREBASE_RUNTIME_GID="${FIREBASE_RUNTIME_GID:-999}"
@@ -41,9 +44,9 @@ N8N_ENV="${RUNTIME_DIR}/n8n.env"
 WEB_ENV="${RUNTIME_DIR}/web.env"
 
 : > "${BACKEND_ENV}"
+printf 'SPRING_DATASOURCE_URL=jdbc:postgresql://cloud-sql-proxy:5432/%s\n' "${SQL_DATABASE}" >> "${BACKEND_ENV}"
+printf 'SPRING_DATASOURCE_USERNAME=%s\n' "${SQL_USER}" >> "${BACKEND_ENV}"
 cat >> "${BACKEND_ENV}" <<'EOF'
-SPRING_DATASOURCE_URL=jdbc:postgresql://cloud-sql-proxy:5432/ucmarket
-SPRING_DATASOURCE_USERNAME=ucmarket_app
 PORT=8080
 APP_FRONTEND_BASE_URL=https://ucmarket.online
 CORS_ALLOWED_ORIGINS=https://ucmarket.online,https://www.ucmarket.online
@@ -51,7 +54,7 @@ FIREBASE_SERVICE_ACCOUNT_PATH=file:/run/secrets/firebase-service-account.json
 NOTIFICATION_WORKER_ENABLED=true
 N8N_NOTIFY_WEBHOOK_URL=http://n8n:5678/webhook/notify
 EOF
-write_secret_env "${BACKEND_ENV}" SPRING_DATASOURCE_PASSWORD ucmarket-db-password
+write_secret_env "${BACKEND_ENV}" SPRING_DATASOURCE_PASSWORD "${DB_PASSWORD_SECRET}"
 write_secret_env "${BACKEND_ENV}" APP_JWT_SECRET ucmarket-jwt-secret
 write_secret_env "${BACKEND_ENV}" N8N_NOTIFY_WEBHOOK_TOKEN ucmarket-n8n-notify-token
 write_secret_env "${BACKEND_ENV}" N8N_SERVICE_TOKEN ucmarket-n8n-read-token

@@ -54,6 +54,9 @@ jobs:
       COMPOSE_PROJECT: ${{ inputs.environment == 'production' && 'ucmarket' || 'ucmarket-staging' }}
       HEALTH_PORT: ${{ inputs.environment == 'production' && '8081' || '8181' }}
       RUNTIME_DIR: ${{ inputs.environment == 'production' && '/run/ucmarket' || '/run/ucmarket-staging' }}
+      SQL_DATABASE: ${{ inputs.environment == 'production' && 'ucmarket' || 'ucmarket_staging' }}
+      SQL_USER: ${{ inputs.environment == 'production' && 'ucmarket_app' || 'ucmarket_staging_app' }}
+      DB_PASSWORD_SECRET: ${{ inputs.environment == 'production' && 'ucmarket-db-password' || 'ucmarket-db-password-staging' }}
       FIREBASE_WEB_API: ${{ secrets.FIREBASE_WEB_API }}
       FIREBASE_WEB_DOMAIN: ${{ secrets.FIREBASE_WEB_DOMAIN }}
       FIREBASE_WEB_PROJECT: ${{ secrets.FIREBASE_WEB_PROJECT }}
@@ -196,7 +199,7 @@ jobs:
                 echo 'rollback could not pull previous images' >&2
                 exit \$original_status
               fi
-              if ! sudo env PROJECT_ID='${GCP_PROJECT_ID}' DEPLOY_MODE='${{ inputs.environment }}' RUNTIME_DIR=${RUNTIME_DIR} bash ./render-runtime-secrets.sh; then
+              if ! sudo env PROJECT_ID='${GCP_PROJECT_ID}' DEPLOY_MODE='${{ inputs.environment }}' RUNTIME_DIR=${RUNTIME_DIR} SQL_DATABASE=${SQL_DATABASE} SQL_USER=${SQL_USER} DB_PASSWORD_SECRET=${DB_PASSWORD_SECRET} bash ./render-runtime-secrets.sh; then
                 echo 'rollback could not render runtime secrets' >&2
                 exit \$original_status
               fi
@@ -227,7 +230,7 @@ jobs:
               echo 'image pull failed' >&2
               exit 1
             fi
-            sudo env PROJECT_ID='${GCP_PROJECT_ID}' DEPLOY_MODE='${{ inputs.environment }}' RUNTIME_DIR=${RUNTIME_DIR} bash ./render-runtime-secrets.sh
+            sudo env PROJECT_ID='${GCP_PROJECT_ID}' DEPLOY_MODE='${{ inputs.environment }}' RUNTIME_DIR=${RUNTIME_DIR} SQL_DATABASE=${SQL_DATABASE} SQL_USER=${SQL_USER} DB_PASSWORD_SECRET=${DB_PASSWORD_SECRET} bash ./render-runtime-secrets.sh
             sudo docker compose -p ${COMPOSE_PROJECT} --env-file deploy.env up -d backend web
             if [ \"\$failure_injection\" = 'after_up_before_health' ]; then
               echo 'failure injection: after_up_before_health' >&2

@@ -79,8 +79,10 @@ export REGISTRY_HOST="${REGION}-docker.pkg.dev"
 export IMAGE_PREFIX="${REGISTRY_HOST}/${PROJECT_ID}/${ARTIFACT_REPOSITORY}"
 ```
 
-新專案可更換以上識別值，但 `deploy/gcp/render-runtime-secrets.sh` 內的資料庫名稱、帳號、
-網域與 secret 名稱也必須一起做受控修改並重新驗證；不要只換 project ID 就假設能部署。
+新專案可更換以上識別值。`render-runtime-secrets.sh` 的資料庫名稱、帳號與 DB password
+secret 已可由 `SQL_DATABASE`／`SQL_USER`／`DB_PASSWORD_SECRET` 覆寫（預設值等於上表的
+production 值）；**網域與其餘 secret 名稱仍寫死在腳本內**，換專案時必須一起做受控修改並
+重新驗證，不要只換 project ID 就假設能部署。
 
 ## 4. 階段 0：本機與權限準備
 
@@ -838,10 +840,45 @@ credential 隔離與災難復原細節見：
 **在 `/opt/ucmarket-staging` 建立起來之前，`environment=staging` 的 dispatch 會在 `cd` 這一步
 失敗。這是刻意的 fail-safe**：staging 部署寧可失敗，也不可以再作用到 production 的那套容器。
 
-前置：需要一個獨立的資料目標——新的 Cloud SQL instance，或同一 instance 內的新 database ＋
-獨立 DB 使用者。**資源屬 §2.2「必須另案核可」，未建立前本節無法完成。**
+前置：需要一個獨立的資料目標。裁定採**同一個 `ucmarket-pg` instance 內的新 database ＋
+獨立 DB 使用者**——資料與帳號分開，備份與運算仍共用。**資源屬 §2.2「必須另案核可」，未
+建立前本節無法完成。**
 
-步驟（VM 上執行）：
+步驟一（本機執行，建立資料目標）。password 不寫入指令歷史，由操作者互動輸入：
+
+```bash
+gcloud sql databases create ucmarket_staging \
+  --instance="${SQL_INSTANCE}" \
+  --project="${PROJECT_ID}"
+
+gcloud secrets describe ucmarket-db-password-staging --project="${PROJECT_ID}" >/dev/null 2>&1 || \
+  gcloud secrets create ucmarket-db-password-staging \
+    --replication-policy=automatic \
+    --project="${PROJECT_ID}"
+
+read -rsp "staging Cloud SQL password: " STAGING_SQL_PASSWORD
+echo
+gcloud sql users create ucmarket_staging_app \
+  --instance="${SQL_INSTANCE}" \
+  --password="${STAGING_SQL_PASSWORD}" \
+  --project="${PROJECT_ID}"
+printf '%s' "${STAGING_SQL_PASSWORD}" | \
+  gcloud secrets versions add ucmarket-db-password-staging --data-file=- \
+  --project="${PROJECT_ID}"
+unset STAGING_SQL_PASSWORD
+```
+
+新使用者預設對 `ucmarket_staging` 沒有 schema 權限，backend 第一次啟動前要先授權。VM 服務
+帳號同時要能讀新的 secret：
+
+```bash
+gcloud secrets add-iam-policy-binding ucmarket-db-password-staging \
+  --member="serviceAccount:${VM_SERVICE_ACCOUNT}" \
+  --role=roles/secretmanager.secretAccessor \
+  --project="${PROJECT_ID}"
+```
+
+步驟二（VM 上執行）：
 
 ```bash
 sudo install -d -m 0755 /opt/ucmarket-staging
@@ -853,7 +890,8 @@ production 相同，只有 `deploy.env` 不同），再建立 `/opt/ucmarket-sta
 production 的 `deploy.env` 必須逐項不同的欄位：
 
 ```dotenv
-CLOUD_SQL_CONNECTION_NAME=PROJECT_ID:REGION:STAGING_SQL_INSTANCE
+# 同一個 instance，所以 connection name 與 production 相同；分歧在 database 與帳號
+CLOUD_SQL_CONNECTION_NAME=PROJECT_ID:REGION:ucmarket-pg
 RUNTIME_DIR=/run/ucmarket-staging
 BACKEND_BIND_PORT=8181
 N8N_BIND_PORT=15678
@@ -871,8 +909,13 @@ compose 裡每一個 host port 都有等於 production 現值的預設值（`808
 cd /opt/ucmarket-staging
 sudo chmod 0600 deploy.env
 sudo env PROJECT_ID=PROJECT_ID DEPLOY_MODE=staging RUNTIME_DIR=/run/ucmarket-staging \
+  SQL_DATABASE=ucmarket_staging SQL_USER=ucmarket_staging_app \
+  DB_PASSWORD_SECRET=ucmarket-db-password-staging \
   bash ./render-runtime-secrets.sh
 ```
+
+這三個變數的預設值等於 production 的現值，**手動渲染時漏掉任何一個，staging 的 backend
+就會連上正式庫**。`deploy-gcp.yml` 由 `inputs.environment` 推導後自動傳入，不必手動指定。
 
 **手動執行 compose 一律要帶 `-p ucmarket-staging`。** compose 檔的 `name: ucmarket` 是預設
 專案名，CLI 的 `-p` 優先；忘記帶就會直接操作 production 的容器：

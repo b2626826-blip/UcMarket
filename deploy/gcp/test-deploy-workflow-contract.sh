@@ -129,6 +129,7 @@ PYPROBE
     GCE_ZONE=probe-zone GCE_INSTANCE=probe-instance GCP_REGION=probe-region GITHUB_SHA=probe-sha \
       BACKEND_IMAGE=probe/backend@sha256:aa WEB_IMAGE=probe/web@sha256:bb \
       DEPLOY_DIR=/probe/dir COMPOSE_PROJECT=probe-stack HEALTH_PORT=19999 RUNTIME_DIR=/probe/run \
+      SQL_DATABASE=probe_db SQL_USER=probe_user DB_PASSWORD_SECRET=probe-db-secret \
       GCP_PROJECT_ID=probe-project source "${probe_dir}/step.sh"
   ) >/dev/null 2>&1
 
@@ -153,7 +154,8 @@ PYPROBE
   # runtime dir——必須全部由 environment 推導的變數帶進來。任何一項寫死，staging 部署
   # 就會作用在 production 的那一套容器上。
   for expected in 'cd /probe/dir' 'docker compose -p probe-stack' '127.0.0.1:19999/api/health' \
-                  'probe-stack-backend-1' 'RUNTIME_DIR=/probe/run'; do
+                  'probe-stack-backend-1' 'RUNTIME_DIR=/probe/run' \
+                  'SQL_DATABASE=probe_db' 'SQL_USER=probe_user' 'DB_PASSWORD_SECRET=probe-db-secret'; do
     if ! grep -Fq -- "${expected}" "${probe_dir}/remote.sh"; then
       printf 'remote script does not take its stack identity from the environment: %s\n' "${expected}" >&2
       exit 1
@@ -360,7 +362,8 @@ import re, sys, yaml
 doc = yaml.safe_load(open(sys.argv[1], encoding="utf-8"))
 env = doc["jobs"]["deploy"].get("env") or {}
 problems = []
-for key in ("DEPLOY_DIR", "COMPOSE_PROJECT", "HEALTH_PORT", "RUNTIME_DIR"):
+for key in ("DEPLOY_DIR", "COMPOSE_PROJECT", "HEALTH_PORT", "RUNTIME_DIR",
+            "SQL_DATABASE", "SQL_USER", "DB_PASSWORD_SECRET"):
     value = env.get(key)
     if not isinstance(value, str) or "inputs.environment" not in value:
         problems.append(
@@ -409,6 +412,75 @@ if [[ -n "${port_problems}" ]]; then
   printf '%s\n' "${port_problems}" >&2
   exit 1
 fi
+
+
+# workflow 傳了變數，不代表腳本會用它。這裡把 metadata server 與 Secret Manager 換成 stub，
+# 讓 render-runtime-secrets.sh 真的跑一遍，再看實際產出的 backend.env 指向哪個資料目標。
+render_script="${script_dir}/render-runtime-secrets.sh"
+render_dir="$(mktemp -d)"
+mkdir -p "${render_dir}/bin"
+
+cat > "${render_dir}/bin/curl" <<'STUBCURL'
+#!/bin/sh
+url=""
+for a in "$@"; do case "$a" in http*) url="$a" ;; esac; done
+case "${url}" in
+  *metadata.google.internal*) printf '{"access_token":"probe-token"}' ;;
+  *)
+    name="${url#*/secrets/}"
+    name="${name%%/versions*}"
+    printf '{"payload":{"data":"%s"}}' "$(printf 'value-of-%s' "${name}" | base64 | tr -d '\n')"
+    ;;
+esac
+STUBCURL
+
+cat > "${render_dir}/bin/jq" <<'STUBJQ'
+#!/bin/sh
+filter=""
+for a in "$@"; do case "$a" in .access_token|.payload.data) filter="$a" ;; esac; done
+input="$(cat)"
+case "${filter}" in
+  .access_token) printf '%s' "${input}" | sed 's/.*"access_token":"\([^"]*\)".*/\1/' ;;
+  .payload.data) printf '%s' "${input}" | sed 's/.*"data":"\([^"]*\)".*/\1/' ;;
+  *) exit 1 ;;
+esac
+STUBJQ
+
+printf '#!/bin/sh\nexit 0\n' > "${render_dir}/bin/chown"
+# 腳本只用 install 建 RUNTIME_DIR。NTFS 上 chmod 0700 會失敗，那是平台限制，不是這個
+# probe 要驗的東西——要驗的是 backend.env 最後指向哪個資料目標。
+printf '#!/bin/sh\nfor a in "$@"; do d="$a"; done\nmkdir -p "$d"\n' > "${render_dir}/bin/install"
+chmod +x "${render_dir}/bin/curl" "${render_dir}/bin/jq" "${render_dir}/bin/chown" "${render_dir}/bin/install"
+
+if ! PATH="${render_dir}/bin:${PATH}" \
+     PROJECT_ID=probe-project DEPLOY_MODE=staging RUNTIME_DIR="${render_dir}/run" \
+     SQL_DATABASE=probe_db SQL_USER=probe_user DB_PASSWORD_SECRET=probe-db-secret \
+     bash "${render_script}" >"${render_dir}/log" 2>&1; then
+  printf 'render-runtime-secrets.sh failed under the probe:\n' >&2
+  cat "${render_dir}/log" >&2
+  rm -rf "${render_dir}"
+  exit 1
+fi
+
+backend_env="${render_dir}/run/backend.env"
+for expected in 'SPRING_DATASOURCE_URL=jdbc:postgresql://cloud-sql-proxy:5432/probe_db' \
+                'SPRING_DATASOURCE_USERNAME=probe_user' \
+                'SPRING_DATASOURCE_PASSWORD=value-of-probe-db-secret'; do
+  if ! grep -Fq -- "${expected}" "${backend_env}"; then
+    printf 'rendered backend.env does not take its data target from the environment: %s\n' "${expected}" >&2
+    rm -rf "${render_dir}"
+    exit 1
+  fi
+done
+for forbidden in ':5432/ucmarket' 'SPRING_DATASOURCE_USERNAME=ucmarket_app' \
+                 'value-of-ucmarket-db-password'; do
+  if grep -Fq -- "${forbidden}" "${backend_env}"; then
+    printf 'rendered backend.env still points at the production data target: %s\n' "${forbidden}" >&2
+    rm -rf "${render_dir}"
+    exit 1
+  fi
+done
+rm -rf "${render_dir}"
 
 
 printf 'deployment rollback contract: ok\n'
